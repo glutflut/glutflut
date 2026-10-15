@@ -1,0 +1,4 @@
+# Pin a recent stable toolchain (Bevy 0.18 needs >= 1.85).
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

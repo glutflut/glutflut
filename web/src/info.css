@@ -1,0 +1,73 @@
+@import "./legal.css";
+@import "./colors.css";
+
+.lead { font-size: 18px; }
+
+.cta {
+  display: inline-block;
+  margin: 8px 0;
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(90deg, var(--fire), var(--water));
+}
+
+.steps { padding-left: 22px; }
+.steps li { margin: 8px 0; }
+ul li { margin: 6px 0; }
+
+.legend { list-style: none; padding: 0; }
+.legend li { display: flex; align-items: baseline; gap: 10px; }
+.legend b { flex: 0 0 64px; }
+.legend .sw { align-self: center; }
+
+.sw {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 6px;
+  border-radius: 3px;
+}
+.sw.fire { background: var(--fire); }
+.sw.water { background: var(--water); }
+.sw.front { background: var(--front); }
+.sw.neutral { background: var(--neutral); }
+.sw.area {
+  height: 14px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--fire) 30%, transparent) 50%, color-mix(in srgb, var(--water) 30%, transparent) 50%);
+}
+/* Held with players' sources: the map's stripes over the fill. */
+.sw.area.hatch {
+  background:
+    repeating-linear-gradient(135deg, rgba(128, 128, 128, 0.75) 0 2px, transparent 2px 6px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fire) 30%, transparent) 50%, color-mix(in srgb, var(--water) 30%, transparent) 50%);
+}
+.sw.hotspot {
+  width: 14px;
+  height: 14px;
+  margin: 0 7px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.sw.ring {
+  width: 14px;
+  height: 14px;
+  margin: 0 5px;
+  border-radius: 50%;
+  border: 3px solid var(--water);
+  background: transparent;
+}
+
+/* Points and XP at a glance. */
+.sums { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 15px; }
+.sums th, .sums td { padding: 6px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid color-mix(in srgb, var(--muted) 35%, transparent); }
+.sums th { font-size: 13px; color: var(--muted); font-weight: 600; }
+.sums td:last-child, .sums th:last-child { width: 38%; font-variant-numeric: tabular-nums; }
+.sums td:last-child { font-weight: 600; }
+
+/* Language buttons. */
+.lang-switch { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.lang-switch select { padding: 4px 8px; border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: 14px; }
+.lang-switch option { color: #212529; }
+:focus-visible { outline: 3px solid #74c0fc; outline-offset: 2px; }

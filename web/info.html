@@ -1,0 +1,1501 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <script src="/handover.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#16181d" />
+    <meta name="description" content="Feuer gegen Wasser auf den echten Straßen deiner Stadt. Im Browser, ohne App und ohne Konto." />
+    <title>So geht's – Glut &amp; Flut</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/info.css" />
+  </head>
+  <body>
+    <main>
+      <nav class="lang-switch" aria-label="Sprache / Language"></nav>
+      <article data-lang="de">
+        <p><a href="/">← zum Spiel</a></p>
+
+        <h1>Glut &amp; Flut</h1>
+        <p class="lead">
+          Feuer gegen Wasser, auf den echten Straßen von <span class="city">Konstanz</span>. Du spielst mit deinem Handy im Browser, ohne
+          App und ohne Konto. Deine Schritte durch die Stadt sind deine Spielzüge.
+        </p>
+        <p><a class="cta" href="/">Jetzt mitspielen</a></p>
+
+        <h2>So spielst du</h2>
+        <ol class="steps">
+          <li>
+            <b>Standort erlauben.</b> Das Spiel braucht dein GPS, sonst weiß es nicht, wo du bist. Am besten draußen,
+            in der Innenstadt.
+          </li>
+          <li>
+            <b>Du bist Feuer oder Wasser.</b> Meist (in zwei von drei Fällen) teilt dich das Spiel der Seite zu, die gerade schwächer ist: mit weniger Spielenden heute, sonst mit weniger Land; sonst der anderen. Oben links
+            steht, zu wem du gehörst.
+          </li>
+          <li>
+            <b>Geh los.</b> Der Kreis um deinen Punkt zeigt deine Reichweite, etwa 80 Meter. Alle Kreuzungen darin kannst
+            du erreichen.
+          </li>
+          <li>
+            <b>Tipp auf „Erobern“.</b> Die nächste Kreuzung in Reichweite, die noch nicht dir gehört, wird zur Quelle
+            deines Elements. Von dort breitet es sich über die Straßen aus. Tippst du auf eine Kreuzung auf der Karte, zeigt eine Karte, wem sie gehört, wie stark, ob du sie nehmen kannst und was das Gelände dort ausmacht; von dort kannst du sie auch gezielt erobern.
+          </li>
+          <li>
+            <b>Weiterziehen.</b> Nach einer Eroberung musst du kurz verschnaufen, eine Quelle erlischt nach einer Weile
+            wieder. Wer die Stadt halten will, bleibt in Bewegung.
+          </li>
+        </ol>
+
+        <h2>Was du auf der Karte siehst</h2>
+        <ul class="legend">
+          <li><span class="sw fire"></span><b>Feuer</b> Straßen, die das Feuer hält</li>
+          <li><span class="sw water"></span><b>Wasser</b> Straßen, die das Wasser hält</li>
+          <li><span class="sw front"></span><b>Front</b> beide gleich stark, hier wird gekämpft</li>
+          <li><span class="sw neutral"></span><b>Grau</b> noch von niemandem erreicht</li>
+          <li><span class="sw hotspot"></span><b>Hotspot</b> pulsierender gelber Punkt, siehe unten</li>
+          <li><span class="sw ring"></span><b>Quelle</b> Ring um eine eroberte Kreuzung; er schrumpft, während die Quelle schwächer wird, und ist leer, wenn sie erlischt. Deine eigenen haben einen weißen Rand.</li>
+          <li><span class="sw area"></span><b>Fläche</b> Block, dessen Straßen ringsum (fast) ganz einer Seite gehören, leicht in ihrer Farbe gefüllt</li>
+          <li><span class="sw area hatch"></span><b>Mit Streifen</b> am Rand stehen Quellen von Spielenden: Die Fläche bringt ihnen jede Minute Punkte, hellere Streifen heißen, deine Quellen sind dabei. Ohne Streifen steht keine Quelle von Spielenden am Rand, und die Fläche bringt niemandem Punkte.</li>
+        </ul>
+        <p>Die drei Zahlen oben rechts zählen die Kreuzungen von Feuer, Front und Wasser.</p>
+
+        <h2>Wie sich Feuer und Wasser ausbreiten</h2>
+        <p>
+          Die Stadt selbst spielt mit. Glut &amp; Flut kennt das Straßennetz und die Geländehöhe jeder Kreuzung.
+        </p>
+        <ul>
+          <li><b>Feuer steigt bergauf</b>, Wasser fließt bergab. Gegen die eigene Natur kommt ein Element kaum weit: Wasser schafft nur wenige Meter bergauf, Feuer kaum bergab. Ein Hang ist für die eine Seite Rückenwind, für die andere eine Mauer.</li>
+          <li><b>Neu dabei?</b> In deinen ersten zehn Minuten eroberst du mit halber Kraft, danach mit voller. Wer schon an einem anderen Tag gespielt hat, ist sofort voll dabei. So können sich Neue einspielen, ohne dass jemand mit vielen schnell angelegten Spielständen das Spiel kapert.</li>
+          <li><b>Orte nähren die Elemente.</b> Rund um Lokale und Stände brennt von selbst ein Feuer, an Ufern und Brunnen sprudelt Wasser.</li>
+          <li><b>Die Umgebung färbt ab.</b> Manche Ecken lassen eher Feuer herein, andere eher Wasser.</li>
+          <li><b>Je weiter weg von der Quelle, desto schwächer.</b> Wo sich zwei Elemente treffen, entscheidet die Stärke; sind beide gleich, entsteht eine Front.</li>
+          <li><b>Quellen brennen herunter.</b> Eine eroberte Quelle wird mit der Zeit schwächer und erlischt nach einigen Minuten. Eine gegnerische Quelle kannst du erst übernehmen, wenn sie nur noch halb so stark ist.</li>
+        </ul>
+
+        <h2>Glut und Eis</h2>
+        <p>
+          Eine eigene Eroberung kannst du zu deiner dauerhaften Quelle machen: Feuer als <b>Glut</b>, Wasser als <b>Eis</b>
+          (Knopf „Als Glut behalten“ bzw. „Als Eis behalten“). Sie erlischt nicht nach Minuten, sondern bleibt, bis die
+          andere Seite sie übernimmt. Frisch ist sie zu stark für eine einzelne Eroberung; über einen Tag verblasst sie, und
+          dann reicht ein Klick. Komm wieder und schür deine Glut oder frisch dein Eis auf, dann ist sie wieder voll da.
+          Jede Stunde, die sie steht, bringt Punkte. Du hast zwei je Stadt (mit Stufen eine mehr je Stufe); sie stehen nicht direkt neben anderen Quellen. Sind alle gesetzt, verlegst du eine davon: Das Spiel fragt, welche. Ab Stufe 2 kannst du ihr unter „Meine Glut“ bzw. „Mein Eis“ eine <b>Inschrift</b> aus vorgegebenen Sätzen geben, die alle auf der Karte sehen; höhere Stufen und manche Abzeichen schalten mehr Sätze frei.
+          Um drei Tage ohne Pflege oder zu Beginn und Ende einer Kampagne erlischt sie.
+        </p>
+
+        <h2>Fundstücke</h2>
+        <p>
+          In der Stadt sind besondere Orte versteckt: Brunnen, besondere Bäume, Tore und Burgen, Aussichtspunkte, Kunst und
+          Grenzsteine. Bleib etwa zehn Sekunden ganz in ihrer Nähe oder erobere dort eine Kreuzung, dann deckst du sie auf. Kommst du einem näher, gibt das Spiel
+          einen Hinweis. Wenn du willst, sammelst du sie: Dann merkt sich das Spiel, welche du gefunden hast (ohne Zeitpunkt),
+          und zeigt sie in den Einstellungen als Sammlung.
+        </p>
+
+        <h2>Hotspots</h2>
+        <p>
+          Immer wieder tauchen irgendwo in der Innenstadt Hotspots auf und wandern nach etwa zehn Minuten weiter. Unten im
+          Bild steht, wie weit der nächste entfernt ist. Eroberst du direkt am Hotspot, hält deine Quelle dreimal so lange.
+        </p>
+
+        <h2>Kapitel und Wettertage</h2>
+        <p>
+          Unter der Kopfzeile steht, worum es gerade geht. Meist ist das ein Wettlauf zwischen Feuer und Wasser: Welche
+          Seite schafft zuerst ihr Ziel, etwa eine Zahl von Eroberungen, Eroberungen an der Front, Fundstücken oder Punkten?
+          Alle aus deiner Seite zählen zusammen. Wer das Ziel zuerst erreicht, gewinnt; schafft es keine, gewinnt am Ende
+          die Seite, die ihrem Ziel näher gekommen ist.
+        </p>
+        <ul>
+          <li><b>Kapitel</b> laufen an Wochenenden und erzählen zusammen eine Kampagne, etwa über die Weihnachtsmarktzeit.
+            Wer in einem Kapitel erobert oder etwas findet, bekommt ein Abzeichen dafür, und die Gewinnerseite noch eines.</li>
+          <li><b>Wettertage</b> gibt es an Werktagen von 9 bis 21 Uhr. Die Wettervorhersage für die Stadt entscheidet,
+            worum es geht: Regen und Frost helfen dem Wasser, Hitze und Sonne dem Feuer; an grauen Tagen geht es um
+            Fundstücke, an milden um die Front. Warm und kalt heißt dabei: verglichen mit den letzten Wochen in deiner
+            Stadt. Die Ziele richten sich danach, wie viel jede Seite in den letzten Wochen geschafft hat: An einem gewöhnlichen Tag ist der Wettlauf offen, und das Wetter gibt den Ausschlag.</li>
+          <li><b>Das Wetter selbst</b> wirkt jeden Tag ein wenig mit: Bei Regen brennen natürliche Feuerquellen
+            schwächer und Wasserquellen halten länger, bei Wärme und Sonne ist es umgekehrt, bei Frost kommt Wasser
+            leichter bergauf. Das Symbol oben neben dem Fragezeichen zeigt, wem das Wetter heute hilft; tipp darauf für mehr.</li>
+          <li><b>Regen und Sonne live:</b> Wo es Regendaten gibt (Radar oder Satellit), zählt der Regen genau dort, wo und solange es regnet: Unter einem Schauer altern Feuerquellen schneller, Wasserquellen langsamer, und natürliche Feuerquellen brennen schwächer. Wo es trocken bleibt, ändert sich nichts. Die Regenkarte (Knopf mit der Regenwolke rechts) zeigt, wo es gerade regnet. Umgekehrt hilft klarer Himmel tagsüber dem Feuer: Wo kaum Wolken sind und die Sonne hoch genug steht, altern Wasserquellen schneller und natürliche Wasserquellen sind schwächer. Die Wolkenkarte zeigt, wo.</li>
+          <li><b>Gezeiten (Hamburg):</b> Wo ein Pegel angeschlossen ist, zählt der Wasserstand: Bei Flut haben es bis etwa 400&nbsp;m vom Wasser die natürlichen Feuerquellen schwerer und Wasserquellen halten länger, bei Ebbe umgekehrt. Das 🌊 neben dem Wetter zeigt den Stand. Die Wirkung reicht weit ins Land: Halte Abstand zum Wasser, betritt keine Anleger, Uferkanten oder Watt. Am Ufer selbst setzt das Spiel keine Ziele.</li>
+        </ul>
+
+        <h2>Stufen und Herausforderungen</h2>
+        <p>Wo Stufen eingeschaltet sind, sammelst du Erfahrung (EP): für Eroberungen, für Gegenden der Stadt, in denen du heute zum ersten Mal erobert hast, für Ortsbewertungen und vor allem für Herausforderungen. Wer an einem Tag Verschiedenes macht, bekommt einen Aufschlag. Deine Stufe steht als Zahl auf deinem Punkt oben links, Einzelheiten unter deinem Namen in der Rangliste.</p>
+        <ul>
+          <li><b>Herausforderungen:</b> Das Spiel schlägt eine vor (zum Beispiel drei Kreuzungen erobern oder eine neue Gegend entdecken); sie dauert wenige Minuten. Danach ist eine halbe Stunde Pause, bis zu vier gibt es am Tag.</li>
+          <li><b>Jede Stufe bringt eine Fähigkeit:</b> Stufe 2 <i>Weitblick</i> (eine Eroberung bis 160 m weit), Stufe 3 <i>Nähren</i> (deine schwächste Quelle wieder voll), Stufe 4 <i>Verstärken</i> (eine Quelle deiner Seite in der Nähe stärker machen, ihr bekommt beide EP), Stufe 5 <i>Funkenflug</i> bzw. <i>Welle</i> (zwei benachbarte Kreuzungen auf einmal). Dazu je Stufe eine Glut bzw. ein Eis mehr und etwas mehr Stärke (+5 % je Stufe, höchstens +15 %).</li>
+          <li><b>Stufen gelten je Kampagne:</b> Wenn eine Kampagne beginnt oder endet, fangen alle wieder bei Stufe 1 an. Die Abzeichen für erreichte Stufen bleiben.</li>
+          <li><b>Rückenwind:</b> An deinem ersten Tag halten deine Quellen länger und sind schwerer zu übernehmen.</li>
+        </ul>
+
+        <h2>Wochenserie</h2>
+        <p>Spielst du an <b>drei Tagen einer Woche</b>, ist die Woche geschafft, und deine Serie wächst: 🔥 bzw. 💧 und die Zahl der Wochen in Folge stehen unter deinem Namen und in der Rangliste. Ein Spieltag zählt schon mit drei Eroberungen, einer Herausforderung, einem Fundstück oder einer Ortsbewertung. Eine verpasste Woche je Kampagne wird verziehen; zwischen zwei Kampagnen ruht die Serie. Für 2, 4 und 8 Wochen gibt es Abzeichen, sonst bringt die Serie keine Vorteile im Spiel. Dazu gibt es die <b>Stadt-Serie</b> in der Rangliste: Tage in Folge, an denen in deiner Stadt mindestens fünf Leute Punkte geholt haben.</p>
+
+        <h2>Punkte und Rangliste</h2>
+        <p>
+          Tipp oben links auf deinen Namen, dann siehst du die Rangliste. Ein Spieltag läuft von Mitternacht bis Mitternacht Ortszeit. Punkte gibt es so:
+        </p>
+        <ul>
+          <li><b>10</b> für jede Eroberung, <b>20</b> wenn die Kreuzung vorher dem Gegner gehörte oder umkämpft war.</li>
+          <li><b>Doppelt</b> am Hotspot.</li>
+          <li><b>Halten:</b> Jede Minute 1 Punkt für je 500 Meter Straße, die deine Quellen gerade färben. Gut platzieren lohnt sich mehr als Dauertippen.</li>
+          <li><b>Fläche:</b> Gehört der Rand eines Blocks (fast) ganz deiner Seite, gibt es jede Minute 10 Punkte je Hektar, geteilt unter allen, deren Quellen den Rand färben. Quellen am Rand einer gehaltenen Fläche verblassen nur halb so schnell.</li>
+          <li><b>Ring brechen:</b> Bricht deine Seite den Ring einer Fläche, die die Gegenseite mindestens fünf Minuten gehalten hat, gibt es 10 bis 50 Punkte, je größer die Fläche, desto mehr, geteilt unter allen, deren Quellen dann am Rand stehen.</li>
+          <li><b>Einkesseln:</b> Halten Quellen deiner Seite zwei Minuten lang alle Nachbarkreuzungen einer gegnerischen Glut oder eines Eises (an einer Kreuzung mit mindestens drei Straßen), vergeht sie viermal so schnell, bis der Ring bricht; ihr teilt euch 50 Punkte. Eingekesselte Quellen blinken.</li>
+          <li><b>2</b> für eine Ortsbewertung, bis zu fünfmal am Tag.</li>
+        </ul>
+        <p>
+          Deine Punkte zählen auch für deine Seite. Den Tag gewinnt die Seite, deren Spielende mehr Gebiet länger gehalten
+          haben. Deinen Spielnamen würfelt das Spiel aus; du kannst neu würfeln, dich aus der Rangliste ausblenden oder
+          deinen Spielstand löschen. Ein Konto brauchst du dafür nicht: Dein Spielstand hängt an einer zufälligen Kennung
+          in deinem Browser. Unter „Spielstand sichern“ in der Rangliste bekommst du einen Code, mit dem du ihn auf ein
+          neues Handy mitnimmst. Behalte den Code für dich.
+        </p>
+
+        <h2>Punkte und EP auf einen Blick</h2>
+        <table class="sums">
+          <thead><tr><th>Wofür</th><th>Punkte</th></tr></thead>
+          <tbody>
+            <tr><td>Eroberung</td><td>10</td></tr>
+            <tr><td>Eroberung beim Gegner oder an umkämpfter Kreuzung</td><td>20</td></tr>
+            <tr><td>Eroberung am Hotspot</td><td>doppelt</td></tr>
+            <tr><td>Glutnest löschen bzw. Wasserader trockenlegen</td><td>+20</td></tr>
+            <tr><td>Herd entzünden bzw. Brunnen graben</td><td>+10</td></tr>
+            <tr><td>Halten: je 500 m Straße, die deine Quellen färben</td><td>1 je Minute</td></tr>
+            <tr><td>Fläche: je Hektar eines gehaltenen Blocks</td><td>10 je Minute, geteilt</td></tr>
+            <tr><td>Ring brechen</td><td>10–50, geteilt</td></tr>
+            <tr><td>Einkesseln</td><td>50, geteilt</td></tr>
+            <tr><td>Glut bzw. Eis</td><td>10 je Stunde, die sie steht</td></tr>
+            <tr><td>Ortsbewertung (bis zu fünfmal am Tag)</td><td>2</td></tr>
+            <tr><td>Herausforderung</td><td>– (nur EP)</td></tr>
+          </tbody>
+        </table>
+        <p><b>Obergrenze:</b> höchstens 1500 Punkte je Stunde und 6000 am Tag. Wo Stufen eingeschaltet sind, steigt die Tagesgrenze mit jeder Stufe um 3000 (Stufe 2: 9000, Stufe 5: 18&nbsp;000). Sie bremst Bots, die rund um die Uhr spielen. Ist sie erreicht, gibt es bis zur nächsten vollen Stunde bzw. bis Mitternacht keine Punkte mehr; EP sammelst du weiter.</p>
+        <p>EP gibt es, wo Stufen eingeschaltet sind:</p>
+        <table class="sums">
+          <thead><tr><th>Wofür</th><th>EP</th></tr></thead>
+          <tbody>
+            <tr><td>Eroberung, auch an der Front</td><td>2 (höchstens 20 am Tag)</td></tr>
+            <tr><td>Erste Eroberung des Tages in einer Gegend</td><td>15</td></tr>
+            <tr><td>Ortsbewertung</td><td>5</td></tr>
+            <tr><td>Herausforderung geschafft (bis zu vier am Tag)</td><td>90</td></tr>
+            <tr><td>Verstärken</td><td>5 für euch beide</td></tr>
+            <tr><td>Abwechslung: jede weitere Art am Tag (Herausforderung, neue Gegend, Bewertung, Front, Verstärken)</td><td>+25 %, höchstens +100 %</td></tr>
+          </tbody>
+        </table>
+        <p>Stufe 2 ab 100 EP, Stufe 3 ab 600, Stufe 4 ab 1500, Stufe 5 ab 3000.</p>
+
+        <h2>„Wie ist es hier?“</h2>
+        <p>
+          Mit diesem Knopf sagst du in einem Tipp, wie sich der Ort gerade anfühlt: voll, ruhig, laut, dunkel, kalt oder
+          einladend. Das bringt ein paar Punkte und hilft vor allem zu verstehen, wie die Innenstadt erlebt wird.
+        </p>
+
+        <h2>Tipps</h2>
+        <ul>
+          <li>Such die violette Front. Dort entscheidet eine einzige Eroberung, wohin es kippt.</li>
+          <li>Eine Quelle an einer großen Kreuzung reicht weiter als eine in einer Sackgasse.</li>
+          <li>Zu zweit oder zu dritt hält man ein Viertel viel leichter.</li>
+          <li>Ist rundum schon alles deins, setzt „Erobern“ einen Herd bzw. Brunnen, der die Front versorgt. Ist schon einer in der Nähe, stärkt der Knopf eine eigene Kreuzung direkt an der Front; gibt es in Reichweite keine, sagt er dir, in welcher Richtung die nächste Front liegt.</li>
+          <li>Achte auf den Verkehr und die Menschen um dich herum, nicht nur aufs Handy.</li>
+        </ul>
+
+        <h2>Und meine Daten?</h2>
+        <p>
+          Kein Konto, kein Name, keine E-Mail, kein Tracking, nur ein Cookie für deinen Spielstand. Deine Position braucht der Server fürs Spiel,
+          speichert sie aber nicht. Gespeichert wird nur dein Punktestand mit ausgewürfeltem Spielnamen, ohne Orte. Für
+          die Stadtplanung zählt er nur, wie viele Spielende wie lange auf einem Straßenabschnitt waren, und das nur, wenn
+          mindestens fünf verschiedene Personen dort waren; veröffentlichte Zahlen werden zusätzlich leicht verrauscht.
+          Einzelne Wege werden nie gespeichert. Freiwillig kannst du Altersgruppe und Wohnort angeben; davon wird nur
+          gezählt, wie viele pro Tag so geantwortet haben. Alles Weitere steht in der
+          <a href="/datenschutz.html">Datenschutzerklärung</a>.
+        </p>
+
+        <h2>Wer steckt dahinter?</h2>
+        <p>
+          Glut &amp; Flut ist ein Konstanzer Projekt von Thorsten Rieß (Scientific Wave Solutions). Es probiert aus, ob ein Spiel zeigen kann, wie Menschen ihre Innenstadt
+          nutzen und erleben, freiwillig und ohne jemanden zu überwachen.
+          Die Datenquellen (Karten, Geländehöhen, Wetter) stehen im <a href="/impressum.html">Impressum</a>.
+          Die Datenbank stellt <a href="https://neon.com" target="_blank" rel="noopener">Neon</a> als Sponsor bereit.
+        </p>
+
+        <p>Wo überall gespielt wird, zeigt ein Globus: <a href="https://www.weathermarble.com/glutflut/" target="_blank" rel="noopener">Glut &amp; Flut auf Weathermarble</a> (externe Seite, ein eigenständiges Angebot).</p>
+
+        <p><a class="cta" href="/">Jetzt mitspielen</a></p>
+
+        <p class="small"><a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a> · <a href="https://www.instagram.com/glutflut/" target="_blank" rel="noopener" aria-label="Instagram @glutflut" title="Instagram @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a> <a href="https://chaos.social/@glutflut" target="_blank" rel="me noopener" aria-label="Mastodon @glutflut" title="Mastodon @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg></a> <a class="source-icon" hidden target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a> · <span class="version"></span></p>
+      </article>
+      <article data-lang="en" data-title="How to play – Glut &amp; Flut" hidden>
+        <p><a href="/">← back to the game</a></p>
+
+        <h1>Glut &amp; Flut</h1>
+        <p class="lead">
+          Fire against Water, on the real streets of <span class="city">Konstanz</span>. You play on your phone in the browser, no app
+          and no account needed. Your steps through the city are your moves.
+        </p>
+        <p><a class="cta" href="/">Play now</a></p>
+
+        <h2>How to play</h2>
+        <ol class="steps">
+          <li>
+            <b>Allow location.</b> The game needs your GPS, otherwise it doesn’t know where you are. Best outdoors, in
+            the town centre.
+          </li>
+          <li>
+            <b>You are Fire or Water.</b> Usually (two times out of three) the game puts you on whichever side is weaker right now: fewer players today, otherwise less land; otherwise on the other side. The top left shows
+            which side you’re on.
+          </li>
+          <li>
+            <b>Get moving.</b> The circle around your dot shows your reach, about 80 metres. You can reach every
+            junction inside it.
+          </li>
+          <li>
+            <b>Tap “Claim”.</b> The nearest junction in reach that isn’t yours yet becomes a source of your element. Tap a junction on the map to see who holds it, how strongly, whether you can take it and what the terrain does there; you can claim it right from that card.
+            From there it spreads along the streets.
+          </li>
+          <li>
+            <b>Keep going.</b> After a claim you need a short breather, and a source dies out after a while. If you
+            want to hold the city, keep moving.
+          </li>
+        </ol>
+
+        <h2>What you see on the map</h2>
+        <ul class="legend">
+          <li><span class="sw fire"></span><b>Fire</b> streets held by Fire</li>
+          <li><span class="sw water"></span><b>Water</b> streets held by Water</li>
+          <li><span class="sw front"></span><b>Front</b> both equally strong, the fight is on here</li>
+          <li><span class="sw neutral"></span><b>Grey</b> not reached by anyone yet</li>
+          <li><span class="sw hotspot"></span><b>Hotspot</b> pulsing yellow dot, see below</li>
+          <li><span class="sw ring"></span><b>Source</b> ring around a claimed junction; it shrinks as the source gets weaker and is empty when it dies out. Your own have a white edge.</li>
+          <li><span class="sw area"></span><b>Area</b> block whose surrounding streets (almost) all belong to one side, lightly filled in its colour</li>
+          <li><span class="sw area hatch"></span><b>With stripes</b> players’ sources stand on the edge: the area earns them points every minute; brighter stripes mean yours are among them. Without stripes no player’s source is on the edge, and the area earns nobody points.</li>
+        </ul>
+        <p>The three numbers at the top right count the junctions held by Fire, Front and Water.</p>
+
+        <h2>How Fire and Water spread</h2>
+        <p>
+          The city itself takes part. Glut &amp; Flut knows the street network and the elevation of every junction.
+        </p>
+        <ul>
+          <li><b>Fire climbs uphill</b>, Water flows downhill. Against its nature an element hardly gets far: Water manages only a few metres uphill, Fire hardly any downhill. A slope is a tailwind for one side and a wall for the other.</li>
+          <li><b>New here?</b> For your first ten minutes you claim at half strength, then at full. If you played on another day, you're at full strength at once. That way newcomers can find their feet, and nobody can take over the game with lots of quickly made profiles.</li>
+          <li><b>Places feed the elements.</b> Around bars and stalls a fire burns on its own; along shores and at fountains, water bubbles up.</li>
+          <li><b>Surroundings rub off.</b> Some corners let Fire in more easily, others Water.</li>
+          <li><b>The further from the source, the weaker.</b> Where two elements meet, strength decides; if both are equal, a front forms.</li>
+          <li><b>Sources burn down.</b> A claimed source gets weaker over time and dies out after a few minutes. You can only take over an enemy source once it is down to half its strength.</li>
+        </ul>
+
+        <h2>Embers and ice</h2>
+        <p>
+          You can turn a claim of your own into your permanent source: fire as <b>embers</b>, water as <b>ice</b> (button
+          “Keep as embers” or “Keep as ice”). It doesn’t go out after minutes but stays until the other side takes it.
+          Fresh, it is too strong for a single claim; over a day it fades, and then one tap is enough. Come back and stoke
+          your embers or refresh your ice to bring it back to full strength. Every hour it stands earns points. You have two
+          per city (with levels, one more per level); they can’t sit right next to other sources. With all of them placed, you move one: the game asks which. From level 2 you can give it a <b>tag line</b> from a set of phrases under “My embers” or “My ice”, shown to everyone on the map; higher levels and some badges unlock more. After three days without care, or when a campaign starts or
+          ends, it goes out.
+        </p>
+
+        <h2>Finds</h2>
+        <p>
+          Special places are hidden in the city: fountains, special trees, gates and castles, viewpoints, art and boundary
+          stones. Stay right next to one for about ten seconds, or claim a junction there, and you uncover it. Get close and the game gives you a hint. If you
+          like, you collect them: the game then remembers which ones you found (without times) and shows them as a
+          collection in the settings.
+        </p>
+
+        <h2>Hotspots</h2>
+        <p>
+          Every now and then Hotspots pop up somewhere in the town centre and move on after about ten minutes. The bottom of
+          the screen shows how far away the next one is. If you claim right at a Hotspot, your source lasts three times as long.
+        </p>
+
+        <h2>Chapters and weather days</h2>
+        <p>
+          The bar under the header shows what is at stake right now. Usually it is a race between Fire and Water: which
+          side reaches its goal first, such as a number of claims, claims at the front, finds or points? Everyone on your
+          side counts together. The first side to reach the goal wins; if neither does, the side that got closer to its goal wins at the end.
+        </p>
+        <ul>
+          <li><b>Chapters</b> run on weekends and together tell a campaign, for example through the Christmas market season.
+            Claim or find something during a chapter and you get a badge for it; the winning side gets another one.</li>
+          <li><b>Weather days</b> run on weekdays from 9 am to 9 pm. The forecast for the city decides what they are about:
+            rain and frost help Water, heat and sun help Fire; grey days are about finds, mild ones about the front. Warm
+            and cold mean compared with the last few weeks in your city. The targets follow how much each side managed over the last weeks: on an ordinary day the race is open, and the weather tips it.</li>
+          <li><b>The weather itself</b> plays a small part every day: in rain, natural fire sources burn weaker and water
+            sources last longer; in warmth and sun it is the other way round; in frost, water gets uphill more easily. The
+            symbol at the top next to the question mark shows whom the weather helps today; tap it for more.</li>
+          <li><b>Live rain and sun:</b> Where there is rain data (radar or satellite), rain counts exactly where and while it rains: under a shower, fire sources age faster, water sources slower, and natural fire sources burn weaker. Where it stays dry, nothing changes. The rain map (rain-cloud button on the right) shows where it is raining now. The other way round, a clear sky by day helps fire: where there are hardly any clouds and the sun is high enough, water sources age faster and natural water sources are weaker. The cloud map shows where.</li>
+          <li><b>Tide (Hamburg):</b> Where a gauge is connected, the water level counts: at high tide, up to about 400&nbsp;m from the water, natural fire sources have a harder time and water sources last longer; at low tide the other way round. The 🌊 next to the weather shows the state. The effect reaches far inland: keep away from the water and stay off piers, quay edges and mudflats. The game sets no targets at the shore itself.</li>
+        </ul>
+
+        <h2>Levels and challenges</h2>
+        <p>Where levels are switched on, you collect experience (XP): for claims, for parts of the city where you claimed for the first time today, for rating places and above all for challenges. Doing different things in a day earns a bonus. Your level is the number on your dot at the top left; details under your name in the leaderboard.</p>
+        <ul>
+          <li><b>Challenges:</b> the game suggests one (for example claim three junctions or discover a new area); it takes a few minutes. Then there is a half-hour break, and up to four a day.</li>
+          <li><b>Each level brings an ability:</b> level 2 <i>Far sight</i> (one claim up to 160 m away), level 3 <i>Nourish</i> (your weakest source back to full), level 4 <i>Boost</i> (make a source of your side nearby stronger, you both get XP), level 5 <i>Flying sparks</i> or <i>Wave</i> (two neighbouring junctions at once). Plus one more embers or ice per level and a little more strength (+5 % per level, at most +15 %).</li>
+          <li><b>Levels count per campaign:</b> when a campaign starts or ends, everyone starts again at level 1. The badges for levels reached stay.</li>
+          <li><b>Tailwind:</b> on your first day your sources last longer and are harder to take over.</li>
+        </ul>
+
+        <h2>Weekly streak</h2>
+        <p>Play on <b>three days of a week</b> and the week is done, and your streak grows: 🔥 or 💧 and the number of weeks in a row appear under your name and in the leaderboard. A play day counts with three claims, a challenge, a find or a place rating. One missed week per campaign is forgiven; between two campaigns the streak pauses. There are badges for 2, 4 and 8 weeks; otherwise the streak gives no advantage in the game. There is also the <b>city streak</b> in the leaderboard: days in a row on which at least five people scored points in your city.</p>
+
+        <h2>Points and leaderboard</h2>
+        <p>
+          Tap your name at the top left to see the leaderboard. A game day runs from midnight to midnight local time. You get points like this:
+        </p>
+        <ul>
+          <li><b>10</b> for every claim, <b>20</b> if the junction belonged to the other side before or was contested.</li>
+          <li><b>Double</b> at a Hotspot.</li>
+          <li><b>Holding:</b> every minute, 1 point for every 500 metres of street your sources are currently colouring. Placing them well pays off more than tapping nonstop.</li>
+          <li><b>Area:</b> if the edge of a block (almost) all belongs to your side, it pays 10 points per hectare every minute, shared among everyone whose sources colour the edge. Sources on the edge of a held area fade only half as fast.</li>
+          <li><b>Breaking a ring:</b> if your side breaks the ring of an area the other side held for at least five minutes, it pays 10 to 50 points, more for bigger areas, shared among everyone whose sources are on the edge.</li>
+          <li><b>Surrounding:</b> If your side's sources hold every neighbouring junction of the other side's embers or ice (at a junction with at least three roads) for two minutes, it fades four times as fast until the ring breaks; you share 50 points. Surrounded sources blink.</li>
+          <li><b>2</b> for a place rating, up to five times a day.</li>
+        </ul>
+        <p>
+          Your points also count for your side. The day goes to the side whose players held more ground for longer. The
+          game rolls a random player name for you; you can reroll it, hide from the leaderboard or delete your game
+          progress. You don’t need an account for that: your game progress is tied to a random ID in your browser. If
+          you clear your browser data, your points are gone unless you saved a code under “Keep your progress” in the
+          leaderboard; it moves your progress to a new phone. Keep that code to yourself.
+        </p>
+
+        <h2>Points and XP at a glance</h2>
+        <table class="sums">
+          <thead><tr><th>For</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>Claim</td><td>10</td></tr>
+            <tr><td>Claim from the other side or at a contested junction</td><td>20</td></tr>
+            <tr><td>Claim at a Hotspot</td><td>double</td></tr>
+            <tr><td>Putting out an ember nest / drying up a water vein</td><td>+20</td></tr>
+            <tr><td>Lighting a hearth / digging a well</td><td>+10</td></tr>
+            <tr><td>Holding: per 500 m of street your sources colour</td><td>1 per minute</td></tr>
+            <tr><td>Area: per hectare of a held block</td><td>10 per minute, shared</td></tr>
+            <tr><td>Breaking a ring</td><td>10–50, shared</td></tr>
+            <tr><td>Surrounding</td><td>50, shared</td></tr>
+            <tr><td>Embers or ice</td><td>10 per hour it stands</td></tr>
+            <tr><td>Place rating (up to five a day)</td><td>2</td></tr>
+            <tr><td>Challenge</td><td>– (XP only)</td></tr>
+          </tbody>
+        </table>
+        <p><b>Cap:</b> at most 1500 points per hour and 6000 per day. Where levels are switched on, the daily cap rises by 3000 with each level (level 2: 9000, level 5: 18,000). It slows down bots that play around the clock. Once you reach it, there are no more points until the next full hour or until midnight; you keep collecting XP.</p>
+        <p>XP, where levels are switched on:</p>
+        <table class="sums">
+          <thead><tr><th>For</th><th>XP</th></tr></thead>
+          <tbody>
+            <tr><td>Claim, also at the front</td><td>2 (at most 20 a day)</td></tr>
+            <tr><td>First claim of the day in a part of the city</td><td>15</td></tr>
+            <tr><td>Place rating</td><td>5</td></tr>
+            <tr><td>Challenge done (up to four a day)</td><td>90</td></tr>
+            <tr><td>Boost</td><td>5 for both of you</td></tr>
+            <tr><td>Variety: each further kind in a day (challenge, new part of the city, rating, front, boost)</td><td>+25 %, at most +100 %</td></tr>
+          </tbody>
+        </table>
+        <p>Level 2 from 100 XP, level 3 from 600, level 4 from 1500, level 5 from 3000.</p>
+
+        <h2>“How is it here?”</h2>
+        <p>
+          With this button you say in one tap how the place feels right now: crowded, quiet, loud, dark, cold or
+          inviting. It earns you a few points and, above all, helps to understand how people experience the city centre.
+        </p>
+
+        <h2>Tips</h2>
+        <ul>
+          <li>Look for the purple front. That’s where a single claim decides which way it tips.</li>
+          <li>A source at a big junction reaches further than one in a dead end.</li>
+          <li>With two or three of you, holding a neighbourhood is much easier.</li>
+          <li>If everything around you is already yours, “Claim” lights a hearth or digs a well that supplies the front. If there is one nearby already, the button reinforces one of your junctions right at the front; if there is none in reach, it tells you which way the nearest front is.</li>
+          <li>Watch the traffic and the people around you, not just your phone.</li>
+        </ul>
+
+        <h2>What about my data?</h2>
+        <p>
+          No account, no name, no email, no tracking, just one cookie for your progress. The server needs your position for the game, but
+          doesn’t store it. The only thing stored is your score with your random player name, without any places. For
+          urban planning it only counts how many players spent how long on a street segment, and only if at least five
+          different people were there; published numbers also get a little random noise added. Individual routes are
+          never stored. If you like, you can give your age group and where you live; of that, only the number of people
+          who answered this way per day is counted. Everything else is in the
+          <a href="/datenschutz.html">privacy policy</a>.
+        </p>
+
+        <h2>Who’s behind it?</h2>
+        <p>
+          Glut &amp; Flut is a project from Konstanz by Thorsten Rieß (Scientific Wave Solutions). It tries out whether a game can show how people use and experience their
+          city centre, voluntarily and without watching anyone.
+          The data sources (maps, elevation, weather) are listed in the <a href="/impressum.html">legal notice</a>.
+          The database is sponsored by <a href="https://neon.com" target="_blank" rel="noopener">Neon</a>.
+        </p>
+
+        <p>A globe shows where the game is played: <a href="https://www.weathermarble.com/glutflut/" target="_blank" rel="noopener">Glut &amp; Flut on Weathermarble</a> (external site, a separate offer).</p>
+
+        <p><a class="cta" href="/">Play now</a></p>
+
+        <p class="small"><a href="/impressum.html">Legal notice</a> · <a href="/datenschutz.html">Privacy</a> · <a href="https://www.instagram.com/glutflut/" target="_blank" rel="noopener" aria-label="Instagram @glutflut" title="Instagram @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a> <a href="https://chaos.social/@glutflut" target="_blank" rel="me noopener" aria-label="Mastodon @glutflut" title="Mastodon @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg></a> <a class="source-icon" hidden target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a> · <span class="version"></span></p>
+      </article>
+      <article data-lang="fr" data-title="Comment jouer – Glut &amp; Flut" hidden>
+        <p><a href="/">← retour au jeu</a></p>
+
+        <h1>Glut &amp; Flut</h1>
+        <p class="lead">
+          Le Feu contre l’Eau, dans les vraies rues de <span class="city">Konstanz</span>. Tu joues avec ton téléphone dans le
+          navigateur, sans appli et sans compte. Tes pas dans la ville sont tes coups.
+        </p>
+        <p><a class="cta" href="/">Jouer maintenant</a></p>
+
+        <h2>Comment jouer</h2>
+        <ol class="steps">
+          <li>
+            <b>Autorise la localisation.</b> Le jeu a besoin de ton GPS, sinon il ne sait pas où tu es. Idéalement
+            dehors, dans le centre-ville.
+          </li>
+          <li>
+            <b>Tu es Feu ou Eau.</b> Le plus souvent (deux fois sur trois), le jeu te place dans le camp le plus faible du moment&nbsp;: moins de joueurs aujourd’hui, sinon moins de terrain&nbsp;; sinon dans l’autre. En haut à gauche, tu vois
+            ton camp.
+          </li>
+          <li>
+            <b>Mets-toi en route.</b> Le cercle autour de ton point montre ta portée, environ 80 mètres. Tu peux
+            atteindre tous les carrefours qui s’y trouvent.
+          </li>
+          <li>
+            <b>Appuie sur «&nbsp;Conquérir&nbsp;».</b> Le carrefour le plus proche à ta portée qui n’est pas encore à
+            toi devient une source de ton élément. De là, il se propage dans les rues. Touche un carrefour sur la carte pour voir à qui il appartient, avec quelle force, si tu peux le prendre et ce que le terrain y change&nbsp;; tu peux aussi le conquérir depuis cette fiche.
+          </li>
+          <li>
+            <b>Continue.</b> Après une conquête, tu dois souffler un peu, et une source s’éteint au bout d’un moment.
+            Pour tenir la ville, reste en mouvement.
+          </li>
+        </ol>
+
+        <h2>Ce que tu vois sur la carte</h2>
+        <ul class="legend">
+          <li><span class="sw fire"></span><b>Feu</b> rues tenues par le Feu</li>
+          <li><span class="sw water"></span><b>Eau</b> rues tenues par l’Eau</li>
+          <li><span class="sw front"></span><b>Front</b> les deux à égalité, c’est ici qu’on se bat</li>
+          <li><span class="sw neutral"></span><b>Gris</b> encore atteint par personne</li>
+          <li><span class="sw hotspot"></span><b>Hotspot</b> point jaune qui pulse, voir plus bas</li>
+          <li><span class="sw ring"></span><b>Source</b> anneau autour d’un carrefour conquis&nbsp;; il rétrécit à mesure que la source faiblit et il est vide quand elle s’éteint. Les tiennes ont un bord blanc.</li>
+          <li><span class="sw area"></span><b>Surface</b> pâté de maisons dont les rues autour appartiennent (presque) toutes à un camp, légèrement rempli de sa couleur</li>
+          <li><span class="sw area hatch"></span><b>Avec rayures</b> des sources de joueurs se trouvent sur le bord : la surface leur rapporte des points chaque minute ; des rayures plus claires signifient que les tiennes en font partie. Sans rayures, aucune source de joueur n’est sur le bord et la surface ne rapporte de points à personne.</li>
+        </ul>
+        <p>Les trois nombres en haut à droite comptent les carrefours du Feu, du Front et de l’Eau.</p>
+
+        <h2>Comment le Feu et l’Eau se propagent</h2>
+        <p>
+          La ville elle-même participe. Glut &amp; Flut connaît le réseau des rues et l’altitude de chaque carrefour.
+        </p>
+        <ul>
+          <li><b>Le Feu monte les pentes</b>, l’Eau les descend. Contre sa nature, un élément ne va pas loin&nbsp;: l’Eau ne monte que de quelques mètres, le Feu descend à peine. Une pente pousse un camp et arrête l’autre.</li>
+          <li><b>Nouveau&nbsp;?</b> Pendant tes dix premières minutes, tu conquiers à moitié de ta force, ensuite à pleine force. Si tu as déjà joué un autre jour, tu es tout de suite à pleine force. Ainsi les nouveaux prennent leurs marques, et personne ne peut s’emparer du jeu avec plein de profils créés à la va-vite.</li>
+          <li><b>Les lieux nourrissent les éléments.</b> Autour des bars et des stands, un feu brûle tout seul&nbsp;; au bord de l’eau et près des fontaines, l’eau jaillit.</li>
+          <li><b>L’environnement déteint.</b> Certains coins laissent plutôt entrer le Feu, d’autres plutôt l’Eau.</li>
+          <li><b>Plus on s’éloigne de la source, plus c’est faible.</b> Là où deux éléments se rencontrent, la force décide&nbsp;; s’ils sont à égalité, un front se forme.</li>
+          <li><b>Les sources s’épuisent.</b> Une source conquise faiblit avec le temps et s’éteint au bout de quelques minutes. Tu ne peux prendre une source adverse que lorsqu’elle n’a plus que la moitié de sa force.</li>
+        </ul>
+
+        <h2>Braises et glace</h2>
+        <p>
+          Tu peux faire d’une de tes conquêtes ta source permanente&nbsp;: le feu en <b>braises</b>, l’eau en <b>glace</b>
+          (bouton «&nbsp;Garder en braises&nbsp;» ou «&nbsp;Garder en glace&nbsp;»). Elle ne s’éteint pas au bout de quelques
+          minutes mais reste jusqu’à ce que l’autre camp la prenne. Fraîche, elle est trop forte pour une seule conquête&nbsp;;
+          en un jour elle pâlit, et alors un geste suffit. Reviens attiser tes braises ou raviver ta glace pour lui rendre
+          toute sa force. Chaque heure debout rapporte des points. Tu en as deux par ville (avec les niveaux, une de plus par niveau)&nbsp;; elles ne peuvent pas être juste à
+          côté d’autres sources. Quand toutes sont posées, tu en déplaces une&nbsp;: le jeu te demande laquelle. Dès le niveau 2, tu peux lui donner une <b>inscription</b> parmi des phrases proposées, sous «&nbsp;Mes braises&nbsp;» ou «&nbsp;Ma glace&nbsp;», visible par tous sur la carte&nbsp;; les niveaux supérieurs et certains badges en débloquent d’autres. Après trois jours sans soin, ou au début et à la fin d’une campagne, elle s’éteint.
+        </p>
+
+        <h2>Trouvailles</h2>
+        <p>
+          Des lieux particuliers sont cachés dans la ville&nbsp;: fontaines, arbres remarquables, portes et châteaux, points
+          de vue, œuvres d’art et bornes. Reste tout près une dizaine de secondes ou conquiers un carrefour à côté, et tu les découvres. Quand tu t’en approches, le
+          jeu te donne un indice. Si tu veux, tu les collectionnes&nbsp;: le jeu retient alors celles que tu as trouvées (sans
+          heure) et les montre comme collection dans les réglages.
+        </p>
+
+        <h2>Hotspots</h2>
+        <p>
+          De temps en temps, des Hotspots apparaissent quelque part dans le centre-ville et se déplacent au bout
+          d’environ dix minutes. En bas de l’écran, tu vois à quelle distance se trouve le prochain. Si tu conquiers
+          directement sur un Hotspot, ta source dure trois fois plus longtemps.
+        </p>
+
+        <h2>Chapitres et jours de météo</h2>
+        <p>
+          La barre sous l’en-tête montre l’enjeu du moment. Le plus souvent, c’est une course entre le Feu et l’Eau&nbsp;:
+          quel camp atteint son objectif en premier, par exemple un nombre de conquêtes, de conquêtes sur le front, de
+          trouvailles ou de points&nbsp;? Tout ton camp compte ensemble. Le premier camp à atteindre l’objectif gagne&nbsp;;
+          si aucun n’y arrive, celui qui s’est le plus approché de son objectif gagne à la fin.
+        </p>
+        <ul>
+          <li><b>Les chapitres</b> ont lieu le week-end et forment ensemble une campagne, par exemple pendant le marché de
+            Noël. Si tu conquiers ou trouves quelque chose pendant un chapitre, tu reçois un badge, et le camp gagnant un
+            autre.</li>
+          <li><b>Les jours de météo</b> ont lieu en semaine de 9 h à 21 h. Les prévisions pour la ville décident de
+            l’enjeu&nbsp;: la pluie et le gel aident l’Eau, la chaleur et le soleil aident le Feu&nbsp;; les jours gris, ce
+            sont les trouvailles, les jours doux, le front. Chaud et froid se comprennent par rapport aux dernières
+            semaines dans ta ville. Les objectifs suivent ce que chaque camp a réussi ces dernières semaines&nbsp;: un jour ordinaire, la course est ouverte, et la météo fait la différence.</li>
+          <li><b>La météo elle-même</b> joue un petit rôle chaque jour&nbsp;: sous la pluie, les sources de feu naturelles
+            brûlent moins fort et les sources d’eau durent plus longtemps&nbsp;; par temps chaud et ensoleillé, c’est
+            l’inverse&nbsp;; par gel, l’eau monte plus facilement les pentes. Le symbole en haut, à côté du point
+            d’interrogation, montre qui la météo aide aujourd’hui&nbsp;; touche-le pour en savoir plus.</li>
+          <li><b>Pluie et soleil en direct&nbsp;:</b> là où il y a des données de pluie (radar ou satellite), la pluie compte exactement là où et tant qu’il pleut&nbsp;: sous une averse, les sources de feu vieillissent plus vite, celles d’eau plus lentement, et les sources de feu naturelles brûlent plus faiblement. Là où il fait sec, rien ne change. La carte de pluie (bouton nuage de pluie à droite) montre où il pleut en ce moment. À l’inverse, un ciel dégagé en journée aide le feu&nbsp;: là où il y a peu de nuages et où le soleil est assez haut, les sources d’eau vieillissent plus vite et les sources d’eau naturelles sont plus faibles. La carte des nuages montre où.</li>
+          <li><b>Marée (Hambourg)&nbsp;:</b> là où une échelle de marée est raccordée, le niveau de l’eau compte&nbsp;: à marée haute, jusqu’à environ 400&nbsp;m de l’eau, les sources de feu naturelles ont plus de mal et les sources d’eau durent plus longtemps&nbsp;; à marée basse, c’est l’inverse. Le 🌊 à côté de la météo montre l’état. L’effet porte loin dans les terres&nbsp;: garde tes distances avec l’eau et ne va pas sur les pontons, les bords de quai ni l’estran. Le jeu ne place aucun objectif sur la rive même.</li>
+        </ul>
+
+        <h2>Niveaux et défis</h2>
+        <p>Là où les niveaux sont activés, tu gagnes de l’expérience (XP)&nbsp;: pour les conquêtes, pour les quartiers où tu conquiers pour la première fois aujourd’hui, pour les avis sur les lieux et surtout pour les défis. Varier dans la journée rapporte un bonus. Ton niveau est le chiffre sur ton point en haut à gauche&nbsp;; les détails sous ton nom dans le classement.</p>
+        <ul>
+          <li><b>Défis&nbsp;:</b> le jeu en propose un (par exemple conquérir trois carrefours ou découvrir un nouveau quartier)&nbsp;; il dure quelques minutes. Ensuite une pause d’une demi-heure, et jusqu’à quatre par jour.</li>
+          <li><b>Chaque niveau apporte une capacité&nbsp;:</b> niveau 2 <i>Longue vue</i> (une conquête jusqu’à 160 m), niveau 3 <i>Nourrir</i> (ta source la plus faible de nouveau pleine), niveau 4 <i>Renforcer</i> (rendre plus forte une source de ton camp à proximité, vous gagnez tous les deux des XP), niveau 5 <i>Gerbe d’étincelles</i> ou <i>Vague</i> (deux carrefours voisins d’un coup). En plus, une braise ou une glace de plus par niveau et un peu plus de force (+5&nbsp;% par niveau, au plus +15&nbsp;%).</li>
+          <li><b>Les niveaux valent par campagne&nbsp;:</b> quand une campagne commence ou se termine, tout le monde repart du niveau 1. Les badges des niveaux atteints restent.</li>
+          <li><b>Vent arrière&nbsp;:</b> le premier jour, tes sources tiennent plus longtemps et sont plus difficiles à prendre.</li>
+        </ul>
+
+        <h2>Série hebdomadaire</h2>
+        <p>Joue <b>trois jours dans une semaine</b> et la semaine est réussie : ta série grandit, 🔥 ou 💧 et le nombre de semaines d’affilée s’affichent sous ton nom et dans le classement. Un jour de jeu compte dès trois conquêtes, un défi, une trouvaille ou un avis sur un lieu. Une semaine manquée par campagne est pardonnée ; entre deux campagnes, la série est en pause. Il y a des badges pour 2, 4 et 8 semaines ; sinon la série ne donne aucun avantage dans le jeu. Il y a aussi la <b>série de la ville</b> dans le classement&nbsp;: les jours d’affilée où au moins cinq personnes ont marqué des points dans ta ville.</p>
+
+        <h2>Points et classement</h2>
+        <p>
+          Appuie sur ton nom en haut à gauche pour voir le classement. Une journée de jeu va de minuit à minuit, heure locale. Voici comment gagner des points&nbsp;:
+        </p>
+        <ul>
+          <li><b>10</b> pour chaque conquête, <b>20</b> si le carrefour appartenait avant à l’adversaire ou était disputé.</li>
+          <li><b>Double</b> sur un Hotspot.</li>
+          <li><b>Tenir&nbsp;:</b> chaque minute, 1 point par tranche de 500 mètres de rue que tes sources colorent en ce moment. Bien placer rapporte plus que tapoter sans arrêt.</li>
+          <li><b>Surface&nbsp;:</b> si le pourtour d’un pâté de maisons appartient (presque) entièrement à ton camp, il rapporte 10 points par hectare chaque minute, partagés entre tous ceux dont les sources colorent ce pourtour. Les sources au bord d’une surface tenue pâlissent deux fois moins vite.</li>
+          <li><b>Briser un anneau&nbsp;:</b> si ton camp brise l’anneau d’une surface que l’autre camp a tenue au moins cinq minutes, cela rapporte 10 à 50 points, plus pour les grandes surfaces, partagés entre tous ceux dont les sources sont sur le pourtour.</li>
+          <li><b>Encercler&nbsp;:</b> si les sources de ton camp tiennent pendant deux minutes tous les carrefours voisins d’une braise ou d’une glace adverse (à un carrefour d’au moins trois rues), elle s’éteint quatre fois plus vite jusqu’à ce que l’anneau cède&nbsp;; vous vous partagez 50&nbsp;points. Les sources encerclées clignotent.</li>
+          <li><b>2</b> pour un avis sur le lieu, jusqu’à cinq fois par jour.</li>
+        </ul>
+        <p>
+          Tes points comptent aussi pour ton camp. La journée revient au camp dont les joueurs ont tenu le plus de
+          terrain le plus longtemps. Le jeu tire ton pseudo au hasard&nbsp;; tu peux en tirer un nouveau, te masquer du
+          classement ou effacer ta progression. Pas besoin de compte pour ça&nbsp;: ta progression est liée à un
+          identifiant aléatoire dans ton navigateur. Sous «&nbsp;Sauvegarder ta progression&nbsp;» dans le classement, tu
+          obtiens un code pour l’emporter sur un nouveau téléphone. Garde ce code pour toi.
+        </p>
+
+        <h2>Points et XP en un coup d’œil</h2>
+        <table class="sums">
+          <thead><tr><th>Pour</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>Conquête</td><td>10</td></tr>
+            <tr><td>Conquête chez l’adversaire ou sur un carrefour disputé</td><td>20</td></tr>
+            <tr><td>Conquête sur un Hotspot</td><td>double</td></tr>
+            <tr><td>Éteindre un nid de braises / assécher une veine d’eau</td><td>+20</td></tr>
+            <tr><td>Allumer un foyer / creuser un puits</td><td>+10</td></tr>
+            <tr><td>Tenir&nbsp;: par 500 m de rue que tes sources colorent</td><td>1 par minute</td></tr>
+            <tr><td>Surface&nbsp;: par hectare d’un pâté tenu</td><td>10 par minute, partagés</td></tr>
+            <tr><td>Briser un anneau</td><td>10–50, partagés</td></tr>
+            <tr><td>Encercler</td><td>50, partagés</td></tr>
+            <tr><td>Braise ou glace</td><td>10 par heure où elle tient</td></tr>
+            <tr><td>Avis sur un lieu (jusqu’à cinq par jour)</td><td>2</td></tr>
+            <tr><td>Défi</td><td>– (XP seulement)</td></tr>
+          </tbody>
+        </table>
+        <p><b>Plafond&nbsp;:</b> au plus 1500 points par heure et 6000 par jour. Là où les niveaux sont activés, le plafond du jour monte de 3000 à chaque niveau (niveau 2&nbsp;: 9000, niveau 5&nbsp;: 18&nbsp;000). Il freine les bots qui jouent jour et nuit. Une fois atteint, plus de points jusqu’à l’heure pleine suivante ou jusqu’à minuit&nbsp;; tu continues à gagner des XP.</p>
+        <p>Des XP, là où les niveaux sont activés&nbsp;:</p>
+        <table class="sums">
+          <thead><tr><th>Pour</th><th>XP</th></tr></thead>
+          <tbody>
+            <tr><td>Conquête, aussi sur le front</td><td>2 (au plus 20 par jour)</td></tr>
+            <tr><td>Première conquête du jour dans un quartier</td><td>15</td></tr>
+            <tr><td>Avis sur un lieu</td><td>5</td></tr>
+            <tr><td>Défi réussi (jusqu’à quatre par jour)</td><td>90</td></tr>
+            <tr><td>Renforcer</td><td>5 pour vous deux</td></tr>
+            <tr><td>Variété&nbsp;: chaque type de plus dans la journée (défi, nouveau quartier, avis, front, renforcer)</td><td>+25&nbsp;%, au plus +100&nbsp;%</td></tr>
+          </tbody>
+        </table>
+        <p>Niveau 2 dès 100 XP, niveau 3 dès 600, niveau 4 dès 1500, niveau 5 dès 3000.</p>
+
+        <h2>«&nbsp;C’est comment ici&nbsp;?&nbsp;»</h2>
+        <p>
+          Avec ce bouton, tu dis en un geste comment le lieu te paraît en ce moment&nbsp;: bondé, calme, bruyant, sombre,
+          froid ou accueillant. Ça rapporte quelques points et aide surtout à comprendre comment le centre-ville est vécu.
+        </p>
+
+        <h2>Astuces</h2>
+        <ul>
+          <li>Cherche le front violet. C’est là qu’une seule conquête fait pencher la balance.</li>
+          <li>Une source sur un grand carrefour porte plus loin qu’une source dans une impasse.</li>
+          <li>À deux ou trois, on tient un quartier bien plus facilement.</li>
+          <li>Si tout est déjà à toi autour de toi, «&nbsp;Conquérir&nbsp;» allume un foyer ou creuse un puits qui ravitaille le front. S’il y en a déjà un tout près, le bouton renforce un de tes carrefours juste sur le front&nbsp;; s’il n’y en a aucun à portée, il t’indique dans quelle direction se trouve le front le plus proche.</li>
+          <li>Fais attention à la circulation et aux gens autour de toi, pas seulement à ton téléphone.</li>
+        </ul>
+
+        <h2>Et mes données&nbsp;?</h2>
+        <p>
+          Pas de compte, pas de nom, pas d’e-mail, pas de pistage, juste un cookie pour ta progression. Le serveur a besoin de ta position pour
+          le jeu, mais ne l’enregistre pas. Seul ton score est enregistré, avec ton pseudo tiré au hasard, sans aucun
+          lieu. Pour l’urbanisme, le serveur compte seulement combien de joueurs sont restés combien de temps sur un
+          tronçon de rue, et seulement si au moins cinq personnes différentes y sont passées&nbsp;; les chiffres publiés
+          sont en plus légèrement brouillés. Les trajets individuels ne sont jamais enregistrés. Si tu veux, tu peux
+          indiquer ta tranche d’âge et ton lieu de résidence&nbsp;; on compte seulement combien de personnes ont répondu
+          ainsi chaque jour. Tout le reste se trouve dans la
+          <a href="/datenschutz.html">politique de confidentialité</a>.
+        </p>
+
+        <h2>Qui est derrière&nbsp;?</h2>
+        <p>
+          Glut &amp; Flut est un projet de Konstanz de Thorsten Rieß (Scientific Wave Solutions). Il teste si un jeu peut montrer comment les gens utilisent et vivent leur
+          centre-ville, de leur plein gré et sans surveiller personne.
+          Les sources de données (cartes, altitudes, météo) figurent dans les <a href="/impressum.html">mentions légales</a>.
+          La base de données est offerte par <a href="https://neon.com" target="_blank" rel="noopener">Neon</a>, notre sponsor.
+        </p>
+
+        <p>Un globe montre où l’on joue&nbsp;: <a href="https://www.weathermarble.com/glutflut/" target="_blank" rel="noopener">Glut &amp; Flut sur Weathermarble</a> (site externe, une offre indépendante).</p>
+
+        <p><a class="cta" href="/">Jouer maintenant</a></p>
+
+        <p class="small"><a href="/impressum.html">Mentions légales</a> · <a href="/datenschutz.html">Confidentialité</a> · <a href="https://www.instagram.com/glutflut/" target="_blank" rel="noopener" aria-label="Instagram @glutflut" title="Instagram @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a> <a href="https://chaos.social/@glutflut" target="_blank" rel="me noopener" aria-label="Mastodon @glutflut" title="Mastodon @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg></a> <a class="source-icon" hidden target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a> · <span class="version"></span></p>
+      </article>
+      <article data-lang="es" data-title="Cómo jugar – Glut &amp; Flut" hidden>
+        <p><a href="/">← volver al juego</a></p>
+
+        <h1>Glut &amp; Flut</h1>
+        <p class="lead">
+          Fuego contra Agua, en las calles reales de <span class="city">Konstanz</span>. Juegas con tu celular en el navegador, sin app
+          y sin cuenta. Tus pasos por la ciudad son tus jugadas.
+        </p>
+        <p><a class="cta" href="/">Jugar ahora</a></p>
+
+        <h2>Cómo jugar</h2>
+        <ol class="steps">
+          <li>
+            <b>Permite la ubicación.</b> El juego necesita tu GPS; si no, no sabe dónde estás. Funciona mejor al aire
+            libre, en el centro.
+          </li>
+          <li>
+            <b>Eres Fuego o Agua.</b> Casi siempre (dos de cada tres veces) el juego te pone en el lado que en ese momento está más débil: con menos jugadores hoy, o si no con menos terreno; si no, en el otro. Arriba a la
+            izquierda ves de qué lado estás.
+          </li>
+          <li>
+            <b>Muévete.</b> El círculo alrededor de tu punto muestra tu alcance, unos 80 metros. Puedes llegar a todos
+            los cruces que están dentro.
+          </li>
+          <li>
+            <b>Toca “Conquistar”.</b> El cruce más cercano a tu alcance que todavía no es tuyo se vuelve una fuente de
+            tu elemento. Desde ahí se extiende por las calles. Toca un cruce en el mapa para ver de quién es, con qué fuerza, si puedes tomarlo y qué hace allí el terreno; también puedes conquistarlo desde esa ficha.
+          </li>
+          <li>
+            <b>Sigue adelante.</b> Después de conquistar necesitas una pequeña pausa, y una fuente se apaga después de
+            un rato. Si quieres mantener la ciudad, sigue moviéndote.
+          </li>
+        </ol>
+
+        <h2>Qué ves en el mapa</h2>
+        <ul class="legend">
+          <li><span class="sw fire"></span><b>Fuego</b> calles en manos del Fuego</li>
+          <li><span class="sw water"></span><b>Agua</b> calles en manos del Agua</li>
+          <li><span class="sw front"></span><b>Frente</b> los dos igual de fuertes, aquí se está peleando</li>
+          <li><span class="sw neutral"></span><b>Gris</b> nadie ha llegado todavía</li>
+          <li><span class="sw hotspot"></span><b>Hotspot</b> punto amarillo que pulsa, mira abajo</li>
+          <li><span class="sw ring"></span><b>Fuente</b> anillo alrededor de un cruce conquistado; se encoge a medida que la fuente se debilita y queda vacío cuando se apaga. Las tuyas tienen un borde blanco.</li>
+          <li><span class="sw area"></span><b>Superficie</b> manzana cuyas calles alrededor pertenecen (casi) todas a un bando, rellena suavemente con su color</li>
+          <li><span class="sw area hatch"></span><b>Con rayas</b> hay fuentes de jugadores en el borde: la superficie les da puntos cada minuto; rayas más claras indican que las tuyas están entre ellas. Sin rayas no hay ninguna fuente de jugadores en el borde y la superficie no da puntos a nadie.</li>
+        </ul>
+        <p>Los tres números arriba a la derecha cuentan los cruces de Fuego, Frente y Agua.</p>
+
+        <h2>Cómo se extienden el Fuego y el Agua</h2>
+        <p>
+          La ciudad misma juega. Glut &amp; Flut conoce la red de calles y la altura de cada cruce.
+        </p>
+        <ul>
+          <li><b>El Fuego sube</b>, el Agua baja. Contra su naturaleza, un elemento apenas avanza: el Agua sube solo unos pocos metros, el Fuego apenas baja. Una pendiente es viento a favor para un lado y un muro para el otro.</li>
+          <li><b>¿Recién llegas?</b> Durante tus primeros diez minutos conquistas con la mitad de fuerza, después con toda. Si ya jugaste otro día, tienes toda la fuerza desde el principio. Así los nuevos pueden ambientarse y nadie puede apoderarse del juego con muchos perfiles creados a toda prisa.</li>
+          <li><b>Los lugares alimentan a los elementos.</b> Cerca de bares y puestos, el fuego arde solo; en las orillas y en las fuentes, brota el agua.</li>
+          <li><b>El entorno influye.</b> Algunas esquinas dejan entrar más fácil al Fuego, otras al Agua.</li>
+          <li><b>Cuanto más lejos de la fuente, más débil.</b> Donde se encuentran dos elementos, decide la fuerza; si los dos son iguales, se forma un frente.</li>
+          <li><b>Las fuentes se consumen.</b> Una fuente conquistada se debilita con el tiempo y se apaga después de unos minutos. Solo puedes quitarle una fuente al otro lado cuando ya perdió la mitad de su fuerza.</li>
+        </ul>
+
+        <h2>Brasas y hielo</h2>
+        <p>
+          Puedes convertir una conquista tuya en tu fuente permanente: el fuego en <b>brasas</b>, el agua en <b>hielo</b>
+          (botón «Guardar como brasas» o «Guardar como hielo»). No se apaga a los pocos minutos, sino que sigue hasta que
+          el otro bando la tome. Recién hecha es demasiado fuerte para una sola conquista; en un día se debilita y entonces
+          basta un toque. Vuelve a avivar tus brasas o renovar tu hielo para devolverle toda su fuerza. Cada hora en pie da
+          puntos. Tienes dos por ciudad (con niveles, una más por nivel); no pueden estar justo al lado de otras fuentes. Si ya están todas puestas, mueves una: el juego te pregunta cuál. Desde el nivel 2 puedes darle una <b>inscripción</b> de frases predefinidas en «Mis brasas» o «Mi hielo», que todos ven en el mapa; los niveles más altos y algunas insignias desbloquean más. Tras tres días sin cuidado, o al
+          empezar y terminar una campaña, se apaga.
+        </p>
+
+        <h2>Hallazgos</h2>
+        <p>
+          En la ciudad hay lugares especiales escondidos: fuentes, árboles especiales, puertas y castillos, miradores, arte
+          y mojones. Si te quedas justo al lado unos diez segundos o conquistas un cruce allí, lo descubres. Cuando te acercas, el juego te da una pista. Si
+          quieres, los coleccionas: el juego recuerda entonces cuáles encontraste (sin horas) y los muestra como colección
+          en los ajustes.
+        </p>
+
+        <h2>Hotspots</h2>
+        <p>
+          De vez en cuando aparecen Hotspots en algún lugar del centro y se mueven después de unos diez minutos. Abajo en
+          la pantalla ves a qué distancia está el próximo. Si conquistas justo en un Hotspot, tu fuente dura tres veces más.
+        </p>
+
+        <h2>Capítulos y días de tiempo</h2>
+        <p>
+          La barra bajo la cabecera muestra lo que está en juego ahora. Casi siempre es una carrera entre el Fuego y el
+          Agua: ¿qué bando alcanza antes su meta, por ejemplo un número de conquistas, de conquistas en el frente, de
+          hallazgos o de puntos? Todo tu bando cuenta junto. Gana el primero en alcanzar la meta; si ninguno lo logra, gana
+          al final el que más se haya acercado a su meta.
+        </p>
+        <ul>
+          <li><b>Los capítulos</b> se juegan los fines de semana y juntos cuentan una campaña, por ejemplo durante la
+            temporada del mercado navideño. Si conquistas o encuentras algo durante un capítulo, recibes una insignia, y
+            el bando ganador otra más.</li>
+          <li><b>Los días de tiempo</b> se juegan entre semana de 9 a 21 h. El pronóstico para la ciudad decide de qué
+            se trata: la lluvia y la helada ayudan al Agua, el calor y el sol al Fuego; los días grises van de hallazgos,
+            los templados del frente. Cálido y frío se miden frente a las últimas semanas en tu ciudad. Las metas siguen lo
+            que cada bando logró en las últimas semanas: en un día normal la carrera está abierta, y el tiempo decide.</li>
+          <li><b>El tiempo mismo</b> influye un poco cada día: con lluvia, las fuentes de fuego naturales arden más
+            débiles y las de agua duran más; con calor y sol es al revés; con helada, el agua sube las cuestas con más
+            facilidad. El símbolo de arriba, junto al signo de interrogación, muestra a quién ayuda hoy el tiempo; tócalo
+            para saber más.</li>
+          <li><b>Lluvia y sol en directo:</b> donde hay datos de lluvia (radar o satélite), la lluvia cuenta justo donde y mientras llueve: bajo un chubasco, las fuentes de fuego envejecen más rápido, las de agua más despacio, y las fuentes de fuego naturales arden más débiles. Donde sigue seco, nada cambia. El mapa de lluvia (botón de nube con lluvia a la derecha) muestra dónde llueve ahora. Al revés, un cielo despejado de día ayuda al fuego: donde apenas hay nubes y el sol está lo bastante alto, las fuentes de agua envejecen más rápido y las fuentes de agua naturales son más débiles. El mapa de nubes muestra dónde.</li>
+          <li><b>Marea (Hamburgo):</b> donde hay un mareógrafo conectado, cuenta el nivel del agua: con marea alta, hasta unos 400&nbsp;m del agua, las fuentes de fuego naturales lo tienen más difícil y las de agua duran más; con marea baja, al revés. El 🌊 junto al tiempo muestra el estado. El efecto llega lejos tierra adentro: mantente lejos del agua y no pises muelles, bordes del malecón ni zonas de marea. El juego no pone objetivos en la orilla misma.</li>
+        </ul>
+
+        <h2>Niveles y desafíos</h2>
+        <p>Donde los niveles están activados, acumulas experiencia (XP): por conquistas, por zonas de la ciudad donde conquistas por primera vez hoy, por valorar lugares y, sobre todo, por desafíos. Hacer cosas distintas en un día da un extra. Tu nivel es el número en tu punto arriba a la izquierda; los detalles, bajo tu nombre en la clasificación.</p>
+        <ul>
+          <li><b>Desafíos:</b> el juego propone uno (por ejemplo, conquistar tres cruces o descubrir una zona nueva); dura pocos minutos. Después hay media hora de pausa, y hasta cuatro al día.</li>
+          <li><b>Cada nivel trae una habilidad:</b> nivel 2 <i>Vista lejana</i> (una conquista hasta 160 m), nivel 3 <i>Alimentar</i> (tu fuente más débil, de nuevo llena), nivel 4 <i>Reforzar</i> (hacer más fuerte una fuente de tu bando cercana; los dos ganan XP), nivel 5 <i>Lluvia de chispas</i> u <i>Ola</i> (dos cruces vecinos a la vez). Además, una brasa o un hielo más por nivel y algo más de fuerza (+5 % por nivel, como máximo +15 %).</li>
+          <li><b>Los niveles valen por campaña:</b> cuando una campaña empieza o termina, todos vuelven al nivel 1. Las insignias de los niveles alcanzados se quedan.</li>
+          <li><b>Viento a favor:</b> en tu primer día tus fuentes duran más y son más difíciles de tomar.</li>
+        </ul>
+
+        <h2>Racha semanal</h2>
+        <p>Si juegas <b>tres días en una semana</b>, la semana está lograda y tu racha crece: 🔥 o 💧 y el número de semanas seguidas aparecen bajo tu nombre y en la clasificación. Un día de juego cuenta con tres conquistas, un desafío, un hallazgo o una valoración de un lugar. Se perdona una semana perdida por campaña; entre dos campañas la racha descansa. Hay insignias por 2, 4 y 8 semanas; por lo demás, la racha no da ventajas en el juego. Además está la <b>racha de la ciudad</b> en la clasificación: días seguidos en los que al menos cinco personas han conseguido puntos en tu ciudad.</p>
+
+        <h2>Puntos y clasificación</h2>
+        <p>
+          Toca tu nombre arriba a la izquierda para ver la clasificación. Un día de juego va de medianoche a medianoche, hora local. Así ganas puntos:
+        </p>
+        <ul>
+          <li><b>10</b> por cada conquista, <b>20</b> si el cruce era antes del otro lado o estaba en disputa.</li>
+          <li><b>El doble</b> en un Hotspot.</li>
+          <li><b>Mantener:</b> cada minuto, 1 punto por cada 500 metros de calle que tus fuentes están pintando en ese momento. Ubicarlas bien rinde más que tocar sin parar.</li>
+          <li><b>Superficie:</b> si el borde de una manzana pertenece (casi) entero a tu bando, da 10 puntos por hectárea cada minuto, repartidos entre todos cuyas fuentes colorean ese borde. Las fuentes en el borde de una superficie mantenida se debilitan la mitad de rápido.</li>
+          <li><b>Romper un anillo:</b> si tu bando rompe el anillo de una superficie que el otro bando mantuvo al menos cinco minutos, da de 10 a 50 puntos, más cuanto más grande, repartidos entre todos cuyas fuentes están en el borde.</li>
+          <li><b>Rodear:</b> si las fuentes de tu bando sostienen durante dos minutos todos los cruces vecinos de una brasa o un hielo del otro bando (en un cruce de al menos tres calles), se apaga cuatro veces más rápido hasta que se rompa el anillo; os repartís 50 puntos. Las fuentes rodeadas parpadean.</li>
+          <li><b>2</b> por una valoración del lugar, hasta cinco veces al día.</li>
+        </ul>
+        <p>
+          Tus puntos también cuentan para tu lado. El día lo gana el lado cuyos jugadores mantuvieron más terreno por más
+          tiempo. El juego te asigna un nombre de jugador al azar; puedes cambiarlo, ocultarte de la clasificación o
+          borrar tu progreso. No necesitas cuenta para eso: tu progreso está ligado a un ID aleatorio en tu navegador. Si
+          borras los datos del navegador, tus puntos se pierden, salvo que hayas guardado un código en “Guardar tu
+          progreso” en la clasificación; con él pasas tu progreso a un celular nuevo. No compartas ese código.
+        </p>
+
+        <h2>Puntos y XP de un vistazo</h2>
+        <table class="sums">
+          <thead><tr><th>Por</th><th>Puntos</th></tr></thead>
+          <tbody>
+            <tr><td>Conquista</td><td>10</td></tr>
+            <tr><td>Conquista al otro bando o en un cruce en disputa</td><td>20</td></tr>
+            <tr><td>Conquista en un Hotspot</td><td>el doble</td></tr>
+            <tr><td>Apagar un nido de brasas / secar una vena de agua</td><td>+20</td></tr>
+            <tr><td>Encender un hogar / cavar un pozo</td><td>+10</td></tr>
+            <tr><td>Mantener: por cada 500 m de calle que pintan tus fuentes</td><td>1 por minuto</td></tr>
+            <tr><td>Superficie: por hectárea de una manzana mantenida</td><td>10 por minuto, repartidos</td></tr>
+            <tr><td>Romper un anillo</td><td>10–50, repartidos</td></tr>
+            <tr><td>Rodear</td><td>50, repartidos</td></tr>
+            <tr><td>Brasa o hielo</td><td>10 por hora que se mantiene</td></tr>
+            <tr><td>Valoración de un lugar (hasta cinco al día)</td><td>2</td></tr>
+            <tr><td>Desafío</td><td>– (solo XP)</td></tr>
+          </tbody>
+        </table>
+        <p><b>Límite:</b> como máximo 1500 puntos por hora y 6000 al día. Donde los niveles están activados, el límite diario sube 3000 con cada nivel (nivel 2: 9000, nivel 5: 18&nbsp;000). Frena a los bots que juegan día y noche. Al alcanzarlo, no hay más puntos hasta la siguiente hora en punto o hasta medianoche; sigues sumando XP.</p>
+        <p>XP, donde los niveles están activados:</p>
+        <table class="sums">
+          <thead><tr><th>Por</th><th>XP</th></tr></thead>
+          <tbody>
+            <tr><td>Conquista, también en el frente</td><td>2 (como máximo 20 al día)</td></tr>
+            <tr><td>Primera conquista del día en una zona</td><td>15</td></tr>
+            <tr><td>Valoración de un lugar</td><td>5</td></tr>
+            <tr><td>Desafío superado (hasta cuatro al día)</td><td>90</td></tr>
+            <tr><td>Reforzar</td><td>5 para los dos</td></tr>
+            <tr><td>Variedad: cada tipo más en un día (desafío, zona nueva, valoración, frente, reforzar)</td><td>+25 %, como máximo +100 %</td></tr>
+          </tbody>
+        </table>
+        <p>Nivel 2 desde 100 XP, nivel 3 desde 600, nivel 4 desde 1500, nivel 5 desde 3000.</p>
+
+        <h2>“¿Cómo está aquí?”</h2>
+        <p>
+          Con este botón dices con un toque cómo se siente el lugar ahora mismo: lleno, tranquilo, ruidoso, oscuro, frío o
+          acogedor. Te da algunos puntos y, sobre todo, ayuda a entender cómo vive la gente el centro de la ciudad.
+        </p>
+
+        <h2>Consejos</h2>
+        <ul>
+          <li>Busca el frente morado. Ahí una sola conquista decide hacia qué lado se inclina.</li>
+          <li>Una fuente en un cruce grande llega más lejos que una en un callejón sin salida.</li>
+          <li>Entre dos o tres es mucho más fácil mantener un barrio.</li>
+          <li>Si a tu alrededor ya todo es tuyo, «Conquistar» enciende un hogar o cava un pozo que abastece el frente. Si ya hay uno cerca, el botón refuerza un cruce tuyo justo en el frente; si no hay ninguno a tu alcance, te dice hacia dónde queda el frente más cercano.</li>
+          <li>Pon atención al tráfico y a la gente a tu alrededor, no solo a tu celular.</li>
+        </ul>
+
+        <h2>¿Y mis datos?</h2>
+        <p>
+          Sin cuenta, sin nombre, sin correo, sin rastreo, solo una cookie para tu progreso. El servidor necesita tu posición para el juego, pero
+          no la guarda. Lo único que se guarda es tu puntaje con tu nombre de jugador aleatorio, sin ningún lugar. Para la
+          planeación urbana solo se cuenta cuántos jugadores pasaron cuánto tiempo en un tramo de calle, y solo si
+          estuvieron allí al menos cinco personas distintas; a las cifras publicadas además se les suma un poco de ruido
+          aleatorio. Nunca se guardan recorridos individuales. Si quieres, puedes indicar tu grupo de edad y dónde vives;
+          de eso solo se cuenta cuántas personas respondieron así cada día. Todo lo demás está en la
+          <a href="/datenschutz.html">política de privacidad</a>.
+        </p>
+
+        <h2>¿Quién está detrás?</h2>
+        <p>
+          Glut &amp; Flut es un proyecto de Konstanz de Thorsten Rieß (Scientific Wave Solutions). Quiere probar si un juego puede mostrar cómo la gente usa y vive el centro
+          de su ciudad, de forma voluntaria y sin vigilar a nadie.
+          Las fuentes de datos (mapas, alturas, tiempo) están en el <a href="/impressum.html">aviso legal</a>.
+          La base de datos la patrocina <a href="https://neon.com" target="_blank" rel="noopener">Neon</a>.
+        </p>
+
+        <p>Un globo muestra dónde se juega: <a href="https://www.weathermarble.com/glutflut/" target="_blank" rel="noopener">Glut &amp; Flut en Weathermarble</a> (sitio externo, una oferta independiente).</p>
+
+        <p><a class="cta" href="/">Jugar ahora</a></p>
+
+        <p class="small"><a href="/impressum.html">Aviso legal</a> · <a href="/datenschutz.html">Privacidad</a> · <a href="https://www.instagram.com/glutflut/" target="_blank" rel="noopener" aria-label="Instagram @glutflut" title="Instagram @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a> <a href="https://chaos.social/@glutflut" target="_blank" rel="me noopener" aria-label="Mastodon @glutflut" title="Mastodon @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg></a> <a class="source-icon" hidden target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a> · <span class="version"></span></p>
+      </article>
+      <article data-lang="pl" data-title="Jak grać – Glut &amp; Flut" hidden>
+        <p><a href="/">← powrót do gry</a></p>
+
+        <h1>Glut &amp; Flut</h1>
+        <p class="lead">
+          Ogień przeciwko Wodzie, na prawdziwych ulicach miasta <span class="city">Konstanz</span>. Grasz na telefonie w przeglądarce, bez aplikacji
+          i bez konta. Twoje kroki po mieście to twoje ruchy.
+        </p>
+        <p><a class="cta" href="/">Graj teraz</a></p>
+
+        <h2>Jak grać</h2>
+        <ol class="steps">
+          <li>
+            <b>Zezwól na lokalizację.</b> Gra potrzebuje twojego GPS, inaczej nie wie, gdzie jesteś. Najlepiej na zewnątrz,
+            w centrum miasta.
+          </li>
+          <li>
+            <b>Jesteś Ogniem albo Wodą.</b> Zwykle (w dwóch przypadkach na trzy) gra przydziela cię do strony, która jest akurat słabsza: ma dziś mniej graczy, a jeśli nie, mniej terenu; w pozostałych do drugiej. W lewym górnym rogu
+            widzisz, po której stronie grasz.
+          </li>
+          <li>
+            <b>Ruszaj w drogę.</b> Okrąg wokół twojej kropki pokazuje twój zasięg, około 80 metrów. Możesz dotrzeć do każdego
+            skrzyżowania w jego obrębie.
+          </li>
+          <li>
+            <b>Stuknij „Zdobądź”.</b> Najbliższe skrzyżowanie w zasięgu, które nie jest jeszcze twoje, staje się źródłem twojego żywiołu.
+            Stamtąd rozprzestrzenia się on wzdłuż ulic. Stuknij skrzyżowanie na mapie, aby zobaczyć, do kogo należy, jak silnie, czy możesz je zdobyć i co zmienia tam teren; z tej karty możesz je też zdobyć.
+          </li>
+          <li>
+            <b>Nie zatrzymuj się.</b> Po zdobyciu potrzebujesz krótkiej przerwy, a źródło po pewnym czasie wygasa. Jeśli
+            chcesz utrzymać miasto, bądź w ruchu.
+          </li>
+        </ol>
+
+        <h2>Co widzisz na mapie</h2>
+        <ul class="legend">
+          <li><span class="sw fire"></span><b>Ogień</b> ulice należące do Ognia</li>
+          <li><span class="sw water"></span><b>Woda</b> ulice należące do Wody</li>
+          <li><span class="sw front"></span><b>Front</b> obie strony równie silne, tu toczy się walka</li>
+          <li><span class="sw neutral"></span><b>Szary</b> jeszcze przez nikogo nieosiągnięte</li>
+          <li><span class="sw hotspot"></span><b>Hotspot</b> pulsująca żółta kropka, zob. niżej</li>
+          <li><span class="sw ring"></span><b>Źródło</b> pierścień wokół zdobytego skrzyżowania; kurczy się, gdy źródło słabnie, i jest pusty, gdy wygaśnie. Twoje własne mają biały brzeg.</li>
+          <li><span class="sw area"></span><b>Obszar</b> kwartał, którego okoliczne ulice należą (prawie) w całości do jednej strony, lekko wypełniony jej kolorem</li>
+          <li><span class="sw area hatch"></span><b>Z paskami</b> na brzegu stoją źródła graczy: obszar daje im punkty co minutę; jaśniejsze paski oznaczają, że są wśród nich twoje. Bez pasków na brzegu nie ma źródeł graczy i obszar nikomu nie daje punktów.</li>
+        </ul>
+        <p>Trzy liczby w prawym górnym rogu pokazują, ile skrzyżowań należy do Ognia, do frontu i do Wody.</p>
+
+        <h2>Jak rozprzestrzeniają się Ogień i Woda</h2>
+        <p>
+          Samo miasto bierze udział w grze. Glut &amp; Flut zna sieć ulic i wysokość każdego skrzyżowania.
+        </p>
+        <ul>
+          <li><b>Ogień wspina się pod górę</b>, Woda spływa w dół. Wbrew swojej naturze żywioł daleko nie zajdzie: Woda wspina się ledwie o kilka metrów, Ogień prawie nie schodzi w dół. Zbocze to wiatr w plecy dla jednej strony, a mur dla drugiej.</li>
+          <li><b>Nowy?</b> Przez pierwsze dziesięć minut zdobywasz z połową siły, potem z pełną. Jeśli grałeś już innego dnia, od razu masz pełną siłę. Dzięki temu nowi mogą się wdrożyć, a nikt nie przejmie gry wieloma naprędce założonymi profilami.</li>
+          <li><b>Miejsca karmią żywioły.</b> Wokół barów i stoisk ogień płonie sam z siebie; na brzegach i przy fontannach tryska woda.</li>
+          <li><b>Otoczenie ma wpływ.</b> Niektóre zakątki łatwiej wpuszczają Ogień, inne Wodę.</li>
+          <li><b>Im dalej od źródła, tym słabiej.</b> Tam, gdzie spotykają się dwa żywioły, decyduje siła; jeśli obie są równe, powstaje front.</li>
+          <li><b>Źródła się wypalają.</b> Zdobyte źródło z czasem słabnie i po kilku minutach wygasa. Źródło przeciwnika możesz przejąć dopiero wtedy, gdy spadnie do połowy swojej siły.</li>
+        </ul>
+
+        <h2>Żar i lód</h2>
+        <p>
+          Swoje zdobycie możesz zamienić w stałe źródło: ogień w <b>żar</b>, wodę w <b>lód</b> (przycisk „Zachowaj jako
+          żar” lub „Zachowaj jako lód”). Nie gaśnie po kilku minutach, tylko zostaje, dopóki druga strona go nie przejmie.
+          Świeże jest za silne na jedno zdobycie; w ciągu doby słabnie i wtedy wystarczy jedno dotknięcie. Wróć, rozdmuchaj
+          swój żar albo odśwież swój lód, a znów będzie w pełni sił. Każda godzina, w której stoi, daje punkty. Masz dwa
+          na miasto (z poziomami o jedno więcej na poziom); nie mogą stać tuż obok innych źródeł. Gdy wszystkie są już ustawione, przenosisz jedno: gra pyta, które. Od poziomu 2 możesz nadać mu <b>napis</b> z gotowych zdań w „Mój żar” lub „Mój lód”, widoczny dla wszystkich na mapie; wyższe poziomy i niektóre odznaki odblokowują więcej. Po trzech dniach bez opieki albo na początku i końcu kampanii
+          gaśnie.
+        </p>
+
+        <h2>Znaleziska</h2>
+        <p>
+          W mieście ukryte są wyjątkowe miejsca: fontanny, wyjątkowe drzewa, bramy i zamki, punkty widokowe, sztuka i
+          kamienie graniczne. Zostań tuż obok przez około dziesięć sekund albo zdobądź tam skrzyżowanie, a odkryjesz je. Gdy się zbliżysz, gra da ci wskazówkę. Jeśli
+          chcesz, zbierasz je: gra zapamiętuje wtedy, które znaleziska odkryto (bez godzin), i pokazuje je w ustawieniach
+          jako kolekcję.
+        </p>
+
+        <h2>Hotspoty</h2>
+        <p>
+          Co jakiś czas gdzieś w centrum miasta pojawiają się hotspoty, które po około dziesięciu minutach przenoszą się dalej. Na dole
+          ekranu widać, jak daleko jest najbliższy. Jeśli zdobędziesz skrzyżowanie tuż przy hotspocie, twoje źródło utrzyma się trzy razy dłużej.
+        </p>
+
+        <h2>Rozdziały i dni pogody</h2>
+        <p>
+          Pasek pod nagłówkiem pokazuje, o co toczy się gra. Zwykle to wyścig Ognia z Wodą: która strona pierwsza osiągnie
+          cel, na przykład liczbę zdobyć, zdobyć na froncie, znalezisk albo punktów? Cała twoja strona liczy się razem.
+          Wygrywa ta, która pierwsza osiągnie cel; jeśli żadnej się nie uda, na koniec wygrywa ta, która była bliżej swojego celu.
+        </p>
+        <ul>
+          <li><b>Rozdziały</b> trwają w weekendy i razem tworzą kampanię, na przykład w czasie jarmarku
+            bożonarodzeniowego. Jeśli w czasie rozdziału coś zdobędziesz lub znajdziesz, dostaniesz odznakę, a zwycięska
+            strona jeszcze jedną.</li>
+          <li><b>Dni pogody</b> trwają w dni robocze od 9 do 21. O tym, o co chodzi, decyduje prognoza dla miasta: deszcz
+            i mróz pomagają Wodzie, upał i słońce Ogniowi; w szare dni chodzi o znaleziska, w łagodne o front. Ciepło i
+            zimno liczą się w porównaniu z ostatnimi tygodniami w twoim mieście. Cele zależą od tego, ile każda strona
+            osiągnęła w ostatnich tygodniach: w zwykły dzień wyścig jest otwarty, a o wyniku przesądza pogoda.</li>
+          <li><b>Sama pogoda</b> ma co dzień niewielki wpływ: w deszczu naturalne źródła ognia płoną słabiej, a źródła
+            wody trwają dłużej; w cieple i słońcu jest odwrotnie; w mróz woda łatwiej wchodzi pod górę. Symbol u góry obok
+            znaku zapytania pokazuje, komu pogoda dziś pomaga; stuknij go, aby dowiedzieć się więcej.</li>
+          <li><b>Deszcz i słońce na żywo:</b> tam, gdzie są dane o deszczu (radar lub satelita), deszcz liczy się dokładnie tam, gdzie i dopóki pada: pod ulewą źródła ognia starzeją się szybciej, źródła wody wolniej, a naturalne źródła ognia płoną słabiej. Tam, gdzie jest sucho, nic się nie zmienia. Mapa deszczu (przycisk z deszczową chmurą po prawej) pokazuje, gdzie teraz pada. Odwrotnie, czyste niebo za dnia pomaga ogniowi: tam, gdzie prawie nie ma chmur, a słońce jest dość wysoko, źródła wody starzeją się szybciej, a naturalne źródła wody są słabsze. Mapa chmur pokazuje, gdzie.</li>
+          <li><b>Pływy (Hamburg):</b> tam, gdzie podłączony jest wodowskaz, liczy się poziom wody: przy przypływie, do około 400&nbsp;m od wody, naturalne źródła ognia mają trudniej, a źródła wody działają dłużej; przy odpływie odwrotnie. 🌊 obok pogody pokazuje stan. Efekt sięga daleko w głąb lądu: trzymaj się z dala od wody i nie wchodź na pomosty, krawędzie nabrzeża ani na watty. Na samym brzegu gra nie wyznacza celów.</li>
+        </ul>
+
+        <h2>Poziomy i wyzwania</h2>
+        <p>Tam, gdzie poziomy są włączone, zbierasz doświadczenie (PD): za zdobycia, za części miasta, w których dziś zdobywasz po raz pierwszy, za oceny miejsc, a przede wszystkim za wyzwania. Różnorodność w ciągu dnia daje premię. Twój poziom to liczba na twojej kropce w lewym górnym rogu; szczegóły pod twoim imieniem w rankingu.</p>
+        <ul>
+          <li><b>Wyzwania:</b> gra proponuje jedno (na przykład zdobyć trzy skrzyżowania albo odkryć nową okolicę); trwa kilka minut. Potem pół godziny przerwy, najwyżej cztery dziennie.</li>
+          <li><b>Każdy poziom daje umiejętność:</b> poziom 2 <i>Dalekowzroczność</i> (jedno zdobycie do 160 m), poziom 3 <i>Odżywienie</i> (twoje najsłabsze źródło znów pełne), poziom 4 <i>Wzmocnienie</i> (wzmocnić pobliskie źródło twojej strony, oboje dostajecie PD), poziom 5 <i>Lecące iskry</i> lub <i>Fala</i> (dwa sąsiednie skrzyżowania naraz). Do tego jeden żar lub lód więcej na poziom i trochę więcej siły (+5 % na poziom, najwyżej +15 %).</li>
+          <li><b>Poziomy liczą się na kampanię:</b> gdy kampania się zaczyna lub kończy, wszyscy zaczynają znów od poziomu 1. Odznaki za osiągnięte poziomy zostają.</li>
+          <li><b>Wiatr w plecy:</b> pierwszego dnia twoje źródła trzymają dłużej i trudniej je przejąć.</li>
+        </ul>
+
+        <h2>Seria tygodniowa</h2>
+        <p>Grasz <b>trzy dni w tygodniu</b> – tydzień zaliczony, a twoja seria rośnie: 🔥 lub 💧 i liczbę tygodni z rzędu widać pod twoim imieniem i w rankingu. Dzień gry liczy się już przy trzech zdobyciach, wyzwaniu, znalezisku lub ocenie miejsca. Jeden opuszczony tydzień na kampanię jest wybaczany; między dwiema kampaniami seria czeka. Za 2, 4 i 8 tygodni są odznaki; poza tym seria nie daje przewagi w grze. Jest też <b>seria miasta</b> w rankingu: dni z rzędu, w których co najmniej pięć osób zdobyło punkty w twoim mieście.</p>
+
+        <h2>Punkty i ranking</h2>
+        <p>
+          Stuknij swoją nazwę w lewym górnym rogu, aby zobaczyć ranking. Dzień gry trwa od północy do północy czasu lokalnego. Punkty dostajesz tak:
+        </p>
+        <ul>
+          <li><b>10</b> za każde zdobycie, <b>20</b>, jeśli skrzyżowanie należało wcześniej do drugiej strony albo było sporne.</li>
+          <li><b>Podwójnie</b> przy hotspocie.</li>
+          <li><b>Utrzymywanie:</b> co minutę 1 punkt za każde 500 metrów ulicy, które twoje źródła właśnie barwią. Dobre rozmieszczenie opłaca się bardziej niż nieustanne stukanie.</li>
+          <li><b>Obszar:</b> jeśli brzeg kwartału należy (prawie) w całości do twojej strony, co minutę daje 10 punktów za hektar, dzielonych między wszystkich, których źródła barwią ten brzeg. Źródła na brzegu utrzymywanego obszaru słabną o połowę wolniej.</li>
+          <li><b>Przerwanie pierścienia:</b> jeśli twoja strona przerwie pierścień obszaru, który druga strona utrzymywała co najmniej pięć minut, daje to od 10 do 50 punktów, więcej za większe obszary, dzielonych między wszystkich, których źródła są na brzegu.</li>
+          <li><b>Otaczanie:</b> jeśli źródła twojej strony przez dwie minuty trzymają wszystkie sąsiednie skrzyżowania żaru lub lodu przeciwnika (na skrzyżowaniu co najmniej trzech ulic), gaśnie on cztery razy szybciej, dopóki pierścień nie pęknie; dzielicie się 50 punktami. Otoczone źródła migają.</li>
+          <li><b>2</b> za ocenę miejsca, do pięciu razy dziennie.</li>
+        </ul>
+        <p>
+          Twoje punkty liczą się też dla twojej strony. Dzień wygrywa ta strona, której gracze dłużej utrzymywali większy teren.
+          Gra losuje dla ciebie nazwę gracza; możesz wylosować nową, ukryć się w rankingu albo usunąć swój postęp w grze.
+          Nie potrzebujesz do tego konta: twój postęp jest powiązany z losowym identyfikatorem w twojej przeglądarce. Jeśli
+          wyczyścisz dane przeglądarki, twoje punkty przepadną, chyba że masz zapisany kod z sekcji „Zachowaj postęp” w
+          rankingu; pozwala on przenieść postęp na nowy telefon. Nie pokazuj tego kodu nikomu.
+        </p>
+
+        <h2>Punkty i PD w skrócie</h2>
+        <table class="sums">
+          <thead><tr><th>Za co</th><th>Punkty</th></tr></thead>
+          <tbody>
+            <tr><td>Zdobycie</td><td>10</td></tr>
+            <tr><td>Zdobycie od drugiej strony lub na spornym skrzyżowaniu</td><td>20</td></tr>
+            <tr><td>Zdobycie przy hotspocie</td><td>podwójnie</td></tr>
+            <tr><td>Ugaszenie gniazda żaru / osuszenie żyły wodnej</td><td>+20</td></tr>
+            <tr><td>Rozpalenie paleniska / wykopanie studni</td><td>+10</td></tr>
+            <tr><td>Utrzymywanie: za każde 500 m ulicy barwione przez twoje źródła</td><td>1 na minutę</td></tr>
+            <tr><td>Obszar: za hektar utrzymywanego kwartału</td><td>10 na minutę, dzielone</td></tr>
+            <tr><td>Przerwanie pierścienia</td><td>10–50, dzielone</td></tr>
+            <tr><td>Otaczanie</td><td>50, dzielone</td></tr>
+            <tr><td>Żar lub lód</td><td>10 za każdą godzinę, którą stoi</td></tr>
+            <tr><td>Ocena miejsca (do pięciu dziennie)</td><td>2</td></tr>
+            <tr><td>Wyzwanie</td><td>– (tylko PD)</td></tr>
+          </tbody>
+        </table>
+        <p><b>Limit:</b> najwyżej 1500 punktów na godzinę i 6000 dziennie. Tam, gdzie poziomy są włączone, dzienny limit rośnie o 3000 z każdym poziomem (poziom 2: 9000, poziom 5: 18&nbsp;000). Hamuje boty, które grają całą dobę. Po jego osiągnięciu do następnej pełnej godziny lub do północy nie ma więcej punktów; PD zbierasz dalej.</p>
+        <p>PD tam, gdzie poziomy są włączone:</p>
+        <table class="sums">
+          <thead><tr><th>Za co</th><th>PD</th></tr></thead>
+          <tbody>
+            <tr><td>Zdobycie, także na froncie</td><td>2 (najwyżej 20 dziennie)</td></tr>
+            <tr><td>Pierwsze zdobycie dnia w danej części miasta</td><td>15</td></tr>
+            <tr><td>Ocena miejsca</td><td>5</td></tr>
+            <tr><td>Ukończone wyzwanie (do czterech dziennie)</td><td>90</td></tr>
+            <tr><td>Wzmocnienie</td><td>5 dla was obojga</td></tr>
+            <tr><td>Różnorodność: każdy kolejny rodzaj w ciągu dnia (wyzwanie, nowa część miasta, ocena, front, wzmocnienie)</td><td>+25 %, najwyżej +100 %</td></tr>
+          </tbody>
+        </table>
+        <p>Poziom 2 od 100 PD, poziom 3 od 600, poziom 4 od 1500, poziom 5 od 3000.</p>
+
+        <h2>„Jak tu jest?”</h2>
+        <p>
+          Tym przyciskiem jednym stuknięciem mówisz, jak tu teraz jest: tłoczno, cicho, głośno, ciemno, zimno czy
+          zachęcająco. Dostajesz za to kilka punktów, a przede wszystkim pomagasz zrozumieć, jak ludzie odbierają centrum miasta.
+        </p>
+
+        <h2>Wskazówki</h2>
+        <ul>
+          <li>Szukaj fioletowego frontu. To tam jedno zdobycie decyduje, w którą stronę przechyli się szala.</li>
+          <li>Źródło na dużym skrzyżowaniu sięga dalej niż w ślepej uliczce.</li>
+          <li>We dwoje albo we troje znacznie łatwiej utrzymać całą okolicę.</li>
+          <li>Jeśli wokół wszystko już jest twoje, „Zdobądź” rozpala palenisko albo kopie studnię, która zaopatruje front. Jeśli jakieś jest już w pobliżu, przycisk wzmacnia twoje skrzyżowanie tuż przy froncie; jeśli w zasięgu nie ma żadnego, mówi ci, w którą stronę jest najbliższy front.</li>
+          <li>Uważaj na ruch uliczny i ludzi wokół, nie patrz tylko w telefon.</li>
+        </ul>
+
+        <h2>Co z moimi danymi?</h2>
+        <p>
+          Bez konta, bez nazwiska, bez e-maila, bez śledzenia, tylko jedno ciasteczko dla twojego postępu. Serwer potrzebuje twojej pozycji do gry,
+          ale jej nie zapisuje. Zapisywany jest tylko twój wynik z losową nazwą gracza, bez żadnych miejsc. Na potrzeby
+          planowania miejskiego liczy się jedynie, ilu graczy spędziło ile czasu na danym odcinku ulicy, i to tylko wtedy, gdy było tam co najmniej pięć
+          różnych osób; do publikowanych liczb dodaje się ponadto niewielki losowy szum. Indywidualne trasy
+          nigdy nie są zapisywane. Jeśli chcesz, możesz podać swoją grupę wiekową i miejsce zamieszkania; z tego liczy się wyłącznie liczbę osób,
+          które danego dnia udzieliły takiej odpowiedzi. Wszystko inne znajdziesz w
+          <a href="/datenschutz.html">polityce prywatności</a>.
+        </p>
+
+        <h2>Kto za tym stoi?</h2>
+        <p>
+          Glut &amp; Flut to projekt z Konstancji, którego autorem jest Thorsten Rieß (Scientific Wave Solutions). Sprawdza, czy gra może pokazać, jak ludzie korzystają ze swojego centrum miasta i jak je odbierają,
+          dobrowolnie i bez obserwowania kogokolwiek.
+          Źródła danych (mapy, wysokości, pogoda) podano w <a href="/impressum.html">nocie prawnej</a>.
+          Bazę danych sponsoruje <a href="https://neon.com" target="_blank" rel="noopener">Neon</a>.
+        </p>
+
+        <p>Gdzie się gra, pokazuje globus: <a href="https://www.weathermarble.com/glutflut/" target="_blank" rel="noopener">Glut &amp; Flut na Weathermarble</a> (strona zewnętrzna, osobna usługa).</p>
+
+        <p><a class="cta" href="/">Graj teraz</a></p>
+
+        <p class="small"><a href="/impressum.html">Nota prawna</a> · <a href="/datenschutz.html">Prywatność</a> · <a href="https://www.instagram.com/glutflut/" target="_blank" rel="noopener" aria-label="Instagram @glutflut" title="Instagram @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a> <a href="https://chaos.social/@glutflut" target="_blank" rel="me noopener" aria-label="Mastodon @glutflut" title="Mastodon @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg></a> <a class="source-icon" hidden target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a> · <span class="version"></span></p>
+      </article>
+      <article data-lang="it" data-title="Come si gioca – Glut &amp; Flut" hidden>
+        <p><a href="/">← al gioco</a></p>
+
+        <h1>Glut &amp; Flut</h1>
+        <p class="lead">
+          Fuoco contro acqua, sulle vere strade di <span class="city">Konstanz</span>. Giochi con il telefono nel browser, senza
+          app e senza account. I tuoi passi per la città sono le tue mosse.
+        </p>
+        <p><a class="cta" href="/">Gioca ora</a></p>
+
+        <h2>Come si gioca</h2>
+        <ol class="steps">
+          <li>
+            <b>Consenti la posizione.</b> Il gioco ha bisogno del tuo GPS, altrimenti non sa dove ti trovi. Meglio all’aperto,
+            in centro.
+          </li>
+          <li>
+            <b>Sei fuoco o acqua.</b> Di solito (due volte su tre) il gioco ti assegna alla squadra che in quel momento è più debole: con meno giocatori oggi, altrimenti con meno territorio; altrimenti all’altra. In alto a sinistra
+            vedi da che parte stai.
+          </li>
+          <li>
+            <b>Mettiti in cammino.</b> Il cerchio intorno al tuo punto mostra la tua portata, circa 80 metri. Puoi raggiungere
+            tutti gli incroci al suo interno.
+          </li>
+          <li>
+            <b>Tocca «Conquista».</b> L’incrocio più vicino alla tua portata che non è ancora tuo diventa una sorgente
+            del tuo elemento. Da lì si propaga lungo le strade. Se tocchi un incrocio sulla mappa, una scheda mostra a chi appartiene, con che forza, se puoi prenderlo e che cosa caratterizza il terreno lì; da lì puoi anche conquistarlo in modo mirato.
+          </li>
+          <li>
+            <b>Vai avanti.</b> Dopo una conquista devi riprendere fiato un attimo, e una sorgente si spegne dopo un po’.
+            Chi vuole tenere la città resta in movimento.
+          </li>
+        </ol>
+
+        <h2>Cosa vedi sulla mappa</h2>
+        <ul class="legend">
+          <li><span class="sw fire"></span><b>Fuoco</b> strade tenute dal fuoco</li>
+          <li><span class="sw water"></span><b>Acqua</b> strade tenute dall’acqua</li>
+          <li><span class="sw front"></span><b>Fronte</b> entrambi ugualmente forti, qui si combatte</li>
+          <li><span class="sw neutral"></span><b>Grigio</b> non ancora raggiunto da nessuno</li>
+          <li><span class="sw hotspot"></span><b>Hotspot</b> punto giallo pulsante, vedi sotto</li>
+          <li><span class="sw ring"></span><b>Sorgente</b> anello intorno a un incrocio conquistato; si restringe mentre la sorgente si indebolisce ed è vuoto quando si spegne. Le tue hanno un bordo bianco.</li>
+          <li><span class="sw area"></span><b>Area</b> isolato le cui strade tutt’intorno appartengono (quasi) interamente a una squadra, leggermente riempito del suo colore</li>
+          <li><span class="sw area hatch"></span><b>Con strisce</b> sul bordo ci sono sorgenti di giocatori: l’area dà loro punti ogni minuto; strisce più chiare indicano che tra queste ci sono le tue. Senza strisce nessuna sorgente di giocatori è sul bordo e l’area non dà punti a nessuno.</li>
+        </ul>
+        <p>I tre numeri in alto a destra contano gli incroci del fuoco, del fronte e dell’acqua.</p>
+
+        <h2>Come si propagano fuoco e acqua</h2>
+        <p>
+          Anche la città gioca. Glut &amp; Flut conosce la rete stradale e l’altitudine di ogni incrocio.
+        </p>
+        <ul>
+          <li><b>Il fuoco sale in salita</b>, l’acqua scorre in discesa. Contro la propria natura un elemento non va lontano: l’acqua risale solo di pochi metri, il fuoco scende a malapena. Un pendio è vento in poppa per una squadra e un muro per l’altra.</li>
+          <li><b>Sei nuovo?</b> Nei tuoi primi dieci minuti conquisti a metà forza, poi a forza piena. Chi ha già giocato in un altro giorno è subito a pieno regime. Così chi è nuovo può fare pratica, senza che qualcuno si impadronisca del gioco con tanti profili creati in fretta.</li>
+          <li><b>I luoghi nutrono gli elementi.</b> Intorno a locali e bancarelle arde un fuoco spontaneo, lungo le rive e alle fontane sgorga l’acqua.</li>
+          <li><b>L’ambiente lascia il segno.</b> Alcuni angoli fanno entrare più facilmente il fuoco, altri l’acqua.</li>
+          <li><b>Più lontano dalla sorgente, più debole.</b> Dove si incontrano due elementi decide la forza; se sono uguali, nasce un fronte.</li>
+          <li><b>Le sorgenti si consumano.</b> Una sorgente conquistata si indebolisce col tempo e si spegne dopo alcuni minuti. Puoi prendere una sorgente avversaria solo quando ha ancora la metà della sua forza.</li>
+        </ul>
+
+        <h2>Brace e Ghiaccio</h2>
+        <p>
+          Puoi trasformare una tua conquista nella tua sorgente permanente: il fuoco come <b>Brace</b>, l’acqua come <b>Ghiaccio</b>
+          (pulsante «Tieni come Brace» o «Tieni come Ghiaccio»). Non si spegne dopo pochi minuti, ma resta finché
+          l’altra squadra non la prende. Appena creata è troppo forte per una singola conquista; nell’arco di un giorno sbiadisce, e
+          poi basta un clic. Torna e ravviva la tua Brace o rinfresca il tuo Ghiaccio, e sarà di nuovo al massimo.
+          Ogni ora in cui resta in piedi porta punti. Ne hai due per città (con i livelli una in più per livello); non possono stare proprio accanto ad altre sorgenti. Quando le hai piazzate tutte, ne sposti una: il gioco ti chiede quale. Dal livello 2 puoi darle un’<b>iscrizione</b> scelta tra frasi predefinite, in «Le mie Braci» o «I miei Ghiacci», che tutti vedono sulla mappa; i livelli più alti e alcuni distintivi sbloccano altre frasi.
+          Dopo tre giorni senza cure, oppure all’inizio e alla fine di una campagna, si spegne.
+        </p>
+
+        <h2>Reperti</h2>
+        <p>
+          In città sono nascosti luoghi speciali: fontane, alberi particolari, porte e castelli, punti panoramici, arte e
+          cippi di confine. Resta per circa dieci secondi proprio lì vicino o conquista lì un incrocio, e lo scopri. Quando ti avvicini a uno, il gioco
+          ti dà un indizio. Se vuoi, li collezioni: allora il gioco ricorda quali hai trovato (senza orario)
+          e te li mostra nelle impostazioni come collezione.
+        </p>
+
+        <h2>Hotspot</h2>
+        <p>
+          Di tanto in tanto compaiono hotspot da qualche parte in centro, che dopo circa dieci minuti si spostano altrove. In basso sullo
+          schermo vedi quanto dista il più vicino. Se conquisti proprio accanto all’hotspot, la tua sorgente dura tre volte di più.
+        </p>
+
+        <h2>Capitoli e giornate meteo</h2>
+        <p>
+          Sotto l’intestazione c’è scritto qual è la sfida del momento. Di solito è una gara tra fuoco e acqua: quale
+          squadra raggiunge per prima il suo obiettivo, per esempio un numero di conquiste, conquiste sul fronte, reperti o punti?
+          Tutti i membri della tua squadra contano insieme. Vince chi raggiunge l’obiettivo per primo; se nessuna ci riesce, alla fine vince
+          la squadra che si è avvicinata di più al suo obiettivo.
+        </p>
+        <ul>
+          <li><b>I capitoli</b> si svolgono nei fine settimana e insieme raccontano una campagna, per esempio nel periodo del mercatino di Natale.
+            Chi in un capitolo conquista o trova qualcosa riceve un distintivo, e la squadra vincitrice un altro ancora.</li>
+          <li><b>Le giornate meteo</b> ci sono nei giorni feriali dalle 9 alle 21. Le previsioni del tempo per la città decidono
+            qual è la sfida: pioggia e gelo aiutano l’acqua, caldo e sole il fuoco; nei giorni grigi si tratta di
+            reperti, in quelli miti del fronte. Caldo e freddo vanno intesi rispetto alle ultime settimane nella tua
+            città. Gli obiettivi dipendono da quanto ogni squadra ha fatto nelle ultime settimane: in un giorno normale la gara è aperta, e a decidere è il tempo.</li>
+          <li><b>Il tempo stesso</b> influisce un po’ ogni giorno: con la pioggia le sorgenti naturali di fuoco bruciano
+            più deboli e quelle d’acqua durano di più, con caldo e sole è il contrario, con il gelo l’acqua sale
+            più facilmente in salita. Il simbolo in alto accanto al punto interrogativo mostra chi oggi è aiutato dal tempo; toccalo per saperne di più.</li>
+          <li><b>Pioggia e sole dal vivo:</b> dove ci sono dati sulla pioggia (radar o satellite), la pioggia conta esattamente dove e finché piove: sotto un acquazzone le sorgenti di fuoco invecchiano più in fretta, quelle d’acqua più lentamente, e le sorgenti naturali di fuoco bruciano più deboli. Dove resta asciutto non cambia nulla. La mappa della pioggia (pulsante con la nuvola di pioggia a destra) mostra dove piove adesso. Al contrario, un cielo sereno di giorno aiuta il fuoco: dove ci sono poche nuvole e il sole è abbastanza alto, le sorgenti d’acqua invecchiano più in fretta e le sorgenti naturali d’acqua sono più deboli. La mappa delle nuvole mostra dove.</li>
+          <li><b>Marea (Amburgo):</b> dove è collegato un mareografo conta il livello dell’acqua: con l’alta marea, fino a circa 400&nbsp;m dall’acqua, le fonti di fuoco naturali fanno più fatica e quelle d’acqua durano di più; con la bassa marea il contrario. Il 🌊 accanto al meteo mostra lo stato. L’effetto arriva lontano nell’entroterra: stai lontano dall’acqua e non salire su pontili, bordi delle banchine o zone di marea. Sulla riva stessa il gioco non mette obiettivi.</li>
+        </ul>
+
+        <h2>Livelli e sfide</h2>
+        <p>Dove i livelli sono attivi, raccogli esperienza (PE): per le conquiste, per le zone della città in cui oggi conquisti per la prima volta, per le valutazioni dei luoghi e soprattutto per le sfide. Chi in un giorno fa cose diverse riceve un bonus. Il tuo livello è il numero sul tuo punto in alto a sinistra, i dettagli sono sotto il tuo nome nella classifica.</p>
+        <ul>
+          <li><b>Sfide:</b> il gioco ne propone una (per esempio conquistare tre incroci o scoprire una nuova zona); dura pochi minuti. Poi c’è mezz’ora di pausa, fino a quattro al giorno.</li>
+          <li><b>Ogni livello porta un’abilità:</b> livello 2 <i>Lungimiranza</i> (una conquista fino a 160 m di distanza), livello 3 <i>Nutri</i> (la tua sorgente più debole di nuovo piena), livello 4 <i>Rafforza</i> (rendere più forte una sorgente vicina della tua squadra, ricevete entrambi PE), livello 5 <i>Pioggia di scintille</i> o <i>Onda</i> (due incroci vicini in una volta). In più, per ogni livello una Brace o un Ghiaccio in più e un po’ più di forza (+5 % per livello, al massimo +15 %).</li>
+          <li><b>I livelli valgono per campagna:</b> quando una campagna inizia o finisce, tutti ripartono dal livello 1. I distintivi per i livelli raggiunti restano.</li>
+          <li><b>Vento in poppa:</b> nel tuo primo giorno le tue sorgenti durano di più e sono più difficili da prendere.</li>
+        </ul>
+
+        <h2>Serie settimanale</h2>
+        <p>Se giochi <b>tre giorni in una settimana</b>, la settimana è fatta e la tua serie cresce: 🔥 o 💧 e il numero di settimane di fila compaiono sotto il tuo nome e in classifica. Un giorno di gioco conta già con tre conquiste, una sfida, un ritrovamento o una valutazione di un luogo. Una settimana persa per campagna viene perdonata; tra due campagne la serie è in pausa. Ci sono distintivi per 2, 4 e 8 settimane; per il resto la serie non dà vantaggi nel gioco. C’è anche la <b>serie della città</b> in classifica: i giorni di fila in cui almeno cinque persone hanno fatto punti nella tua città.</p>
+
+        <h2>Punti e classifica</h2>
+        <p>
+          Tocca il tuo nome in alto a sinistra e vedrai la classifica. Un giorno di gioco va da mezzanotte a mezzanotte, ora locale. I punti si ottengono così:
+        </p>
+        <ul>
+          <li><b>10</b> per ogni conquista, <b>20</b> se l’incrocio prima apparteneva all’avversario o era conteso.</li>
+          <li><b>Doppi</b> all’hotspot.</li>
+          <li><b>Tenere:</b> ogni minuto 1 punto per ogni 500 metri di strada che le tue sorgenti stanno colorando. Piazzare bene conviene più che toccare di continuo.</li>
+          <li><b>Area:</b> se il bordo di un isolato appartiene (quasi) interamente alla tua squadra, ogni minuto ci sono 10 punti per ettaro, divisi tra tutti quelli le cui sorgenti colorano il bordo. Le sorgenti sul bordo di un’area tenuta sbiadiscono solo la metà più in fretta.</li>
+          <li><b>Rompere l’anello:</b> se la tua squadra rompe l’anello di un’area che la squadra avversaria ha tenuto per almeno cinque minuti, ci sono da 10 a 50 punti, tanti più quanto più grande è l’area, divisi tra tutti quelli le cui sorgenti si trovano allora sul bordo.</li>
+          <li><b>Accerchiare:</b> se le sorgenti della tua squadra tengono per due minuti tutti gli incroci vicini a una Brace o a un Ghiaccio avversario (a un incrocio di almeno tre strade), si consuma quattro volte più in fretta finché l’anello non si rompe; vi dividete 50 punti. Le sorgenti accerchiate lampeggiano.</li>
+          <li><b>2</b> per una valutazione di un luogo, fino a cinque volte al giorno.</li>
+        </ul>
+        <p>
+          I tuoi punti contano anche per la tua squadra. La giornata la vince la squadra i cui giocatori hanno tenuto più territorio
+          più a lungo. Il tuo nome di gioco lo estrae a sorte il gioco; puoi estrarne uno nuovo, nasconderti dalla classifica o
+          cancellare i tuoi progressi. Non ti serve un account: i tuoi progressi sono legati a un identificativo casuale
+          nel tuo browser. In «Salva i progressi» nella classifica ricevi un codice con cui li porti su un
+          nuovo telefono. Tieni il codice per te.
+        </p>
+
+        <h2>Punti e PE in breve</h2>
+        <table class="sums">
+          <thead><tr><th>Per</th><th>Punti</th></tr></thead>
+          <tbody>
+            <tr><td>Conquista</td><td>10</td></tr>
+            <tr><td>Conquista all’avversario o su un incrocio conteso</td><td>20</td></tr>
+            <tr><td>Conquista all’hotspot</td><td>doppi</td></tr>
+            <tr><td>Spegnere un focolaio / prosciugare una vena d’acqua</td><td>+20</td></tr>
+            <tr><td>Accendere un focolare / scavare un pozzo</td><td>+10</td></tr>
+            <tr><td>Tenere: per ogni 500 m di strada colorati dalle tue sorgenti</td><td>1 al minuto</td></tr>
+            <tr><td>Area: per ettaro di un isolato tenuto</td><td>10 al minuto, divisi</td></tr>
+            <tr><td>Rompere l’anello</td><td>10–50, divisi</td></tr>
+            <tr><td>Accerchiare</td><td>50, divisi</td></tr>
+            <tr><td>Brace o Ghiaccio</td><td>10 per ogni ora in cui resiste</td></tr>
+            <tr><td>Valutazione di un luogo (fino a cinque al giorno)</td><td>2</td></tr>
+            <tr><td>Sfida</td><td>– (solo PE)</td></tr>
+          </tbody>
+        </table>
+        <p><b>Tetto:</b> al massimo 1500 punti all’ora e 6000 al giorno. Dove i livelli sono attivi, il tetto giornaliero sale di 3000 a ogni livello (livello 2: 9000, livello 5: 18&nbsp;000). Frena i bot che giocano giorno e notte. Una volta raggiunto, niente più punti fino all’ora piena successiva o fino a mezzanotte; i PE continui a raccoglierli.</p>
+        <p>PE, dove i livelli sono attivi:</p>
+        <table class="sums">
+          <thead><tr><th>Per</th><th>PE</th></tr></thead>
+          <tbody>
+            <tr><td>Conquista, anche al fronte</td><td>2 (al massimo 20 al giorno)</td></tr>
+            <tr><td>Prima conquista del giorno in una zona</td><td>15</td></tr>
+            <tr><td>Valutazione di un luogo</td><td>5</td></tr>
+            <tr><td>Sfida completata (fino a quattro al giorno)</td><td>90</td></tr>
+            <tr><td>Rafforza</td><td>5 a testa</td></tr>
+            <tr><td>Varietà: ogni tipo in più nella giornata (sfida, zona nuova, valutazione, fronte, rafforza)</td><td>+25 %, al massimo +100 %</td></tr>
+          </tbody>
+        </table>
+        <p>Livello 2 da 100 PE, livello 3 da 600, livello 4 da 1500, livello 5 da 3000.</p>
+
+        <h2>«Com’è qui?»</h2>
+        <p>
+          Con questo pulsante dici con un tocco come ti sembra il luogo in questo momento: affollato, tranquillo, rumoroso, buio, freddo o
+          accogliente. Ti porta qualche punto e soprattutto aiuta a capire come viene vissuto il centro.
+        </p>
+
+        <h2>Consigli</h2>
+        <ul>
+          <li>Cerca il fronte viola. Lì una sola conquista decide da che parte pende la bilancia.</li>
+          <li>Una sorgente su un grande incrocio arriva più lontano di una in un vicolo cieco.</li>
+          <li>In due o in tre si tiene un quartiere molto più facilmente.</li>
+          <li>Se intorno a te è già tutto tuo, «Conquista» accende un focolare o scava un pozzo che rifornisce il fronte. Se ce n’è già uno vicino, il pulsante rinforza un tuo incrocio proprio sul fronte; se non ce n’è nessuno a portata, ti dice in che direzione si trova il fronte più vicino.</li>
+          <li>Fai attenzione al traffico e alle persone intorno a te, non solo al telefono.</li>
+        </ul>
+
+        <h2>E i miei dati?</h2>
+        <p>
+          Nessun account, nessun nome, nessuna e-mail, nessun tracciamento, solo un cookie per i tuoi progressi. Il server ha bisogno della tua posizione per il gioco,
+          ma non la salva. Viene salvato solo il tuo punteggio con un nome di gioco estratto a sorte, senza luoghi. Per
+          la pianificazione urbana conta soltanto quanti giocatori sono stati per quanto tempo su un tratto di strada, e solo se
+          lì c’erano almeno cinque persone diverse; ai numeri pubblicati si aggiunge inoltre un leggero rumore casuale.
+          I singoli percorsi non vengono mai salvati. Se vuoi, puoi indicare fascia d’età e luogo di residenza; di questo si conta solo
+          quante persone al giorno hanno risposto così. Tutto il resto è nell’
+          <a href="/datenschutz.html">informativa sulla privacy</a>.
+        </p>
+
+        <h2>Chi c’è dietro?</h2>
+        <p>
+          Glut &amp; Flut è un progetto di Costanza di Thorsten Rieß (Scientific Wave Solutions). Sperimenta se un gioco può mostrare come le persone usano e vivono il loro
+          centro, su base volontaria e senza sorvegliare nessuno.
+          Le fonti dei dati (mappe, altitudini, meteo) sono nelle <a href="/impressum.html">note legali</a>.
+          Il database è offerto da <a href="https://neon.com" target="_blank" rel="noopener">Neon</a> come sponsor.
+        </p>
+
+        <p>Un globo mostra dove si gioca: <a href="https://www.weathermarble.com/glutflut/" target="_blank" rel="noopener">Glut &amp; Flut su Weathermarble</a> (sito esterno, un’offerta indipendente).</p>
+
+        <p><a class="cta" href="/">Gioca ora</a></p>
+
+        <p class="small"><a href="/impressum.html">Note legali</a> · <a href="/datenschutz.html">Privacy</a> · <a href="https://www.instagram.com/glutflut/" target="_blank" rel="noopener" aria-label="Instagram @glutflut" title="Instagram @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a> <a href="https://chaos.social/@glutflut" target="_blank" rel="me noopener" aria-label="Mastodon @glutflut" title="Mastodon @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg></a> <a class="source-icon" hidden target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a> · <span class="version"></span></p>
+      </article>
+      <article data-lang="pt" data-title="Como jogar – Glut &amp; Flut" hidden>
+        <p><a href="/">← para o jogo</a></p>
+
+        <h1>Glut &amp; Flut</h1>
+        <p class="lead">
+          Fogo contra água, nas ruas de verdade de <span class="city">Konstanz</span>. Você joga pelo celular, no navegador, sem
+          app e sem conta. Os seus passos pela cidade são as suas jogadas.
+        </p>
+        <p><a class="cta" href="/">Jogar agora</a></p>
+
+        <h2>Como jogar</h2>
+        <ol class="steps">
+          <li>
+            <b>Permita a localização.</b> O jogo precisa do seu GPS, senão não sabe onde você está. De preferência ao ar livre,
+            no centro.
+          </li>
+          <li>
+            <b>Você é fogo ou água.</b> Na maioria das vezes (duas em cada três), o jogo coloca você no time que está mais fraco no momento: com menos jogadores hoje, senão com menos território; senão, no outro. No canto superior esquerdo
+            você vê de que lado está.
+          </li>
+          <li>
+            <b>Saia andando.</b> O círculo em volta do seu ponto mostra o seu alcance, cerca de 80 metros. Você alcança
+            todos os cruzamentos dentro dele.
+          </li>
+          <li>
+            <b>Toque em “Conquistar”.</b> O cruzamento mais próximo dentro do seu alcance que ainda não é seu vira uma fonte
+            do seu elemento. A partir dali ele se espalha pelas ruas. Se você tocar num cruzamento no mapa, um cartão mostra de quem ele é, com que força, se você pode tomá-lo e o que caracteriza o terreno ali; dali você também pode conquistá-lo diretamente.
+          </li>
+          <li>
+            <b>Continue andando.</b> Depois de uma conquista você precisa respirar um pouco, e uma fonte se apaga depois de um tempo.
+            Quem quer segurar a cidade continua em movimento.
+          </li>
+        </ol>
+
+        <h2>O que você vê no mapa</h2>
+        <ul class="legend">
+          <li><span class="sw fire"></span><b>Fogo</b> ruas tomadas pelo fogo</li>
+          <li><span class="sw water"></span><b>Água</b> ruas tomadas pela água</li>
+          <li><span class="sw front"></span><b>Front</b> os dois com a mesma força, aqui se luta</li>
+          <li><span class="sw neutral"></span><b>Cinza</b> ainda não alcançado por ninguém</li>
+          <li><span class="sw hotspot"></span><b>Hotspot</b> ponto amarelo pulsante, veja abaixo</li>
+          <li><span class="sw ring"></span><b>Fonte</b> anel em volta de um cruzamento conquistado; ele encolhe enquanto a fonte enfraquece e fica vazio quando ela se apaga. As suas têm borda branca.</li>
+          <li><span class="sw area"></span><b>Área</b> quadra cujas ruas em volta pertencem (quase) inteiramente a um time, levemente preenchida com a cor dele</li>
+          <li><span class="sw area hatch"></span><b>Com listras</b> há fontes de jogadores na borda: a área lhes dá pontos a cada minuto; listras mais claras indicam que as suas estão entre elas. Sem listras não há fonte de jogadores na borda e a área não dá pontos a ninguém.</li>
+        </ul>
+        <p>Os três números no canto superior direito contam os cruzamentos do fogo, do front e da água.</p>
+
+        <h2>Como fogo e água se espalham</h2>
+        <p>
+          A cidade também joga. O Glut &amp; Flut conhece a rede de ruas e a altitude de cada cruzamento.
+        </p>
+        <ul>
+          <li><b>O fogo sobe o morro</b>, a água escorre morro abaixo. Contra a própria natureza um elemento não vai longe: a água sobe só alguns metros, o fogo quase não desce. Uma ladeira é vento a favor para um time e um muro para o outro.</li>
+          <li><b>É novo por aqui?</b> Nos seus primeiros dez minutos você conquista com metade da força, depois com força total. Quem já jogou em outro dia joga com força total desde o início. Assim quem é novo pode treinar, sem que alguém tome conta do jogo com vários perfis criados às pressas.</li>
+          <li><b>Os lugares alimentam os elementos.</b> Em volta de bares, restaurantes e barracas arde um fogo espontâneo; ao longo das margens e nos chafarizes brota água.</li>
+          <li><b>O entorno deixa a sua marca.</b> Alguns cantos deixam o fogo entrar mais fácil, outros a água.</li>
+          <li><b>Quanto mais longe da fonte, mais fraco.</b> Onde dois elementos se encontram, decide a força; se forem iguais, surge um front.</li>
+          <li><b>As fontes se desgastam.</b> Uma fonte conquistada enfraquece com o tempo e se apaga depois de alguns minutos. Você só pode tomar uma fonte adversária quando ela tiver no máximo metade da força.</li>
+        </ul>
+
+        <h2>Brasa e Gelo</h2>
+        <p>
+          Você pode transformar uma conquista sua na sua fonte permanente: o fogo como <b>Brasa</b>, a água como <b>Gelo</b>
+          (botão “Manter como Brasa” ou “Manter como Gelo”). Ela não se apaga depois de poucos minutos, mas fica até
+          o outro time tomá-la. Logo depois de criada, é forte demais para uma única conquista; ao longo de um dia ela enfraquece, e
+          aí basta um clique. Volte e atice a sua Brasa ou renove o seu Gelo, e ela volta ao máximo.
+          Cada hora em que ela continua de pé dá pontos. Você tem duas por cidade (com os níveis, uma a mais por nível); elas não podem ficar bem ao lado de outras fontes. Quando já colocou todas, você move uma: o jogo pergunta qual. A partir do nível 2 você pode dar a ela uma <b>inscrição</b> escolhida entre frases prontas, em “Minhas Brasas” ou “Meus Gelos”, que todo mundo vê no mapa; níveis mais altos e algumas insígnias desbloqueiam mais frases.
+          Depois de três dias sem cuidado, ou no início e no fim de uma campanha, ela se apaga.
+        </p>
+
+        <h2>Achados</h2>
+        <p>
+          Na cidade há lugares especiais escondidos: chafarizes, árvores especiais, portões e castelos, mirantes, arte e
+          marcos de divisa. Fique uns dez segundos bem pertinho ou conquiste um cruzamento ali, e você o descobre. Quando você se aproxima de um, o jogo
+          dá uma pista. Se quiser, você os coleciona: aí o jogo guarda quais você encontrou (sem horário)
+          e mostra nas configurações como coleção.
+        </p>
+
+        <h2>Hotspots</h2>
+        <p>
+          De vez em quando aparecem hotspots em algum lugar do centro, que depois de uns dez minutos mudam de lugar. Na parte de baixo da
+          tela você vê a que distância está o mais próximo. Se você conquistar bem ao lado do hotspot, a sua fonte dura três vezes mais.
+        </p>
+
+        <h2>Capítulos e dias de tempo</h2>
+        <p>
+          Abaixo do cabeçalho aparece qual é o desafio do momento. Normalmente é uma corrida entre fogo e água: qual
+          time chega primeiro ao seu objetivo, por exemplo um número de conquistas, conquistas no front, achados ou pontos?
+          Todos do seu time contam juntos. Vence quem chega ao objetivo primeiro; se nenhum conseguir, no fim vence
+          o time que chegou mais perto do seu objetivo.
+        </p>
+        <ul>
+          <li><b>Os capítulos</b> acontecem nos fins de semana e juntos contam uma campanha, por exemplo na época da feira de Natal.
+            Quem conquista ou encontra algo num capítulo ganha uma insígnia, e o time vencedor ganha mais uma.</li>
+          <li><b>Os dias de tempo</b> acontecem nos dias úteis, das 9h às 21h. A previsão do tempo para a cidade decide
+            qual é o desafio: chuva e geada ajudam a água, calor e sol o fogo; nos dias nublados o desafio são os
+            achados, nos dias amenos o front. Quente e frio são em relação às últimas semanas na sua
+            cidade. Os objetivos dependem de quanto cada time fez nas últimas semanas: num dia normal a corrida está aberta, e quem decide é o tempo.</li>
+          <li><b>O próprio tempo</b> influi um pouco todos os dias: com chuva as fontes naturais de fogo queimam
+            mais fracas e as de água duram mais, com calor e sol é o contrário, com geada a água sobe
+            o morro com mais facilidade. O símbolo lá em cima ao lado do ponto de interrogação mostra quem o tempo ajuda hoje; toque nele para saber mais.</li>
+          <li><b>Chuva e sol ao vivo:</b> onde há dados de chuva (radar ou satélite), a chuva conta exatamente onde e enquanto chove: debaixo de um aguaceiro as fontes de fogo envelhecem mais rápido, as de água mais devagar, e as fontes naturais de fogo queimam mais fracas. Onde continua seco, nada muda. O mapa de chuva (botão com a nuvem de chuva à direita) mostra onde está chovendo agora. Ao contrário, um céu limpo de dia ajuda o fogo: onde há poucas nuvens e o sol está alto o bastante, as fontes de água envelhecem mais rápido e as fontes naturais de água ficam mais fracas. O mapa de nuvens mostra onde.</li>
+          <li><b>Maré (Hamburgo):</b> onde há um marégrafo conectado, o nível da água conta: na maré alta, até uns 400&nbsp;m da água, as fontes de fogo naturais têm mais dificuldade e as de água duram mais; na maré baixa, o contrário. O 🌊 ao lado do tempo mostra o estado. O efeito chega longe terra adentro: fique longe da água e não pise em píeres, bordas de cais nem em áreas de maré. Na própria margem o jogo não coloca alvos.</li>
+        </ul>
+
+        <h2>Níveis e desafios</h2>
+        <p>Onde os níveis estão ativos, você acumula experiência (XP): por conquistas, pelas áreas da cidade onde conquista pela primeira vez no dia, por avaliações de lugares e principalmente por desafios. Quem faz coisas diferentes num dia ganha um bônus. O seu nível é o número no seu ponto no canto superior esquerdo; os detalhes estão abaixo do seu nome no ranking.</p>
+        <ul>
+          <li><b>Desafios:</b> o jogo propõe um (por exemplo conquistar três cruzamentos ou descobrir uma área nova); ele dura poucos minutos. Depois há meia hora de pausa, até quatro por dia.</li>
+          <li><b>Cada nível traz uma habilidade:</b> nível 2 <i>Longo alcance</i> (uma conquista a até 160 m de distância), nível 3 <i>Nutrir</i> (a sua fonte mais fraca cheia de novo), nível 4 <i>Reforçar</i> (deixar mais forte uma fonte próxima do seu time, vocês dois ganham XP), nível 5 <i>Chuva de faíscas</i> ou <i>Onda</i> (dois cruzamentos próximos de uma vez). Além disso, a cada nível uma Brasa ou um Gelo a mais e um pouco mais de força (+5 % por nível, no máximo +15 %).</li>
+          <li><b>Os níveis valem por campanha:</b> quando uma campanha começa ou termina, todo mundo volta ao nível 1. As insígnias dos níveis alcançados ficam.</li>
+          <li><b>Vento a favor:</b> no seu primeiro dia as suas fontes duram mais e são mais difíceis de tomar.</li>
+        </ul>
+
+        <h2>Sequência semanal</h2>
+        <p>Se você jogar <b>três dias numa semana</b>, a semana está feita e a sua sequência cresce: 🔥 ou 💧 e o número de semanas seguidas aparecem abaixo do seu nome e no ranking. Um dia de jogo já conta com três conquistas, um desafio, um achado ou uma avaliação de lugar. Uma semana perdida por campanha é perdoada; entre duas campanhas a sequência fica pausada. Há insígnias para 2, 4 e 8 semanas; fora isso a sequência não dá vantagens no jogo. Também há a <b>sequência da cidade</b> no ranking: os dias seguidos em que pelo menos cinco pessoas fizeram pontos na sua cidade.</p>
+
+        <h2>Pontos e ranking</h2>
+        <p>
+          Toque no seu nome no canto superior esquerdo e você verá o ranking. Um dia de jogo vai de meia-noite a meia-noite, no horário local. Os pontos vêm assim:
+        </p>
+        <ul>
+          <li><b>10</b> por conquista, <b>20</b> se o cruzamento antes era do adversário ou estava disputado.</li>
+          <li><b>Em dobro</b> no hotspot.</li>
+          <li><b>Manter:</b> a cada minuto 1 ponto para cada 500 metros de rua que as suas fontes estão colorindo. Posicionar bem vale mais do que tocar sem parar.</li>
+          <li><b>Área:</b> se a borda de uma quadra pertence (quase) inteiramente ao seu time, a cada minuto há 10 pontos por hectare, divididos entre todos cujas fontes colorem a borda. As fontes na borda de uma área mantida enfraquecem só na metade da velocidade.</li>
+          <li><b>Romper o anel:</b> se o seu time rompe o anel de uma área que o time adversário manteve por pelo menos cinco minutos, há de 10 a 50 pontos, mais quanto maior a área, divididos entre todos cujas fontes estão na borda naquele momento.</li>
+          <li><b>Cercar:</b> se as fontes do seu time mantêm por dois minutos todos os cruzamentos vizinhos de uma Brasa ou de um Gelo adversário (num cruzamento de pelo menos três ruas), ela se desgasta quatro vezes mais rápido até o anel se romper; vocês dividem 50 pontos. As fontes cercadas piscam.</li>
+          <li><b>2</b> por avaliação de lugar, até cinco vezes por dia.</li>
+        </ul>
+        <p>
+          Os seus pontos também contam para o seu time. O dia é vencido pelo time cujos jogadores mantiveram mais território
+          por mais tempo. O seu nome de jogo é sorteado pelo jogo; você pode sortear um novo, se esconder do ranking ou
+          apagar o seu progresso. Você não precisa de conta: o seu progresso fica ligado a um identificador aleatório
+          no seu navegador. Em “Guardar o progresso” no ranking você recebe um código com o qual leva o progresso para um
+          celular novo. Guarde o código só para você.
+        </p>
+
+        <h2>Pontos e XP resumidos</h2>
+        <table class="sums">
+          <thead><tr><th>Por</th><th>Pontos</th></tr></thead>
+          <tbody>
+            <tr><td>Conquista</td><td>10</td></tr>
+            <tr><td>Conquista do adversário ou num cruzamento disputado</td><td>20</td></tr>
+            <tr><td>Conquista no hotspot</td><td>em dobro</td></tr>
+            <tr><td>Apagar um foco de incêndio / secar um olho-d’água</td><td>+20</td></tr>
+            <tr><td>Acender uma fogueira / cavar um poço</td><td>+10</td></tr>
+            <tr><td>Manter: por 500 m de rua que as suas fontes colorem</td><td>1 por minuto</td></tr>
+            <tr><td>Área: por hectare de uma quadra mantida</td><td>10 por minuto, divididos</td></tr>
+            <tr><td>Romper o anel</td><td>10–50, divididos</td></tr>
+            <tr><td>Cercar</td><td>50, divididos</td></tr>
+            <tr><td>Brasa ou Gelo</td><td>10 por hora em que fica de pé</td></tr>
+            <tr><td>Avaliação de lugar (até cinco por dia)</td><td>2</td></tr>
+            <tr><td>Desafio</td><td>– (só XP)</td></tr>
+          </tbody>
+        </table>
+        <p><b>Limite:</b> no máximo 1500 pontos por hora e 6000 por dia. Onde os níveis estão ativos, o limite diário sobe 3000 a cada nível (nível 2: 9000, nível 5: 18&nbsp;000). Ele freia bots que jogam o dia inteiro. Ao chegar nele, não há mais pontos até a próxima hora cheia ou até a meia-noite; você continua ganhando XP.</p>
+        <p>XP, onde os níveis estão ativos:</p>
+        <table class="sums">
+          <thead><tr><th>Por</th><th>XP</th></tr></thead>
+          <tbody>
+            <tr><td>Conquista, também na frente</td><td>2 (no máximo 20 por dia)</td></tr>
+            <tr><td>Primeira conquista do dia numa área</td><td>15</td></tr>
+            <tr><td>Avaliação de lugar</td><td>5</td></tr>
+            <tr><td>Desafio concluído (até quatro por dia)</td><td>90</td></tr>
+            <tr><td>Reforçar</td><td>5 para vocês dois</td></tr>
+            <tr><td>Variedade: cada tipo a mais no dia (desafio, área nova, avaliação, frente, reforçar)</td><td>+25 %, no máximo +100 %</td></tr>
+          </tbody>
+        </table>
+        <p>Nível 2 a partir de 100 XP, nível 3 a partir de 600, nível 4 a partir de 1500, nível 5 a partir de 3000.</p>
+
+        <h2>“Como está aqui?”</h2>
+        <p>
+          Com este botão você diz com um toque como sente o lugar agora: lotado, tranquilo, barulhento, escuro, frio ou
+          convidativo. Isso dá alguns pontos e principalmente ajuda a entender como o centro é vivido.
+        </p>
+
+        <h2>Dicas</h2>
+        <ul>
+          <li>Procure o front roxo. Ali uma única conquista decide para que lado a balança pende.</li>
+          <li>Uma fonte num cruzamento grande chega mais longe do que uma num beco sem saída.</li>
+          <li>Em dois ou três fica muito mais fácil segurar um bairro.</li>
+          <li>Se tudo em volta de você já é seu, “Conquistar” acende uma fogueira ou cava um poço que abastece o front. Se já houver um perto, o botão reforça um cruzamento seu bem no front; se não houver nenhum ao alcance, ele diz em que direção fica o front mais próximo.</li>
+          <li>Fique de olho no trânsito e nas pessoas ao seu redor, não só no celular.</li>
+        </ul>
+
+        <h2>E os meus dados?</h2>
+        <p>
+          Nenhuma conta, nenhum nome, nenhum e-mail, nenhum rastreamento, só um cookie para o seu progresso. O servidor precisa da sua posição para o jogo,
+          mas não a guarda. Só a sua pontuação é guardada, com um nome de jogo sorteado, sem lugares. Para
+          o planejamento urbano conta apenas quantos jogadores estiveram por quanto tempo num trecho de rua, e só se
+          havia pelo menos cinco pessoas diferentes ali; além disso, um leve ruído aleatório é adicionado aos números publicados.
+          Percursos individuais nunca são guardados. Se quiser, você pode informar faixa etária e local de residência; disso só se conta
+          quantas pessoas por dia responderam assim. Todo o resto está na
+          <a href="/datenschutz.html">política de privacidade</a>.
+        </p>
+
+        <h2>Quem está por trás?</h2>
+        <p>
+          Glut &amp; Flut é um projeto de Konstanz de Thorsten Rieß (Scientific Wave Solutions). Ele testa se um jogo pode mostrar como as pessoas usam e vivem o seu
+          centro, de forma voluntária e sem vigiar ninguém.
+          As fontes dos dados (mapas, altitudes, tempo) estão no <a href="/impressum.html">aviso legal</a>.
+          O banco de dados é patrocinado pela <a href="https://neon.com" target="_blank" rel="noopener">Neon</a>.
+        </p>
+
+        <p>Um globo mostra onde se joga: <a href="https://www.weathermarble.com/glutflut/" target="_blank" rel="noopener">Glut &amp; Flut no Weathermarble</a> (site externo, um serviço independente).</p>
+
+        <p><a class="cta" href="/">Jogar agora</a></p>
+
+        <p class="small"><a href="/impressum.html">Aviso legal</a> · <a href="/datenschutz.html">Privacidade</a> · <a href="https://www.instagram.com/glutflut/" target="_blank" rel="noopener" aria-label="Instagram @glutflut" title="Instagram @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a> <a href="https://chaos.social/@glutflut" target="_blank" rel="me noopener" aria-label="Mastodon @glutflut" title="Mastodon @glutflut"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg></a> <a class="source-icon" hidden target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true" style="vertical-align:-3px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a> · <span class="version"></span></p>
+      </article>
+    </main>
+    <script type="module" src="/src/version.ts"></script>
+    <script type="module" src="/src/pagelang.ts"></script>
+  </body>
+</html>

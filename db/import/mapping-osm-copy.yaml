@@ -1,0 +1,125 @@
+# imposm3 mapping for the local OSM copy (import-osm-extract.sh): what the
+# region imports need, one schema per Geofabrik extract (osm_de, osm_at, …),
+# joined by the views in `osm` (db/import/osm-views.sql). Coordinates stay
+# exact (-srid 4326), so ways that share an OSM node share a vertex.
+tables:
+  # Walkable ways: the street graph (same classes as mapping-city-graph.yaml).
+  ways:
+    type: linestring
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: highway, type: mapping_value}
+      - {name: oneway, type: direction, key: oneway}
+      # Bridges get interpolated heights, piers stay out of the graph
+      # (import-osm-imposm.sh).
+      - {name: bridge, type: string, key: bridge}
+      - {name: man_made, type: string, key: man_made}
+      # Private ways stay out of the graph (closed-areas.sql).
+      - {name: access, type: string, key: access}
+      - {name: foot, type: string, key: foot}
+    mapping:
+      highway: [primary, primary_link, secondary, secondary_link, tertiary, tertiary_link,
+                residential, living_street, pedestrian, footway, unclassified, service,
+                path, steps, cycleway]
+
+  # POIs (points and areas): element sources, surroundings, finds.
+  pois:
+    type: geometry
+    type_mappings:
+      points:
+        amenity: &amenity [restaurant, fast_food, cafe, bbq, ice_cream, bar, pub, biergarten,
+                           drinking_water, fountain, public_bath, fire_station]
+        shop: [bakery]
+        leisure: &leisure [sauna, swimming_pool, water_park]
+        tourism: &tourism [viewpoint, artwork]
+        historic: [__any__]
+        man_made: &man_made [water_well]
+      polygons:
+        amenity: *amenity
+        leisure: *leisure
+        tourism: *tourism
+        historic: [__any__]
+        man_made: *man_made
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: kind, type: mapping_key}
+      - {name: value, type: mapping_value}
+      - {name: name, type: string, key: name}
+      - {name: memorial, type: string, key: memorial}
+      - {name: wikidata, type: string, key: wikidata}
+      - {name: wikipedia, type: string, key: wikipedia}
+      - {name: heritage, type: string, key: heritage}
+
+  # Trees with a name (finds): street trees without one are most of the data.
+  trees:
+    type: point
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: name, type: string, key: name}
+      - {name: wikidata, type: string, key: wikidata}
+    mapping:
+      natural: [tree]
+    filters:
+      require:
+        name: [__any__]
+
+  # Water for the shore (water sources): areas and the sea coast.
+  water:
+    type: polygon
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: kind, type: mapping_value}
+    mapping:
+      natural: [water]
+      waterway: [riverbank]
+      landuse: [reservoir, basin]
+  coastline:
+    type: linestring
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+    mapping:
+      natural: [coastline]
+
+  # Areas closed or with an entry fee (closed-areas.sql decides which count).
+  closed:
+    type: polygon
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: access, type: string, key: access}
+      - {name: fee, type: string, key: fee}
+      - {name: highway, type: string, key: highway}
+      - {name: landuse, type: string, key: landuse}
+      - {name: leisure, type: string, key: leisure}
+      - {name: amenity, type: string, key: amenity}
+      - {name: tourism, type: string, key: tourism}
+    mapping:
+      leisure: [park, garden, golf_course]
+      tourism: [zoo, theme_park]
+      landuse: [military]
+      access: [private, "no"]
+
+  # Administrative areas (region clips, zones) and named places (zones).
+  boundaries:
+    type: polygon
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: name, type: string, key: name}
+      - {name: admin_level, type: integer, key: admin_level}
+    mapping:
+      boundary: [administrative]
+  places:
+    type: point
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: place, type: mapping_value}
+      - {name: name, type: string, key: name}
+    mapping:
+      place: [city, town, village, suburb, quarter, neighbourhood, hamlet]

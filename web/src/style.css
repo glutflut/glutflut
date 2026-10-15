@@ -1,0 +1,1376 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
+@import "./colors.css";
+
+:root {
+  --bg: rgba(22, 24, 29, 0.88);
+  --panel: rgba(22, 24, 29, 0.97);
+  --page: #16181d;
+  /* Around the globe and when arriving from it: Weathermarble's page colour. */
+  --space: #05060a;
+  --fg: #f1f3f5;
+  --soft: #ced4da;
+  --muted: #adb5bd;
+  --line: #495057;
+  --raised: #343a40;
+  --ink: #212529;
+  --water-light: #4dabf7;
+  --water-pale: #74c0fc;
+  --fire-pale: #ffa94d;
+  --ok: #8ce99a;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--page);
+  color: var(--fg);
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+#hud {
+  position: absolute;
+  top: env(safe-area-inset-top, 0);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 10px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+#me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+/* Playing: the eye beside the name switches to watching this city. */
+.me-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1.5px solid var(--soft);
+  border-radius: 50%;
+  background: none;
+  color: var(--soft);
+}
+#eye[hidden],
+#hud.folded #eye { display: none; }
+/* Watchers have no profile: the ranking without "you". */
+body.watching #board .seg [data-pane="me"],
+body.watching #board .you { display: none; }
+
+#me-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--neutral);
+}
+/* With levels: the side's dot carries the level number. */
+#me-dot.lvl {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+}
+
+#score {
+  display: flex;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+#fold { width: 32px; height: 32px; margin: -6px -8px -6px -4px; }
+/* Folded: only the side's dot and the button to unfold. */
+#hud.folded { right: auto; gap: 4px; padding: 6px 10px; }
+#hud.folded .me-text,
+#hud.folded #score { display: none; }
+#hud.folded #fold svg { transform: rotate(180deg); }
+
+#score .fire { color: var(--fire); }
+#score .water { color: var(--water); }
+#score .front { color: var(--front); }
+
+/* In the #actions column, so it always sits above GPS line and buttons. */
+#toast {
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 8px 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+#actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: env(safe-area-inset-bottom, 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 12px;
+  /* The map stays draggable beside the texts and buttons. */
+  pointer-events: none;
+}
+#actions > * { pointer-events: auto; }
+
+#gps {
+  font-size: 13px;
+  padding: 3px 10px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+#gps.tap { cursor: pointer; text-decoration: underline dotted; }
+
+#actions .row {
+  display: flex;
+  gap: 8px;
+  width: min(100%, 420px);
+}
+
+#rate {
+  flex: 0 0 auto;
+  padding: 16px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+#rate:disabled { opacity: 0.45; }
+
+.legal {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.legal a { color: var(--soft); }
+
+#zoom-hint {
+  font-size: 14px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+#hotspot-hint {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--ink);
+}
+
+#sheet {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 130px;
+  padding: 12px;
+  background: var(--panel);
+  border-radius: 14px;
+  /* Above the footer: its position line and hotspot hint reach up here. */
+  z-index: 8;
+}
+
+.sheet-title { font-weight: 600; margin-bottom: 8px; }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chips button {
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--fg);
+  background: transparent;
+}
+
+.hotspot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 212, 59, 0.9);
+  box-shadow: 0 0 0 0 rgba(255, 212, 59, 0.8);
+  animation: pulse 1.6s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 212, 59, 0.8); }
+  70% { box-shadow: 0 0 0 28px rgba(255, 212, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 212, 59, 0); }
+}
+
+#claim {
+  flex: 1;
+  padding: 16px;
+  font-size: 19px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  background: var(--neutral);
+}
+
+#claim.fire { background: var(--fire); }
+#claim.water { background: var(--water); }
+#claim:disabled { opacity: 0.45; }
+
+/* Only watching (watch.ts): one button to join instead of claim and rate. */
+#join {
+  flex: 1;
+  padding: 16px;
+  font-size: 19px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(90deg, var(--fire), var(--water));
+}
+/* Cheering (cheer.ts): watchers beside "Mitspielen", players for their own side. */
+.cheer {
+  flex: 0 0 auto;
+  width: 54px;
+  font-size: 24px;
+  border: none;
+  border-radius: 14px;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px var(--c);
+}
+.cheer.fire { --c: var(--fire); }
+.cheer.water { --c: var(--water); }
+.cheer:disabled { opacity: 0.55; }
+.cheer.pop { animation: cheer-pop 0.35s ease-out; }
+@keyframes cheer-pop { 50% { transform: scale(1.18); } }
+#cheers {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 10px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+#cheers[hidden] { display: none; }
+#cheers .fire { color: var(--fire); }
+#cheers .water { color: var(--water); }
+body:not(.watching):not([data-side]) .cheer,
+body:not(.watching)[data-side="fire"] #cheer-water,
+body:not(.watching)[data-side="water"] #cheer-fire,
+body:not(.watching) #join,
+body.watching #claim,
+body.watching #rate,
+body.watching #gps,
+body.watching #nav-me { display: none; }
+
+.me-marker {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  background: var(--neutral);
+}
+
+/* Overlays below the status bar: each sets --card-top; top.ts moves #chapter
+   and #nav by setting it. `.card` is the common look of the top cards. */
+.card,
+#nav,
+#chapter,
+#ar .ar-bar,
+#ar .ar-radar,
+.maplibregl-ctrl-top-right {
+  top: calc(env(safe-area-inset-top, 0) + var(--card-top));
+}
+.card {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  background: var(--panel);
+  border-radius: 14px;
+}
+
+.maplibregl-ctrl-top-right {
+  --card-top: 64px;
+}
+
+#wx, #tide {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin-left: 2px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+#wx.fire, #tide.fire { box-shadow: 0 0 0 1.5px var(--fire); }
+#wx.water, #tide.water { box-shadow: 0 0 0 1.5px var(--water); }
+#tide.off { opacity: 0.4; }
+
+#help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--soft);
+  color: var(--soft);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+#intro {
+  --card-top: 70px;
+  max-width: 420px;
+  padding: 14px;
+  font-size: 15px;
+  line-height: 1.45;
+  z-index: 5;
+}
+
+#intro p { margin: 6px 0 12px; }
+#intro .row { display: flex; justify-content: space-between; align-items: center; }
+#intro a { color: var(--water-pale); }
+
+#intro-watch {
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1px solid var(--raised);
+  border-radius: 10px;
+  color: var(--fg);
+  background: none;
+  margin: 0 8px 0 auto;
+}
+#intro-watch[hidden] { display: none; }
+#intro-ok {
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--fg);
+}
+
+#me {
+  border: none;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.me-text { display: flex; flex-direction: column; line-height: 1.15; }
+#me-sub { font-size: 12px; font-weight: 500; color: var(--soft); }
+#me-sub:empty { display: none; }
+
+#board {
+  --card-top: 10px;
+  left: 10px;
+  right: 10px;
+  max-height: calc(100% - 20px - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+  box-sizing: border-box;
+  max-width: 440px;
+  overflow-y: auto;
+  background: var(--page);
+  font-size: 15px;
+  z-index: 10;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.board-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+/* Ranking | Profile switch. */
+.seg { display: flex; flex: 1; max-width: 360px; padding: 3px; border-radius: 10px; background: var(--raised); }
+.seg button {
+  flex: 1;
+  min-height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--soft);
+  font: inherit;
+  font-size: 15px;
+}
+.seg button.on { background: var(--fg); color: var(--ink); font-weight: 600; }
+#board-close { border: none; background: none; color: var(--fg); font-size: 26px; line-height: 1; padding: 0 4px; }
+
+.duel { margin: 12px 0; }
+.duel-title { font-weight: 600; margin-bottom: 6px; }
+#duel-note { font-weight: 400; font-size: 12px; color: var(--muted); }
+.duel-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--raised); }
+#duel-fire { background: var(--fire); }
+#duel-water { background: var(--water); }
+.duel-legend { display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.duel-legend .fire { color: #ff8a4c; }
+.duel-legend .water { color: var(--water-light); }
+.season { font-size: 13px; color: var(--soft); margin-top: 6px; }
+
+.tabs { display: flex; gap: 6px; margin: 10px 0 6px; }
+.tabs button {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
+}
+.tabs button.on { background: var(--fg); color: var(--ink); border-color: var(--fg); font-weight: 600; }
+
+#ranks { margin: 0; padding: 0; list-style: none; counter-reset: r; }
+#ranks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--raised);
+  counter-increment: r;
+  font-variant-numeric: tabular-nums;
+}
+#ranks li::before { content: counter(r); width: 20px; text-align: right; color: var(--muted); font-size: 13px; }
+#ranks li.me { background: rgba(255, 255, 255, 0.08); border-radius: 6px; font-weight: 600; }
+#ranks .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+#ranks .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#ranks .empty { color: var(--muted); justify-content: center; }
+#ranks .empty::before { content: none; }
+#my-rank { font-size: 13px; color: var(--soft); margin: 6px 0; min-height: 1em; }
+
+.you { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--raised); }
+.me-box { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.me-box[hidden] { display: none; }
+.me-box h3 { margin: 10px 0 0; padding-top: 12px; border-top: 1px solid var(--raised); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.me-box > .keep-note { margin: -6px 0 0 26px; font-size: 12px; color: var(--muted); }
+.name-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 16px; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.help-pane { gap: 8px; }
+.me-box .help-item {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+  color: var(--fg);
+  font-size: 15px;
+  text-align: left;
+  text-decoration: none;
+}
+.help-pane .legal { margin-top: 8px; font-size: 13px; }
+.help-pane .legal a { color: var(--soft); }
+.danger { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--raised); }
+#my-name { font-weight: 600; }
+.me-box button {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 13px;
+}
+#forget { color: #ffa8a8; border-color: #862e2e; }
+.me-box .version { font-size: 11px; color: var(--neutral); }
+
+/* Test server (dev database, ?sim allowed). */
+body.test #hud { box-shadow: 0 0 0 2px var(--gold); }
+body.test #hud::before {
+  content: "TEST";
+  position: absolute;
+  top: -9px;
+  left: 14px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.source { pointer-events: none; filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.35)); }
+
+/* Optional profile (intro and leaderboard). */
+.profile { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+.profile-note { font-size: 13px; color: var(--muted); }
+.profile .chips { align-items: center; gap: 6px; }
+.profile-q { font-size: 13px; margin-right: 4px; }
+.profile .chips button { padding: 6px 12px; font-size: 14px; }
+.profile .chips button.on { background: var(--fg); color: var(--ink); border-color: var(--fg); }
+
+/* Language buttons (intro and leaderboard). */
+.lang-switch { display: flex; }
+.lang-switch select {
+  min-height: 36px;
+  padding: 6px 30px 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23adb5bd' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  appearance: none;
+}
+.lang-switch option { color: var(--ink); }
+#intro .lang-switch { margin: 0 0 12px; }
+.lang-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Accessibility: no double-tap zoom on controls (pinch zoom stays allowed),
+   visible focus, big enough tap targets, calm hotspots on request. */
+button, a { touch-action: manipulation; }
+:focus-visible { outline: 3px solid var(--water-pale); outline-offset: 2px; }
+.chips button, .profile .chips button { min-height: 40px; }
+@media (prefers-reduced-motion: reduce) {
+  .hotspot { animation: none; box-shadow: 0 0 0 6px rgba(255, 212, 59, 0.45); }
+}
+
+/* Keep your progress (recovery code). */
+.keep summary { cursor: pointer; font-weight: 600; }
+.keep p { margin: 8px 0; color: var(--soft); }
+.keep-warn {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #5c3d00;
+  color: #fff3bf !important;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.keep-warn::before { content: "⚠ "; }
+.keep-value {
+  margin: 8px 0;
+  font: 700 24px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-align: center;
+  user-select: all;
+}
+.keep-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.keep-actions a, .keep-actions button, .keep-redeem button, #keep-show {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
+  text-decoration: none;
+  min-height: 40px;
+}
+#keep-qr { margin-top: 8px; max-width: 200px; background: #fff; padding: 6px; border-radius: 8px; }
+.keep-note { font-size: 12px; }
+.keep-redeem { display: flex; gap: 6px; margin-top: 10px; }
+.keep-redeem input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--ink);
+  color: var(--fg);
+  font: 16px ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+/* Personal challenge card. */
+#challenge {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(22, 24, 29, 0.92);
+  font-size: 14px;
+}
+#challenge .ch-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+#challenge .ch-label { flex: 1; }
+#challenge .ch-count { display: none; font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; }
+#ch-fold { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 20px; margin: -2px -6px -2px 0; padding: 0; border: none; background: none; color: var(--soft); }
+/* Folded: count, bar and time on one line; a tap unfolds it. */
+#challenge.folded { display: flex; align-items: center; gap: 10px; padding: 5px 12px; cursor: pointer; }
+#challenge.folded .ch-head { order: 2; }
+#challenge.folded .ch-bar { order: 1; flex: 0 0 90px; margin: 0; }
+#challenge.folded .ch-label,
+#challenge.folded #ch-fold,
+#challenge.folded .ch-text,
+#challenge.folded .ch-hint { display: none; }
+#challenge.folded .ch-count { display: inline; }
+#challenge .ch-label { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+#challenge .ch-text { font-weight: 600; margin-top: 2px; }
+#challenge .ch-hint { font-size: 13px; color: var(--soft); }
+#challenge .ch-hint:empty { display: none; }
+#challenge .ch-bar { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+#challenge .ch-bar span { display: block; height: 100%; width: 0; background: var(--gold); transition: width 0.3s; }
+#challenge.done .ch-text { color: var(--ok); }
+#challenge.done .ch-bar span { background: var(--ok); }
+#my-level { font-size: 13px; color: var(--soft); margin: 2px 0 6px; }
+#my-level:empty { display: none; }
+#my-streak { font-size: 13px; color: var(--soft); margin: 0 0 6px; }
+#my-streak[hidden] { display: none; }
+#ranks .streak { font-size: 12px; opacity: 0.85; }
+/* Own permanent sources (perm.ts): list in the sheet, picker for a move. */
+#my-keeps h3 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; color: var(--soft); }
+#my-keeps ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+#my-keeps .motto-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--soft); margin: 4px 0 4px 10px; }
+#my-keeps select.motto { flex: 1; min-width: 0; padding: 4px 6px; font-size: 13px; border-radius: 6px; border: 1px solid var(--line); background: var(--raised); color: var(--fg); }
+#my-keeps button, #perm-pick-list button { width: 100%; text-align: left; padding: 7px 10px; font-size: 14px; border: none; border-radius: 8px; background: var(--raised); color: var(--fg); }
+#perm-pick, #motto-pick {
+  --card-top: 80px;
+  z-index: 30;
+  border: 2px solid var(--line);
+  background: var(--page);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+#perm-pick p, #motto-pick p { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
+#perm-pick-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+#perm-pick-list button.weakest { outline: 2px solid var(--fg); }
+#perm-pick .row, #motto-pick .row { display: flex; justify-content: flex-end; }
+#motto-pick select.motto { width: 100%; padding: 9px 10px; font-size: 15px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--fg); margin-bottom: 10px; }
+#perm-pick-no, #motto-pick-no { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; background: var(--raised); color: var(--fg); }
+
+/* Claim button while waiting: fills up, counts down. */
+#claim { position: relative; overflow: hidden; }
+#claim.waiting:disabled { opacity: 0.75; }
+#claim.waiting::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--p, 0%);
+  background: rgba(255, 255, 255, 0.28);
+  transition: width 0.2s linear;
+}
+
+/* Abilities (level 2-5). */
+#abilities { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+#abilities button {
+  flex: 1 1 0;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(22, 24, 29, 0.92);
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#abilities button:disabled { opacity: 0.5; font-weight: 400; }
+#abilities button.armed { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
+/* Game view: night map, glowing marker and controls. */
+body.game .me-marker {
+  position: relative;
+  border: 2px solid #fff;
+  box-shadow: 0 0 10px 3px var(--me, #fff);
+}
+/* Halo pulses with transform/opacity only (compositor, no repaint). */
+body.game .me-marker::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--me, #fff) 55%, transparent) 0, transparent 70%);
+  animation: me-pulse 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes me-pulse {
+  0%, 100% { transform: scale(0.8); opacity: 0.6; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+body.game #hud,
+body.game #actions button,
+body.game #toast,
+body.game #hotspot-hint {
+  /* no backdrop-filter: re-blurred on every map frame, slow on phones */
+}
+body.game #hud { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 24px rgba(0, 0, 0, 0.5); }
+body.game #claim.fire:not(:disabled) { box-shadow: 0 0 18px rgba(255, 122, 26, 0.55); }
+body.game #claim.water:not(:disabled) { box-shadow: 0 0 18px rgba(47, 155, 255, 0.55); }
+body.game .source { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35)); }
+body.game .maplibregl-ctrl-attrib { background: rgba(22, 24, 29, 0.7); color: #aab; }
+body.game .maplibregl-ctrl-attrib a { color: #ccd; }
+@media (prefers-reduced-motion: reduce) {
+  body.game .me-marker::after { animation: none; }
+}
+
+#gfx {
+  font: inherit;
+  color: var(--fg);
+  background: #2b2f36;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 4px 6px;
+  max-width: 60%;
+}
+
+/* Map buttons: my location (follow), hotspot, whole city. */
+#nav {
+  position: absolute;
+  right: 12px;
+  --card-top: 108px;
+  display: flex;
+  flex-direction: column;
+  /* Right edge: a time label wider than a button must not shift the buttons. */
+  align-items: flex-end;
+  gap: 10px;
+}
+#nav button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+#nav button[hidden] { display: none; }
+#nav-me.follow { color: var(--water-light); border-color: var(--water-light); }
+#nav-hot { color: var(--gold); }
+#nav-radar.on { color: var(--water-light); border-color: var(--water-light); }
+#nav-clouds.on { color: #e2e8f0; border-color: #e2e8f0; }
+
+/* Claimed source building up on enemy ground: turning dashed ring. */
+.source .spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: src-spin 5s linear infinite;
+}
+@keyframes src-spin { to { transform: rotate(360deg); } }
+.source .secs {
+  font: 700 11px system-ui, sans-serif;
+  fill: #fff;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.6);
+  stroke-width: 2.5px;
+}
+/* Hinterland: a spark pulses; a source cut off from supply fades. */
+.source .pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: src-pulse 1.6s ease-out infinite;
+}
+@keyframes src-pulse {
+  from { transform: scale(0.7); opacity: 0.9; }
+  to { transform: scale(1.1); opacity: 0; }
+}
+.source.cut { opacity: 0.6; }
+/* In a ring of the other side's players (siege.rs): blinks while it fades fast. */
+.source.sieged svg { animation: src-sieged 0.9s ease-in-out infinite alternate; }
+@keyframes src-sieged { from { opacity: 1; } to { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) {
+  .source .spin, .source .pulse { animation: none; }
+}
+
+/* Camera view (AR) over the map; HUD and buttons stay on top. */
+#ar {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+}
+#ar[hidden] { display: none; }
+#ar video,
+#ar canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#ar canvas { touch-action: none; }
+#ar .ar-bar {
+  position: absolute;
+  left: 12px;
+  right: 68px;
+  --card-top: 108px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#ar .ar-status:not(:empty) {
+  font-size: 13px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+#ar .ar-align {
+  font: inherit;
+  font-size: 14px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+#ar .ar-hint {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 45%;
+  text-align: center;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+#nav-ar.on { color: var(--water-light); border-color: var(--water-light); }
+
+#ar .ar-radar {
+  position: absolute;
+  left: 12px;
+  --card-top: 158px;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+}
+
+/* Outside every region (outside.ts): a page instead of the map. */
+body.outside #hud,
+body.outside #nav,
+body.outside #actions { display: none; }
+#outside {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--page);
+  z-index: 20;
+  padding: calc(env(safe-area-inset-top, 0) + 24px) 16px calc(env(safe-area-inset-bottom, 0) + 24px);
+}
+.out-card { max-width: 480px; margin: 0 auto; font-size: 15px; line-height: 1.5; }
+.out-brand { font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; font-size: 13px; }
+.out-brand .fire { color: var(--fire); }
+.out-brand .water { color: var(--water); }
+#outside h1 { font-size: 24px; line-height: 1.2; margin: 8px 0 10px; }
+#outside h2 { font-size: 17px; margin: 22px 0 8px; }
+#outside a { color: var(--water-pale); }
+#out-video { width: 100%; max-height: 60vh; border-radius: 12px; background: #000; margin: 6px 0 12px; }
+#out-wish, #out-locate {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(90deg, var(--fire), var(--water));
+}
+#out-wish:disabled { opacity: 0.85; }
+#out-locate { background: var(--fg); color: var(--ink); margin-top: 4px; }
+.out-note { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+#out-cities { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+#out-cities button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 11px 14px;
+  font-size: 15px;
+  border: 1px solid var(--raised);
+  border-radius: 10px;
+  color: var(--fg);
+  background: var(--ink);
+  text-align: left;
+}
+#out-cities .km { color: var(--muted); }
+
+/* Watch another city (outside.ts setupCities): same list as on the page outside. */
+#cities {
+  --card-top: 10px;
+  max-width: 440px;
+  max-height: calc(100% - 20px - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+  box-sizing: border-box;
+  overflow-y: auto;
+  background: var(--page);
+  z-index: 11;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+#cities h2 { font-size: 20px; margin: 0; }
+#cities[hidden] { display: none; }
+#cities-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+#cities-list button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1px solid var(--raised);
+  border-radius: 10px;
+  color: var(--fg);
+  background: var(--ink);
+  text-align: left;
+}
+#cities-list button.on { font-weight: 700; border-color: var(--fg); }
+#cities-list .km { color: var(--muted); }
+.city-pick { border: 1px solid var(--raised); border-radius: 8px; background: none; color: var(--fg); padding: 4px 10px; }
+#outside .lang-switch { margin: 22px 0 8px; }
+#outside .legal { font-size: 13px; }
+
+/* Walked into another region: offer to switch. */
+#switch {
+  --card-top: 70px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  z-index: 6;
+}
+#switch[hidden] { display: none; }
+#switch-text { flex: 1; }
+#switch-go { padding: 8px 14px; font-weight: 700; border: none; border-radius: 8px; background: var(--fg); color: var(--ink); }
+#switch-close { border: none; background: none; color: var(--fg); font-size: 22px; line-height: 1; }
+
+/* Finds (finds.ts): the card after uncovering one, the burst on the map. */
+#find-card {
+  --card-top: 80px;
+  border: 2px solid var(--gold);
+  text-align: center;
+  z-index: 7;
+  animation: find-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+#find-card.water { border-color: var(--water); }
+#find-card.fire { border-color: var(--fire); }
+#find-card .find-kicker { font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+#find-card.water .find-kicker { color: var(--water-pale); }
+#find-card.fire .find-kicker { color: var(--fire-pale); }
+#find-name { display: block; font-size: 20px; margin: 4px 0 2px; }
+#find-progress { font-size: 14px; color: var(--soft); }
+.find-note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+#find-ask p { font-size: 14px; margin: 10px 0; text-align: left; }
+#find-ask .row { display: flex; gap: 8px; justify-content: flex-end; }
+#find-ask button { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; }
+#find-no { background: var(--raised); color: var(--fg); }
+#find-yes { background: var(--fg); color: var(--ink); }
+/* In-app question (ask.ts), above every sheet. */
+#ask {
+  --card-top: 80px;
+  z-index: 30;
+  border: 2px solid var(--line);
+  /* Opaque: whatever card is open below must not show through. */
+  background: var(--page);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+#ask p { font-size: 15px; margin: 0 0 12px; line-height: 1.4; }
+#ask .row { display: flex; gap: 8px; justify-content: flex-end; }
+#ask button { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; }
+#ask-no { background: var(--raised); color: var(--fg); }
+#ask-yes { background: var(--fg); color: var(--ink); }
+@keyframes find-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.find-burst { position: relative; width: 0; height: 0; pointer-events: none; }
+.find-burst span {
+  position: absolute;
+  left: -40px;
+  top: -40px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--gold);
+  animation: find-ring 1.6s ease-out forwards;
+  opacity: 0;
+}
+.find-burst.water span { border-color: var(--water-light); }
+.find-burst.fire span { border-color: #ff922b; box-shadow: 0 0 14px #ff922b; }
+.find-burst span:nth-child(2) { animation-delay: 0.3s; }
+.find-burst span:nth-child(3) { animation-delay: 0.6s; }
+@keyframes find-ring {
+  0% { transform: scale(0.1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+#finds-list { list-style: none; padding: 0; margin: 8px 0 0; font-size: 14px; line-height: 1.5; }
+#finds-list li { margin-bottom: 4px; }
+#finds-box label { display: block; margin: 8px 0 0; }
+#find-card.badge { border-color: var(--gold); background: linear-gradient(160deg, rgba(60, 48, 10, 0.97), var(--panel)); }
+#my-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+#my-badges:empty { display: none; }
+#my-badges .chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--raised); color: var(--fg); }
+#my-badges .chip.title { background: var(--gold); color: var(--ink); font-weight: 700; }
+
+/* Campaign chapter (campaign.ts): race bar under the header. */
+#chapter {
+  position: absolute;
+  --card-top: 66px;
+  left: 10px;
+  right: 10px;
+  padding: 6px 12px 7px;
+  background: var(--bg);
+  border: 1px solid #ffd43b55;
+  border-radius: 12px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  z-index: 3;
+}
+#chapter[hidden] { display: none; }
+.chapter-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.chapter-head b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#chapter { cursor: pointer; }
+#chapter-fold, #fold {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: none;
+  padding: 0;
+  background: none;
+  color: var(--soft);
+}
+#chapter-fold { width: 28px; height: 22px; margin: -2px -6px -2px 0; }
+/* Folded: title and race on one line. */
+#chapter.folded { display: flex; align-items: center; gap: 10px; padding: 5px 10px; right: auto; max-width: calc(100% - 82px); }
+#chapter.folded .chapter-head { flex: 0 1 auto; min-width: 0; }
+#chapter.folded #chapter-time,
+#chapter.folded #chapter-fold,
+#chapter.folded #chapter-goal,
+#chapter.folded .chapter-race > span { display: none; }
+#chapter.folded .chapter-race { margin: 0; flex: 0 0 64px; }
+.chapter-head b { color: var(--gold); }
+#chapter-time { color: var(--soft); white-space: nowrap; }
+.chapter-race { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.chapter-race .fire { color: var(--fire); font-weight: 700; min-width: 3ch; }
+.chapter-race .water { color: var(--water); font-weight: 700; min-width: 3ch; text-align: right; }
+.chapter-bars { flex: 1; display: grid; gap: 2px; }
+.chapter-bars span { display: block; height: 5px; border-radius: 3px; width: 0; transition: width 0.6s; }
+#chapter-fire { background: var(--fire); }
+#chapter-water { background: var(--water); }
+#chapter-goal { color: var(--muted); font-size: 12px; margin-top: 2px; }
+#chapter.soon .chapter-race { display: none; }
+
+/* Tunnel (tunnel.ts): a far enemy hilltop or sink, claimable for a minute. */
+#tunnel {
+  width: min(100%, 420px);
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  background: var(--panel);
+  animation: find-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+#tunnel[hidden] { display: none; }
+.tunnel-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.tunnel-kicker { flex: 1; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+#tunnel-left { color: var(--soft); font-variant-numeric: tabular-nums; }
+#tunnel-close { border: none; background: none; color: var(--fg); font-size: 22px; line-height: 1; padding: 0 2px; }
+#tunnel-text { font-size: 15px; margin: 4px 0 6px; }
+.tunnel-bar { height: 5px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+.tunnel-bar span { display: block; height: 100%; background: var(--gold); transition: width 0.25s linear; }
+#tunnel-go { width: 100%; margin-top: 8px; padding: 12px; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; background: var(--gold); color: var(--ink); }
+
+/* Help and legal pages over the game (pages.ts). */
+#page {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--bg-solid, var(--page));
+}
+#page[hidden] { display: none; }
+#page-frame { width: 100%; height: 100%; border: 0; display: block; background: var(--page); }
+
+/* Permanent source (perm.ts): make a claim permanent, move it, top it up. */
+#perm {
+  width: min(100%, 420px);
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border: 2px dashed rgba(255, 255, 255, 0.75);
+  border-radius: 14px;
+  color: #fff;
+  background: var(--neutral);
+}
+#perm.fire { background: var(--fire); }
+#perm.water { background: var(--water); }
+
+/* New version after a deploy (update.ts); manual reload in the settings. */
+#update {
+  width: min(100%, 420px);
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  color: var(--ink);
+  background: var(--gold);
+}
+#reload { align-self: flex-start; }
+
+/* Card of a tapped junction (nodecard.ts). */
+#node-card {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 420px);
+  padding: 12px 16px 14px;
+  background: var(--panel);
+  border: 2px solid var(--neutral);
+  border-radius: 14px;
+  z-index: 7;
+}
+#node-card.fire { border-color: var(--fire); }
+#node-card.water { border-color: var(--water); }
+#node-card p { font-size: 14px; margin: 8px 0 0; color: #dee2e6; }
+#node-card p.go { color: var(--ok); font-weight: 700; }
+.node-kicker { font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
+#node-card.fire .node-kicker { color: var(--fire-pale); }
+#node-card.water .node-kicker { color: var(--water-pale); }
+.node-bar { height: 6px; border-radius: 3px; background: var(--raised); margin: 4px 0; overflow: hidden; }
+.node-bar span { display: block; height: 100%; }
+.node-bar .f { background: var(--fire); }
+.node-bar .w { background: var(--water); }
+.node-values { font-size: 12px; color: var(--muted); }
+#node-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
+#node-claim { margin-top: 12px; width: 100%; padding: 11px; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; color: #fff; background: var(--neutral); }
+#node-claim.fire { background: var(--fire); }
+#node-claim.water { background: var(--water); }
+.node-pick { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4); pointer-events: none; }
+/* The junctions of a "hold" chapter (campaign.ts). */
+.hold-mark { pointer-events: none; }
+.hold-ring { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--gold); box-shadow: 0 0 10px var(--gold); pointer-events: none; animation: hold-ring 2.4s ease-in-out infinite; }
+@keyframes hold-ring { 50% { transform: scale(1.18); opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .hold-ring { animation: none; } }
+
+/* Feedback (feedback.ts). */
+#feedback {
+  --card-top: 80px;
+  background: rgba(22, 24, 29, 0.98);
+  border: 2px solid var(--gold);
+  z-index: 9;
+}
+#feedback-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
+#feedback .faces { display: flex; justify-content: center; gap: 14px; margin: 8px 0 12px; }
+#feedback .faces button { font-size: 34px; width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--line); background: var(--ink); opacity: 0.7; }
+#feedback .faces button.on { border-color: var(--gold); opacity: 1; transform: scale(1.08); }
+#feedback-text { box-sizing: border-box; width: 100%; padding: 8px 10px; font: inherit; font-size: 15px; color: var(--fg); background: var(--ink); border: 1px solid var(--line); border-radius: 10px; resize: vertical; }
+#feedback-send { margin-top: 10px; width: 100%; padding: 11px; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; color: var(--ink); background: var(--gold); }
+#feedback-send:disabled { opacity: 0.45; }
+#feedback-open, #news-open { align-self: flex-start; }
+
+/* Install hint (install.ts). */
+#install { --card-top: 80px; z-index: 9; border: 2px solid var(--line); background: rgba(22, 24, 29, 0.98); }
+#install p { font-size: 14px; line-height: 1.4; margin: 6px 0 12px; }
+#install .row { display: flex; justify-content: flex-end; gap: 8px; }
+#install button { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; background: var(--raised); color: var(--fg); }
+#install button.primary { background: var(--gold); color: var(--ink); }
+
+/* What's new (news.ts). */
+#news {
+  --card-top: 80px;
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  background: rgba(22, 24, 29, 0.98);
+  border: 2px solid var(--gold);
+  z-index: 9;
+}
+#news-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
+#news h3 { margin: 10px 0 4px; font-size: 16px; }
+#news ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.4; }
+#news li + li { margin-top: 6px; }
+.news-rules { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); background: var(--gold); border-radius: 6px; padding: 1px 6px; vertical-align: 2px; }
+
+/* Sound on / off (sound.ts). */
+#nav-sound .mute, #nav-sound.off .on { display: none; }
+#nav-sound.off .mute { display: inline; }
+#nav-sound.off { color: var(--neutral); }
+
+/* City images (media.ts): find card, chapter card, Entdecken. */
+figure.media { margin: 8px 0 0; }
+figure.media img { display: block; width: 100%; height: auto; max-height: min(32vh, 260px); object-fit: cover; border-radius: 8px; background: var(--raised); }
+figure.media figcaption { margin-top: 3px; font-size: 11px; color: var(--muted); text-align: left; }
+figure.media a { color: inherit; }
+#find-media:empty, #challenge .ch-media:empty { display: none; }
+#challenge .ch-media figure.media img { max-height: min(18vh, 140px); }
+#challenge.folded .ch-media { display: none; }
+
+/* Points rising where they were earned (floaters.ts). */
+.float-at { pointer-events: none; z-index: 3; }
+.float-pts {
+  display: block;
+  pointer-events: none;
+  font-weight: 800;
+  font-size: 18px;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9);
+  font-variant-numeric: tabular-nums;
+  animation: float-up 1.6s ease-out forwards;
+}
+.float-pts.fire { color: #ffb347; }
+.float-pts.water { color: #8fd3ff; }
+.float-pts.big { font-size: 26px; animation-duration: 2.4s; }
+.float-pts.hold { font-size: 14px; font-weight: 700; opacity: 0.9; }
+@keyframes float-up {
+  0% { transform: translateY(0) scale(0.7); opacity: 0; }
+  15% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translateY(-48px) scale(1); opacity: 0; }
+}
+.float-cheer {
+  display: block;
+  pointer-events: none;
+  opacity: 0;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px var(--glow));
+  animation: cheer-rise 6s ease-out forwards;
+}
+.float-cheer.fire { --glow: rgba(255, 140, 40, 0.95); }
+.float-cheer.water { --glow: rgba(80, 170, 255, 0.95); }
+/* Slow and high, swaying a little like a flame or a drop in the air. */
+@keyframes cheer-rise {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  8% { transform: translate(0, -12px) scale(1.15); opacity: 1; }
+  30% { transform: translate(5px, -45px) scale(1); }
+  55% { transform: translate(-5px, -85px) scale(1); opacity: 1; }
+  80% { transform: translate(4px, -125px) scale(0.95); opacity: 0.7; }
+  100% { transform: translate(0, -160px) scale(0.85); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-pts,
+  .float-cheer { animation-name: float-fade; }
+  .float-cheer { animation-duration: 4s; }
+  .cheer.pop { animation: none; }
+  @keyframes float-fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+}
+
+/* Live action while watching (live.ts): a fresh claim flashes. */
+.live-flash {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid var(--c);
+  box-shadow: 0 0 12px var(--c);
+  animation: live-flash 1.6s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes live-flash {
+  0% { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* Kiosk (`?kiosk`): the map, the score, the chapter and a QR code; nothing to tap. */
+body.kiosk #actions .row,
+body.kiosk #nav,
+body.kiosk #intro,
+body.kiosk #news,
+body.kiosk #install,
+body.kiosk #switch,
+body.kiosk #zoom-hint,
+body.kiosk #hotspot-hint,
+body.kiosk #chapter-fold,
+body.kiosk #fold,
+body.kiosk #me-dot { display: none !important; }
+body.kiosk #me { pointer-events: none; }
+/* Kiosk tour: the ranking now and then, read from a distance. */
+body.kiosk #board { right: auto; width: min(560px, calc(100vw - 20px)); max-width: none; font-size: 18px; pointer-events: none; }
+body.kiosk #board .board-head { display: none; }
+#kiosk-qr {
+  position: absolute;
+  right: 16px;
+  bottom: calc(52px + env(safe-area-inset-bottom, 0));
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 14px 10px;
+  border-radius: 14px;
+  background: rgba(22, 24, 29, 0.92);
+  color: var(--fg);
+  font-size: 15px;
+}
+#kiosk-qr[hidden] { display: none; }
+#kiosk-qr-code { width: min(22vmin, 180px); aspect-ratio: 1; padding: 8px; background: #f8f5ee; border-radius: 8px; }
+#kiosk-qr-code svg { width: 100%; height: 100%; display: block; }
+#kiosk-qr span { color: var(--muted); font-size: 13px; }
+
+/* Time-lapse (timelapse.ts): the last 72 h as hexagons, a player bar at the bottom. */
+#lapse {
+  --card-top: auto;
+  top: auto;
+  bottom: calc(150px + env(safe-area-inset-bottom, 0));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  z-index: 6;
+}
+#lapse[hidden] { display: none; }
+#lapse-play, #lapse-close { border: none; background: none; color: var(--fg); font-size: 20px; width: 32px; }
+#lapse-range { flex: 1; accent-color: var(--fg); }
+#lapse-when { min-width: 86px; text-align: right; font-variant-numeric: tabular-nums; }
+body.lapse .source { display: none; }
+
+/* Globe (globe.ts): far out, every city on the globe and the way to the weather globe. */
+#globe-bar {
+  --card-top: auto;
+  top: auto;
+  bottom: calc(150px + env(safe-area-inset-bottom, 0));
+  z-index: 6;
+}
+#globe-bar[hidden] { display: none; }
+#globe-bar .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 8px; }
+#globe-back { padding: 8px 12px; border: 1px solid var(--raised); border-radius: 10px; background: none; color: var(--fg); }
+#globe-weather { padding: 8px 12px; border-radius: 10px; background: var(--fg); color: var(--ink); font-weight: 700; text-decoration: none; }
+body { transition: background-color 0.6s ease; }
+body.globe { background: var(--space); }
+/* From the weather globe (`#look=`): the map comes up out of its dark. */
+html.arrive body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--space);
+  pointer-events: none;
+  transition: opacity 0.9s ease;
+  /* Lifts by itself if the app never gets that far. */
+  animation: arrive-late 0.9s ease 5s forwards;
+}
+html.arrive.arrived body::after { opacity: 0; }
+@keyframes arrive-late { to { opacity: 0; } }
+body.globe #lapse, body.globe #hotspot-hint, body.globe #zoom-hint { display: none !important; }
+body.kiosk #lapse-play, body.kiosk #lapse-close, body.kiosk #lapse-range { pointer-events: none; }
+body.kiosk #lapse-play, body.kiosk #lapse-close { visibility: hidden; }
+#join:disabled { opacity: 0.5; background: var(--neutral); }
+#cities-watch { margin-top: 8px; }
+#cities-watch[hidden] { display: none; }

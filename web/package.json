@@ -1,0 +1,29 @@
+{
+  "name": "elements-web",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "dev:https": "HTTPS=1 vite",
+    "check:ar": "node scripts/armath-check.mjs"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@protomaps/basemaps": "^5.7.2",
+    "h3-js": "^4.5.0",
+    "maplibre-gl": "^6.11.2",
+    "pmtiles": "^4.5.0",
+    "qrcode-generator": "^1.5.2"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "playwright": "^1.63.0",
+    "three": "^0.186.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <script src="/handover.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="page.title">Redaktion – Kapitel und Orte</title>
+    <link rel="stylesheet" href="/src/dashboard.css" />
+    <link rel="stylesheet" href="/src/editor.css" />
+  </head>
+  <body>
+    <main class="viz-root">
+      <header class="page-head">
+        <h1><span data-i18n="head.title">Redaktion</span> <span class="city"></span></h1>
+      </header>
+
+      <form id="filters" class="filters" onsubmit="return false">
+        <label><span data-i18n="bar.city">Stadt</span> <select id="region"></select></label>
+        <label id="token-field"><span data-i18n="bar.access">Zugang</span>
+          <input id="token" type="password" autocomplete="off" placeholder="Token, dann Enter" data-i18n-placeholder="bar.token.ph" />
+        </label>
+        <small id="token-state" class="token-state"></small>
+        <button type="button" id="logout" class="linkish" hidden data-i18n="bar.logout">Abmelden</button>
+        <nav class="lang-switch" data-i18n-aria="bar.lang" aria-label="Sprache"></nav>
+      </form>
+
+      <nav id="tabs" class="ed-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="kapitel" data-i18n="tab.kapitel">Kapitel</button>
+        <button type="button" role="tab" data-tab="inschriften" data-i18n="tab.inschriften">Inschriften</button>
+        <button type="button" role="tab" data-tab="orte" data-i18n="tab.orte">Orte</button>
+        <button type="button" role="tab" data-tab="bilder"><span data-i18n="tab.bilder">Bilder</span> <span class="badge"></span></button>
+      </nav>
+
+      <div data-panel="kapitel" role="tabpanel">
+      <section class="card" data-always>
+        <details class="help"><summary data-i18n="ch.help.sum">Ein Kapitel ist ein Wettlauf der beiden Seiten zu einem Ziel.</summary>
+          <p data-i18n="ch.help.more"></p></details>
+        <div class="map-head"><h2 data-i18n="ch.title">Kapitel</h2><button type="button" id="new" class="primary" data-i18n="ch.new">Neues Kapitel</button></div>
+        <div id="list" class="empty" data-i18n="access.login"></div>
+      </section>
+
+      <section class="card" id="form-card" hidden>
+        <h2 id="form-title" data-i18n="ch.new">Neues Kapitel</h2>
+        <form id="form" class="ed-form" onsubmit="return false">
+          <label><span><span data-i18n="ch.f.campaign">Kampagne</span> <small data-i18n="ch.f.campaign.hint"></small></span>
+            <input id="campaign" required pattern="[a-z0-9-]{3,40}" /></label>
+          <div class="tabs" id="langs"></div>
+          <div id="lang-fields"></div>
+          <div class="ed-row">
+            <label><span data-i18n="ch.f.starts">Beginn</span> <input id="starts" type="datetime-local" required /></label>
+            <label><span data-i18n="ch.f.ends">Ende</span> <input id="ends" type="datetime-local" required /></label>
+          </div>
+          <div class="ed-row">
+            <label><span data-i18n="ch.f.goal">Ziel</span>
+              <select id="goal">
+                <option value="claims" data-i18n="goal.claims">Eroberungen</option>
+                <option value="fronts" data-i18n="goal.fronts">Eroberungen an der Front</option>
+                <option value="finds" data-i18n="goal.finds">Fundstücke</option>
+                <option value="points" data-i18n="goal.points">Punkte</option>
+                <option value="area" data-i18n="goal.area">Gehaltene Fläche (ha)</option>
+                <!-- Junctions only by SQL (game.chapters.nodes): shown for such a chapter. -->
+                <option value="hold" data-i18n="goal.hold" hidden>Orte halten</option>
+              </select></label>
+            <label><span data-i18n="ch.f.target">Zielwert je Seite</span> <input id="target" type="number" min="1" max="1000000" required /></label>
+            <button type="button" id="suggest" data-i18n="ch.suggest">Vorschlag</button>
+          </div>
+          <p class="caption" id="suggest-note"></p>
+          <p class="notice" id="reset-note" hidden data-i18n-html="ch.reset.note"></p>
+          <p class="caption" data-i18n="ch.tz.note"></p>
+          <div class="ed-row">
+            <button type="button" id="save-draft" data-i18n="ch.save.draft">Als Entwurf speichern</button>
+            <button type="button" id="publish" class="primary" data-i18n="ch.publish">Veröffentlichen</button>
+            <button type="button" id="cancel" data-i18n="ui.cancel">Abbrechen</button>
+          </div>
+          <p id="form-error" class="ed-error"></p>
+        </form>
+        <h3 data-i18n="ch.preview">Vorschau in der App</h3>
+        <div class="ed-preview"><div class="kicker" data-i18n="ch.kicker">Kapitel</div><b id="pv-title"></b><p id="pv-text"></p><p id="pv-goal" class="pv-goal"></p></div>
+      </section>
+      </div>
+
+      <div data-panel="inschriften" role="tabpanel" hidden>
+      <section class="card" id="mottos-card" hidden>
+        <div class="map-head"><h2 data-i18n="mo.title">Inschriften der Kampagne</h2><button type="button" id="motto-new" data-i18n="mo.new">Neue Inschrift</button></div>
+        <details class="help"><summary data-i18n="mo.help.sum"></summary>
+          <p data-i18n="mo.help.more"></p></details>
+        <div id="motto-form" class="ed-form place-form" hidden>
+          <h3 id="motto-title" data-i18n="mo.new">Neue Inschrift</h3>
+          <div class="ed-row">
+            <label><span data-i18n="mo.f.campaign">Kampagne</span> <select id="motto-campaign"></select></label>
+            <label><span data-i18n="mo.f.side">Seite</span>
+              <select id="motto-side">
+                <option value="both" data-i18n="mo.side.both.opt">beide Seiten</option>
+                <option value="fire" data-i18n="mo.side.fire.opt">Feuer (Glut)</option>
+                <option value="water" data-i18n="mo.side.water.opt">Wasser (Eis)</option>
+              </select></label>
+          </div>
+          <label><span><span id="motto-main-label">Deutsch</span> <small data-i18n="mo.f.required">(Pflicht, höchstens 40 Zeichen)</small></span> <input id="motto-main" maxlength="40" /></label>
+          <details class="motto-langs">
+            <summary><span data-i18n="mo.f.more">Weitere Sprachen</span> <small id="motto-langs-count"></small></summary>
+            <div id="motto-langs"></div>
+            <p class="caption" data-i18n="mo.f.more.note"></p>
+          </details>
+          <div class="ed-row">
+            <button type="button" id="motto-save" class="primary" data-i18n="mo.propose">Vorschlagen</button>
+            <button type="button" id="motto-approve" hidden data-i18n="mo.approve.save">Speichern und freigeben</button>
+            <button type="button" id="motto-cancel" data-i18n="ui.cancel">Abbrechen</button>
+          </div>
+          <p id="motto-error" class="ed-error"></p>
+        </div>
+        <div id="mottos-list"></div>
+      </section>
+      </div>
+
+      <div data-panel="orte" role="tabpanel" hidden>
+      <section class="card" id="places-card" hidden>
+        <h2 data-i18n="pl.title">Orte</h2>
+        <details class="help"><summary data-i18n="pl.help.sum"></summary><p data-i18n-html="pl.help.more"></p></details>
+        <div class="ed-row place-new">
+          <button type="button" id="new-zone" data-i18n="pl.new.zone">Neue Zone</button>
+          <button type="button" id="new-site" data-i18n="pl.new.site">Neuer Hotspot-Ort</button>
+          <button type="button" id="new-find" data-i18n="pl.new.find">Neues Fundstück</button>
+          <small class="caption" data-i18n="pl.new.hint"></small>
+          <label class="check"><input id="show-finds" type="checkbox" /> <span data-i18n="pl.show.finds">Fundstücke auf der Karte zeigen</span></label>
+        </div>
+        <div id="places-map" class="places-map"></div>
+        <div id="place-form" class="ed-form place-form" hidden>
+          <h3 id="place-title"></h3>
+          <label><span data-i18n="pl.f.name">Name</span> <input id="place-name" maxlength="60" /></label>
+          <div id="place-zone-fields" class="ed-row">
+            <label><span><span data-i18n="pl.f.radius">Radius in m</span> <small data-i18n="pl.f.radius.hint"></small></span> <input id="place-radius" type="number" min="30" max="1000" step="10" /></label>
+            <label class="check"><input id="place-focus" type="checkbox" /> <span data-i18n="pl.f.focus">Fokusort</span></label>
+          </div>
+          <div id="place-find-fields" class="ed-row">
+            <label><span data-i18n="pl.f.collection">Sammlung</span> <select id="place-collection"></select></label>
+            <label class="check"><input id="place-hidden" type="checkbox" /> <span data-i18n="pl.f.hidden">ausgeblendet</span></label>
+          </div>
+          <p class="caption" id="place-find-note"></p>
+          <p class="caption" id="place-site-note" data-i18n="pl.site.note"></p>
+          <p class="caption" id="place-pos"></p>
+          <div class="ed-row">
+            <button type="button" id="place-save" class="primary" data-i18n="ui.save">Speichern</button>
+            <button type="button" id="place-delete" data-i18n="ui.delete">Löschen</button>
+            <button type="button" id="place-cancel" data-i18n="ui.cancel">Abbrechen</button>
+          </div>
+          <p id="place-error" class="ed-error"></p>
+        </div>
+        <h3 data-i18n="pl.sites">Hotspot-Orte</h3>
+        <p class="notice" id="sites-warn" hidden></p>
+        <p class="caption" id="sites-food-note" hidden data-i18n="pl.food.missing"></p>
+        <div id="sites-list"></div>
+        <h3 data-i18n="pl.plans">Geplante Hotspots</h3>
+        <p class="caption" data-i18n="pl.plans.note"></p>
+        <p class="caption" id="plan-none" hidden data-i18n="pl.plan.none"></p>
+        <div class="ed-form">
+          <div class="ed-row" id="plan-form">
+            <label><span data-i18n="pl.plan.site">Ort</span> <select id="plan-site"></select></label>
+            <label><span data-i18n="ch.f.starts">Beginn</span> <input id="plan-starts" type="datetime-local" /></label>
+            <label><span data-i18n="ch.f.ends">Ende</span> <input id="plan-ends" type="datetime-local" /></label>
+            <button type="button" id="plan-add" class="primary" data-i18n="pl.plan.add">Planen</button>
+          </div>
+        </div>
+        <p id="plan-error" class="ed-error"></p>
+        <div id="plans-list"></div>
+        <h3 data-i18n="pl.zones">Zonen</h3>
+        <div id="zones-list"></div>
+        <h3><span data-i18n="pl.finds">Fundstücke</span> <small id="finds-count" class="caption"></small></h3>
+        <div class="ed-form"><div class="ed-row">
+          <label><span data-i18n="pl.f.collection">Sammlung</span> <select id="finds-filter"></select></label>
+          <label><span data-i18n="ui.search">Suchen</span> <input id="finds-search" type="search" placeholder="Name …" data-i18n-placeholder="ui.name.ph" /></label>
+        </div></div>
+        <div id="finds-list"></div>
+      </section>
+      </div>
+
+      <div data-panel="bilder" role="tabpanel" hidden>
+      <section class="card" id="media-card" hidden>
+        <h2 data-i18n="me.title">Bilder</h2>
+        <details class="help"><summary data-i18n="me.help.sum"></summary><p data-i18n-html="me.help.more"></p></details>
+        <p class="notice" id="media-off" hidden data-i18n="me.off"></p>
+        <h3><span data-i18n="me.pending">Zur Freigabe</span> <small id="media-pending-count" class="caption"></small></h3>
+        <div id="media-pending"></div>
+        <h3 data-i18n="me.for">Bild für</h3>
+        <div class="ed-form">
+          <div class="ed-row">
+            <label><span data-i18n="me.kind">Art</span>
+              <select id="media-kind">
+                <option value="find" data-i18n="me.k.find">Fundstück</option>
+                <option value="zone" data-i18n="me.kind.zone.opt">Zone / Fokusort</option>
+                <option value="challenge" data-i18n="me.k.challenge">Kapitel</option>
+              </select></label>
+            <label><span><span data-i18n="ui.search">Suchen</span> <small id="media-search-count"></small></span> <input id="media-search" type="search" placeholder="Name …" data-i18n-placeholder="ui.name.ph" /></label>
+            <label><span data-i18n="me.target">Ziel</span> <select id="media-target"></select></label>
+            <label class="check" id="media-only-label"><input id="media-only" type="checkbox" /> <span data-i18n="me.only">nur mit Commons-Vorschlägen</span></label>
+          </div>
+        </div>
+        <div id="media-current"></div>
+        <div id="media-suggest-box">
+          <h3 data-i18n="me.sugg.title">Vorschläge aus Wikimedia Commons</h3>
+          <p class="caption" data-i18n="me.sugg.note"></p>
+          <div id="media-suggest" class="media-grid"></div>
+        </div>
+        <h3 data-i18n="me.upload.title">Eigenes Bild hochladen</h3>
+        <div class="ed-form place-form">
+          <label><span><span data-i18n="me.file">Datei</span> <small data-i18n="me.file.hint"></small></span> <input id="media-file" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+          <div class="ed-row">
+            <label><span><span data-i18n="me.author">Urheber</span> <small data-i18n="me.author.hint"></small></span> <input id="media-author" maxlength="120" /></label>
+            <label><span data-i18n="me.licence">Lizenz</span>
+              <select id="media-licence">
+                <option value="own" data-i18n="me.lic.own">Eigenes Foto der Stadt</option>
+                <option value="cc-by-4.0">CC BY 4.0</option>
+                <option value="cc-by-sa-4.0">CC BY-SA 4.0</option>
+                <option value="cc0-1.0">CC0 1.0</option>
+              </select></label>
+          </div>
+          <label><span><span data-i18n="me.alt">Alternativtext</span> <small data-i18n="me.alt.hint"></small></span> <input id="media-alt" maxlength="200" /></label>
+          <label><span><span data-i18n="me.source">Quelle</span> <small data-i18n="me.source.hint"></small></span> <input id="media-source" type="url" maxlength="500" /></label>
+          <p class="notice" data-i18n="me.rights"></p>
+          <div class="ed-row"><button type="button" id="media-upload" class="primary" data-i18n="me.upload">Hochladen (zur Freigabe)</button></div>
+          <p id="media-error" class="ed-error"></p>
+        </div>
+      </section>
+      </div>
+    </main>
+    <script type="module" src="/src/editor.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+/* Faction and highlight colours, shared by the game (style.css) and the info
+   page (info.css). geo.ts COLORS mirrors the faction ones for the map. */
+:root {
+  --fire: #e8590c;
+  --water: #1c7ed6;
+  --front: #ae3ec9;
+  --neutral: #868e96;
+  --gold: #ffd43b;
+}

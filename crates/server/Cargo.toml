@@ -1,0 +1,63 @@
+[package]
+name = "elements-server"
+description = "Headless authoritative server for the Elements AR game."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "elements-server"
+path = "src/main.rs"
+
+[dependencies]
+elements-shared = { workspace = true, features = ["ts"] }
+# Headless: no rendering, windowing, or audio. Just the scheduler + logging.
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_state",
+    "multi_threaded",
+    "bevy_log",
+] }
+clap.workspace = true
+tracing.workspace = true
+
+# Geo world load (S2): synchronous PostgreSQL/PostGIS client, run once at
+# Startup. The server has no async runtime and this is a one-shot load, so the
+# blocking `postgres` client (which manages its own connection thread) is the
+# simplest fit. TLS via native-tls (vendored OpenSSL so the build needs no
+# system libssl); the effective mode follows libpq `sslmode` in the connection
+# string — plaintext against a local dev Postgres, TLS against a hosted one
+# (e.g. Neon). These deps live only in the headless server, never in the
+# `shared` crate.
+postgres = "0.19"
+postgres-native-tls = "0.5"
+native-tls = { version = "0.2", features = ["vendored"] }
+
+# Web gateway: WebSocket/JSON + HTTP for browser clients, in its own thread.
+axum = { version = "0.8", features = ["ws"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "macros", "signal", "time"] }
+futures-util = "0.3"
+tower-http = { version = "0.6", features = ["fs", "compression-gzip"] }
+crossbeam-channel = "0.5"
+serde = { workspace = true }
+serde_json = "1"
+# web/src/protocol.ts from `protocol.rs`.
+ts-rs = "12"
+rand = "0.9"
+sha2 = "0.10"
+h3o = "0.9"
+# Local days per region (time zone data built in: the image has no zoneinfo).
+jiff = { version = "0.2", default-features = false, features = ["std", "tz-system", "tzdb-bundle-always"] }
+flate2 = "1"
+# Weather days: Open-Meteo (HTTP, blocking, in the campaign thread).
+ureq = { version = "2", default-features = false, features = ["native-tls", "json"] }
+toml = "0.9"
+rusty-s3 = "0.10.2"
+url = "2"
+# Editor images (media.rs): decode JPEG/PNG/WebP, encode JPEG.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+base64 = "0.22"
+
+[lints]
+workspace = true

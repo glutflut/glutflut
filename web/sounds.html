@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <script src="/handover.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glut &amp; Flut – Klänge</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      body { margin: 0; padding: 16px; font: 16px system-ui, sans-serif; background: #16181d; color: #f1f3f5; }
+      h1 { font-size: 20px; }
+      p { color: #adb5bd; font-size: 14px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 12px 0 20px; }
+      button { padding: 12px 8px; font: inherit; font-size: 14px; border: none; border-radius: 10px; color: #fff; background: #343a40; }
+      button.fire { background: #c2410c; }
+      button.water { background: #1d6fc2; }
+      label { display: block; margin: 10px 0; }
+      input[type="range"] { width: min(100%, 320px); }
+    </style>
+  </head>
+  <body>
+    <h1>Glut &amp; Flut – Klänge</h1>
+    <p>Testseite zum Anhören (nicht verlinkt). Erst tippen, dann spielen Browser Ton ab. Die Klänge entstehen im Browser (sound.ts).</p>
+    <div class="grid" id="events"></div>
+    <h2>Umgebung</h2>
+    <label>Feuer unter dir <input type="range" id="amb-fire" min="0" max="100" value="0" /></label>
+    <label>Wasser unter dir <input type="range" id="amb-water" min="0" max="100" value="0" /></label>
+    <script type="module" src="/src/sounds-page.ts"></script>
+  </body>
+</html>

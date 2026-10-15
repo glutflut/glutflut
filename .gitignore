@@ -1,0 +1,17 @@
+# Rust
+/target
+**/*.rs.bk
+
+# IDE / OS
+/.idea/
+.DS_Store
+
+# the container's settings (deploy/.env.example)
+deploy/.env
+
+# Python
+__pycache__/
+*.pyc
+web/credits.local/
+# an instance's own rule sets (deploy/Dockerfile)
+rules.local/

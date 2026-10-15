@@ -1,0 +1,15 @@
+Rust crates (server and shared, build and dev dependencies left out)
+--------------------------------------------------------------------
+
+{{#each crates}}
+{{package.name}} {{package.version}}: {{license}}
+{{/each}}
+
+Licence texts of the Rust crates
+--------------------------------
+{{#each licenses}}
+
+=== {{name}} ({{id}}), used by:{{#each used_by}} {{crate.name}} {{crate.version}}{{/each}}
+
+{{{text}}}
+{{/each}}

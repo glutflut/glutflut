@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <script src="/handover.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Innenstadt-Monitor</title>
+    <link rel="stylesheet" href="/src/dashboard.css" />
+  </head>
+  <body>
+    <main class="viz-root">
+      <header class="page-head">
+        <h1><span data-i18n="dash.title">Innenstadt-Monitor</span> <span class="city"></span></h1>
+        <p class="sub" data-i18n="dash.sub">Anonymisierte Aufenthaltsmuster und Ortsbewertungen aus dem Spiel Glut &amp; Flut</p>
+        <p class="sub" data-i18n="dash.sub.note">Die Daten zeigen Spielende, nicht alle Besucherinnen und Besucher. Sie taugen für Vergleiche zwischen Orten und Tageszeiten, nicht für absolute Besucherzahlen.</p>
+      </header>
+
+      <form id="filters" class="filters">
+        <label><span data-i18n="dash.filter.region">Stadt</span>
+          <select id="region"></select>
+        </label>
+        <label><span data-i18n="dash.filter.period">Zeitraum</span>
+          <select id="days">
+            <option value="1" data-i18n="dash.period.1">Letzter Tag</option>
+            <option value="7" selected data-i18n="dash.period.7">Letzte 7 Tage</option>
+            <option value="30" data-i18n="dash.period.30">Letzte 30 Tage</option>
+            <option value="90" data-i18n="dash.period.90">Letzte 90 Tage</option>
+          </select>
+        </label>
+        <label><span data-i18n="dash.filter.data">Daten</span>
+          <select id="data">
+            <option value="real" data-i18n="dash.data.real">Echte Spielende</option>
+            <option value="synthetic" data-i18n="dash.data.synthetic">Simuliert (Bots)</option>
+            <option value="all" data-i18n="dash.data.all">Alle</option>
+            <option value="demo">Demo: simulierter Weihnachtsmarkt-Samstag</option>
+          </select>
+        </label>
+        <label><span data-i18n="dash.filter.access">Zugang</span>
+          <input id="token" type="password" autocomplete="off" placeholder="Token" />
+          <small id="token-state" class="token-state"></small>
+          <button type="button" id="token-clear" class="token-clear" data-i18n="dash.token.clear" hidden>Abmelden</button>
+        </label>
+        <nav class="lang-switch" data-i18n-aria="board.language" aria-label="Sprache / Language"></nav>
+      </form>
+
+      <p id="notice" class="notice" hidden></p>
+
+      <section class="tiles" id="tiles"></section>
+      <section class="card" id="growth-card">
+        <h2 data-i18n="dash.gr.title">Wachstum</h2>
+        <p class="caption" data-i18n="dash.gr.caption">Wie viele Menschen spielen und wiederkommen. Nur Zählungen je Tag, ohne Bezug zu Orten; Werte unter k werden nicht gezeigt.</p>
+        <div id="growth-tiles" class="mini-tiles"></div>
+        <div id="growth-chart" class="chart"></div>
+      </section>
+
+      <section class="card">
+        <div class="map-head">
+          <h2 id="map-title" data-i18n="dash.map.hexes.title">Aufenthalt je Wabe</h2>
+          <label class="check map-places"><input type="checkbox" id="show-places" checked /> <span data-i18n="dash.places.toggle">Grenze und Zonen</span></label>
+          <div class="tabs" role="tablist">
+            <button data-mode="hexes" class="on" role="tab" data-i18n="dash.tab.hexes">Waben</button>
+            <button data-mode="dwell" role="tab" data-i18n="dash.tab.dwell">Straßen</button>
+            <button data-mode="ratings" role="tab" data-i18n="dash.tab.ratings">Bewertungen</button>
+            <button data-mode="flows" role="tab" data-i18n="dash.tab.flows">Wege</button>
+            <button data-mode="areas" role="tab" data-i18n="dash.tab.areas">Flächen</button>
+          </div>
+        </div>
+        <p class="caption" id="map-caption"></p>
+        <div class="controls" id="ctl-dwell">
+          <button id="play" class="play" data-i18n-aria="dash.play" aria-label="Tagesverlauf abspielen">▶</button>
+          <input id="hour" type="range" min="-1" max="23" value="-1" data-i18n-aria="dash.hour" aria-label="Stunde" />
+          <span id="hour-label" data-i18n="dash.hour.all">ganzer Tag</span>
+        </div>
+        <div class="controls chips" id="ctl-hex" hidden>
+          <button data-res="8" data-i18n="dash.res.8">grob</button>
+          <button data-res="9" data-i18n="dash.res.9">mittel</button>
+          <button data-res="10" class="on" data-i18n="dash.res.10">fein</button>
+          <button data-res="11" data-i18n="dash.res.11">sehr fein</button>
+        </div>
+        <div class="controls chips" id="ctl-ratings" hidden>
+          <button data-cat="voll" data-i18n="cat.voll" class="on">voll</button>
+          <button data-cat="ruhig" data-i18n="cat.ruhig">ruhig</button>
+          <button data-cat="laut" data-i18n="cat.laut">laut</button>
+          <button data-cat="dunkel" data-i18n="cat.dunkel">dunkel</button>
+          <button data-cat="kalt" data-i18n="cat.kalt">kalt</button>
+          <button data-cat="einladend" data-i18n="cat.einladend">einladend</button>
+        </div>
+        <div id="map"></div>
+        <div id="map-legend" class="legend"></div>
+      </section>
+
+      <div class="grid2">
+        <section class="card">
+          <h2 data-i18n="dash.hourly.title">Aufenthalt nach Tageszeit</h2>
+          <p class="caption" data-i18n="dash.hourly.caption">Personen-Viertelstunden je Stunde (Ortszeit)</p>
+          <div id="hourly" class="chart"></div>
+        </section>
+        <section class="card">
+          <h2 id="places-title" data-i18n="dash.places.heading">Orte mit klarem Eindruck</h2>
+          <p class="caption" id="places-caption"></p>
+          <div id="places" class="chart"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2 id="rating-hours-title" data-i18n="dash.ratinghours.heading">Eindruck nach Tageszeit</h2>
+        <p class="caption" id="rating-hours-caption"></p>
+        <div id="rating-hours" class="chart"></div>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="dash.exp.title">Lenkungsexperiment</h2>
+        <p class="caption" data-i18n="dash.exp.caption">Von den Spielenden, die zu Beginn eines Zeitfensters im Umkreis von 250 m waren: Anteil, der bis zum Ende hingegangen ist, mit und ohne Hotspot. Hotspots werden zufällig gesetzt.</p>
+        <div id="experiment" class="chart"></div>
+      </section>
+
+      <section class="card" id="areas-card">
+        <div class="map-head">
+          <h2 data-i18n="dash.area.title">Flächen der Seiten</h2>
+          <button type="button" id="areas-csv" class="chip-btn" data-i18n="dash.area.csv">CSV je Stunde</button>
+        </div>
+        <p class="caption" data-i18n="dash.area.caption">Ein Block zwischen Straßen gehört einer Seite, wenn sie fast alle Kreuzungen am Rand hält. Fläche in Hektar, im Stundenmittel; „mit Spielenden“: nur Blöcke, an deren Rand eine Quelle von Spielenden steht (ohne Quellen der Natur). Spielstand, keine Personendaten.</p>
+        <div id="areas-tiles" class="mini-tiles area-tiles"></div>
+        <div id="areas-legend" class="legend"></div>
+        <div id="areas-chart" class="chart"></div>
+      </section>
+
+      <section class="card" id="report-card">
+        <h2 data-i18n="dash.rep.title">Vorher/nachher an einem Ort</h2>
+        <p class="caption" data-i18n="dash.rep.caption">Ein Fokusort und zwei Zeiträume nebeneinander, z. B. vor und nach einer Umgestaltung. Werte je Tag gemittelt; der Anteil an der Stadt gleicht Wetter, Ferien und Werbung aus.</p>
+        <form id="rep-form" class="filters rep-form">
+          <label><span data-i18n="dash.rep.place">Ort</span>
+            <select id="rep-zone"></select>
+          </label>
+          <fieldset class="rep-period">
+            <legend data-i18n="dash.rep.a">Zeitraum A (vorher)</legend>
+            <input id="rep-a0" type="date" required /> – <input id="rep-a1" type="date" required />
+          </fieldset>
+          <fieldset class="rep-period">
+            <legend data-i18n="dash.rep.b">Zeitraum B (nachher)</legend>
+            <input id="rep-b0" type="date" required /> – <input id="rep-b1" type="date" required />
+          </fieldset>
+          <div class="rep-actions">
+            <button type="submit" class="primary" data-i18n="dash.rep.run">Vergleichen</button>
+            <button type="button" id="rep-csv" data-i18n="dash.rep.csv" disabled>CSV</button>
+            <button type="button" id="rep-print" data-i18n="dash.rep.print" disabled>Drucken / PDF</button>
+          </div>
+        </form>
+        <p id="rep-state" class="caption"></p>
+        <div id="rep-out" hidden>
+          <h3 id="rep-head" class="rep-head"></h3>
+          <p id="rep-thin" class="notice rep-thin" hidden></p>
+          <div id="rep-table"></div>
+          <h3 data-i18n="dash.rep.hours">Aufenthalt nach Tageszeit</h3>
+          <p class="caption" data-i18n="dash.rep.hours.caption">Personenstunden je Tag in der Stunde (Ortszeit), A und B</p>
+          <div id="rep-legend" class="legend"></div>
+          <div id="rep-hours" class="chart"></div>
+          <div id="rep-visits-wrap" hidden>
+            <h3 data-i18n="dash.rep.vhours">Besuche nach Tageszeit</h3>
+            <p class="caption" data-i18n="dash.rep.vhours.caption">Personen am Fokusort je Tag in der Stunde (am Ort gezählt), A und B</p>
+            <div id="rep-vhours" class="chart"></div>
+          </div>
+          <div id="rep-more"></div>
+          <p class="caption" data-i18n="dash.rep.note">Spielende sind keine Stichprobe der Bevölkerung. Alle Zahlen stammen aus Zellen mit mindestens k = 5 Personen; der Bericht summiert nur. Kein Signifikanztest: kleine Unterschiede bei wenigen Tagen sind Zufall.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="dash.mix.title">Wer spielt</h2>
+        <p class="caption" id="mix-caption" data-i18n="dash.mix.caption">Freiwillige Angaben der Spielenden, nur als Zahl je Tag gespeichert, ohne Bezug zu Orten.</p>
+        <div class="grid2">
+          <div id="mix-age" class="chart"></div>
+          <div id="mix-local" class="chart"></div>
+        </div>
+      </section>
+
+      <div class="grid2">
+        <section class="card">
+          <h2 data-i18n="dash.transp.title">Transparenz</h2>
+          <p class="caption" data-i18n="dash.transp.caption">Was die Datenschutz-Regeln mit den Daten machen.</p>
+          <div id="transparency" class="mini-tiles"></div>
+          <div id="daily" class="chart"></div>
+        </section>
+        <section class="card">
+          <h2 data-i18n="dash.export.title">Daten herunterladen</h2>
+          <p class="caption" id="export-caption" data-i18n="dash.export.caption">Für das GIS und die Datenplattform der Stadt, im gewählten Zeitraum.</p>
+          <div class="downloads">
+            <button data-export="crowdflow.json"><span data-i18n="dash.export.crowdflow">Aufenthalt als Smart Data Model</span> <small data-i18n="dash.export.crowdflow.note">CrowdFlowObserved, JSON, höchstens 7 Tage</small></button>
+            <button data-export="dwell.csv"><span data-i18n="dash.export.dwell">Aufenthalt</span> <small data-i18n="dash.export.dwell.note">CSV je Abschnitt und Viertelstunde</small></button>
+            <button data-export="flows.csv"><span data-i18n="dash.flows.title">Wege zwischen Zonen</span> <small data-i18n="dash.export.flows.note">CSV je Stunde</small></button>
+            <button data-export="perception.geojson"><span data-i18n="dash.export.perception">Ortsbewertungen</span> <small>GeoJSON</small></button>
+          </div>
+          <p class="caption" data-i18n="dash.export.formats">Die Formate passen zur urbanen Datenplattform der Stadt: Smart Data Models (NGSI-LD), Dateien zur Veröffentlichung in einem Open-Data-Portal (z.&nbsp;B. DKAN).</p>
+        </section>
+      </div>
+
+      <section class="card" id="feedback-card" hidden>
+        <div class="map-head">
+          <h2 data-i18n="dash.fb.title">Feedback aus der App</h2>
+          <div class="controls chips" id="fb-scope">
+            <button data-scope="region" class="on" data-i18n="dash.fb.scope.region">Diese Stadt</button>
+            <button data-scope="all" data-i18n="dash.fb.scope.all">Alle Städte</button>
+          </div>
+        </div>
+        <p class="caption" id="fb-caption"></p>
+        <div id="fb-tiles" class="mini-tiles"></div>
+        <ul id="fb-list" class="fb-list"></ul>
+      </section>
+
+      <details class="card">
+        <summary data-i18n="dash.tables">Tabellenansicht</summary>
+        <div id="tables"></div>
+      </details>
+
+      <p class="caption"><a href="/impressum.html" data-i18n="legal">Impressum</a> · <a href="/datenschutz.html" data-i18n="privacy">Datenschutz</a> · <span class="version"></span> · <span id="server-version"></span></p>
+
+      <div id="tip" class="tip" hidden></div>
+    </main>
+    <script type="module" src="/src/dashboard.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,114 @@
+# The game rules the image runs (ELEMENTS_RULES=/srv/rules/default.toml).
+# Only what differs from the built-in defaults (crates/shared/src/rules.rs);
+# every key: docs/configuration.md, section 2. Another set can start from
+# this one with `base = "default.toml"` and list only what it changes.
+name = "default"
+
+# Claims: single-digit lifetime with linear decay; a claim on enemy ground
+# builds up over up to 120 s (by the enemy's strength there); takeover only
+# of enemy sources below half strength.
+claim_cooldown_s = 10
+claim_ttl_s = 540
+claim_strength = 0.8
+claim_ramp_s = 120
+natural_fire_strength = 0.6
+natural_water_strength = 1.0
+decay = "linear"
+takeover_stronger = true
+takeover_below = 0.5
+
+# Spread: fire cheaper uphill, water downhill; water climbing 5 m or fire
+# dropping 5 m keeps 1/e of its transmission.
+[field]
+reach_scale = 300.0
+affinity_weight = 0.15
+slope_k = 8.0
+water_climb_m = 5.0
+fire_drop_m = 5.0
+
+# Hinterland: sparks where a player has nothing to claim nearby, supply from
+# anchors on own ground to the sources at the front.
+[sparks]
+enabled = true
+
+[supply]
+enabled = true
+
+# Permanent sources (Glut / Eis): fade over 24 h to 0.3, no wear from enemy
+# hits, 60 m apart; two per player at level 1, one more per level.
+[keep]
+enabled = true
+fade_s = 86400
+floor = 0.3
+hit = 0.0
+gap_m = 60.0
+per_player = 2
+per_level = 1
+
+# The day's weather tilts the sides by about ±5 pp: rain weakens natural fire
+# and lets water sources age slower, warmth the other way round, frost lets
+# water climb. Live rain and sun per junction (where weather files cover the
+# region, ELEMENTS_WEATHER_URL) replace the day's rain and sun part.
+[weather]
+enabled = true
+rain_decay = 0.3
+rain_natural = 0.5
+heat_decay = 0.3
+heat_natural = 0.15
+frost_climb = 0.5
+live_decay = 0.3
+live_natural = 0.5
+sun_decay = 0.3
+sun_natural = 0.5
+
+# Blocks enclosed by streets: a side holds one with 90 % of its border
+# junctions and none of the other side's; 10 points per ha and minute to the
+# players holding the border, whose sources there age at half speed.
+[area]
+enabled = true
+share = 0.9
+points_per_ha_min = 10.0
+age_factor = 0.5
+break_minutes = 5.0
+
+# Levels, XP, abilities, challenges (one per round, then 30 min pause, at
+# most 4 a day) and a head start for newcomers.
+[progression]
+enabled = true
+challenges = true
+abilities = true
+bonus_per_level = 0.05
+bonus_max = 0.15
+newcomer_ttl_factor = 1.5
+newcomer_takeover_below = 0.333
+challenge_gap_s = 1800.0
+reach_m = 160.0
+challenges_per_day = 4
+xp_challenge = 90.0
+
+# A permanent source at a junction of 3+ roads, ringed by the other side's
+# sources for 2 minutes, fades four times as fast; the ring shares 50 points.
+[siege]
+enabled = true
+by_players = true
+min_neighbours = 3
+delay_s = 120.0
+factor = 1.0
+keep_factor = 4.0
+points = 0.0
+keep_points = 50.0
+
+# Weekly streaks of play days (badges only).
+[streak]
+enabled = true
+
+# Where no anchor fits, a claim on own ground next to ground that isn't ours
+# places an ordinary source.
+[reinforce]
+enabled = true
+front_only = true
+
+# Tide at the waterfront, only where a region has a gauge (geo.region_tide).
+[tide]
+strength = 0.5
+decay = 0.3

@@ -1,0 +1,65 @@
+# imposm3 mapping for import-osm-imposm.sh: walkable ways as lines, with the
+# OSM way id and one-way direction. Geometries keep OSM's exact coordinates
+# (-srid 4326), so ways that share an OSM node share a vertex.
+tables:
+  roads:
+    type: linestring
+    columns:
+      - name: osm_id
+        type: id
+      - name: geometry
+        type: geometry
+      - name: highway
+        type: mapping_value
+      - name: oneway
+        type: direction
+        key: oneway
+      - name: bridge
+        type: string
+        key: bridge
+      - name: man_made
+        type: string
+        key: man_made
+      # Private ways stay out of the graph (closed-areas.sql).
+      - name: access
+        type: string
+        key: access
+      - name: foot
+        type: string
+        key: foot
+    mapping:
+      highway:
+        - primary
+        - primary_link
+        - secondary
+        - secondary_link
+        - tertiary
+        - tertiary_link
+        - residential
+        - living_street
+        - pedestrian
+        - footway
+        - unclassified
+        - service
+        - path
+        - steps
+        - cycleway
+
+  # Areas closed or with an entry fee (closed-areas.sql decides which count).
+  closed:
+    type: polygon
+    columns:
+      - {name: osm_id, type: id}
+      - {name: geometry, type: geometry}
+      - {name: access, type: string, key: access}
+      - {name: fee, type: string, key: fee}
+      - {name: highway, type: string, key: highway}
+      - {name: landuse, type: string, key: landuse}
+      - {name: leisure, type: string, key: leisure}
+      - {name: amenity, type: string, key: amenity}
+      - {name: tourism, type: string, key: tourism}
+    mapping:
+      leisure: [park, garden, golf_course]
+      tourism: [zoo, theme_park]
+      landuse: [military]
+      access: [private, "no"]

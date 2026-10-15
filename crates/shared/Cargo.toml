@@ -1,0 +1,24 @@
+[package]
+name = "elements-shared"
+description = "Game rules and simulation logic for the Elements AR game."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Only the headless ECS/app subset of Bevy is needed here — no rendering.
+bevy = { workspace = true, default-features = false, features = ["bevy_state"] }
+serde.workspace = true
+toml = "0.9"
+# Rain radar values in H3 blocks (`radar.rs`).
+h3o = "0.9"
+# TS types of the web protocol (server's `protocol.rs`).
+ts-rs = { version = "12", optional = true }
+
+[features]
+ts = ["dep:ts-rs"]
+
+[lints]
+workspace = true

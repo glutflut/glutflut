@@ -1,0 +1,1492 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <script src="/handover.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Datenschutz – Glut &amp; Flut</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/legal.css" />
+  </head>
+  <body>
+    <main>
+      <nav class="lang-switch" aria-label="Sprache / Language"></nav>
+      <article data-lang="de">
+        <p><a href="/">← zurück zum Spiel</a></p>
+        <h1>Datenschutzerklärung</h1>
+
+        <p class="lead">
+          Kurz gesagt: Glut &amp; Flut braucht deinen Standort, damit du spielen kannst. Wir speichern keine Wege einzelner
+          Personen, keine Namen und keine Konten. Gespeichert werden zusammengefasste Zahlen, hinter denen mehrere
+          Personen stehen, und dein Punktestand unter einer zufälligen Kennung, die du jederzeit löschen kannst.
+        </p>
+
+        <h2>1. Verantwortlicher</h2>
+        <p>
+          Thorsten Rieß, Scientific Wave Solutions, Radolfzeller Str. 105A, 78467 Konstanz<br />
+          E-Mail: <a href="mailto:tr@scientific-wave.com">tr@scientific-wave.com</a>
+        </p>
+
+        <h2>2. Was beim Spielen passiert</h2>
+        <h3>Standort</h3>
+        <p>
+          Wenn du es im Browser erlaubst, sendet das Spiel etwa einmal pro Sekunde deine Position an unseren Server. Der
+          Server braucht sie, um die Spielregeln anzuwenden, etwa ob du nah genug an einem Ort bist, um ihn zu erobern.
+          Die Position liegt nur im Arbeitsspeicher und wird nicht gespeichert. Ohne Standortfreigabe kannst du nicht
+          mitspielen.
+          Um gefälschte Positionen zu erkennen, prüft der Server im Arbeitsspeicher, ob deine Spur wie echtes GPS aussieht (Genauigkeit, Streuung, Abstand zur Straßenmitte). Wirkt sie errechnet, zählt dein Spielstand einen Tag lang nicht in Rangliste, Punkten der Seite und Auswertung. Gespeichert wird nur, wie viele Spielende das an einem Tag betraf.
+        </p>
+        <h3>Stadt finden</h3>
+        <p>
+          Beim Start fragt das Spiel einmal nach deinem Standort und prüft auf deinem Gerät, in welcher Stadt du bist.
+          Dafür lädt es nur die Umrisse der Städte; dein Standort verlässt dabei dein Gerät nicht. Die Stadt merkt sich
+          dein Browser (localStorage), damit sie auch ohne Standort wieder geöffnet wird.
+        </p>
+        <h3>Zusammengefasste Auswertung</h3>
+        <p>
+          Für die Stadtplanung zählt der Server, wie viele Spielende sich wie lange auf einem Straßenabschnitt aufhalten,
+          jeweils in Zeitfenstern von 15 Minuten. Dafür wird deine Position auf den nächsten Straßenabschnitt gelegt;
+          die genauen Koordinaten werden verworfen. Um Personen zu zählen statt Signale, bildet der Server aus deiner
+          Sitzung ein Pseudonym, das jeden Tag neu erzeugt wird und nur im Arbeitsspeicher existiert. In die Datenbank
+          gelangen nur Zahlen je Straßenabschnitt und Zeitfenster, und nur, wenn mindestens fünf verschiedene Personen
+          dort waren. Nach derselben Regel zählt der Server auch Personen je sechseckiger Fläche (zwischen etwa 25 und
+          460 Metern Kantenlänge) und Stunde. Was in einem Zeitfenster unter fünf Personen bleibt, wird für denselben Ort zur Stunde und dann zum Tag zusammengefasst und auch dann nur ab fünf Personen gespeichert. Für Orte, die die Stadt beobachten will, zählt der Server nach derselben Regel Personen je Stunde. Außerdem zählt er, wie viele Personen von einem größeren Bereich der Stadt (etwa Bahnhof oder Marktplatz) in einen anderen gegangen sind, je Stunde und nur ab fünf Personen; was darunter bleibt, wird zum Tag zusammengefasst. Diese Zahlen lassen keinen Rückschluss auf dich zu. Sichtbar werden sie
+          erst am folgenden Tag, niemand kann also live verfolgen, wo gerade wer spielt.
+        </p>
+        <p>
+          Ebenso wird gezählt, wie viele Spielende in der Nähe eines Spielereignisses („Hotspot“) waren und wie viele
+          hingegangen sind. Auch hier werden nur Zahlen gespeichert.
+        </p>
+        <p>
+          Bevor Zahlen zu Personen gezeigt oder weitergegeben werden, bekommt jede eine kleine, zufällige, aber feste
+          Abweichung von höchstens zwei. So lässt sich auch durch Verrechnen mehrerer Zahlen nicht herausfinden, ob
+          einzelne Personen an einem Ort waren. Ortsbewertungen werden nur für Orte mit mindestens drei Bewertungen
+          gezeigt, Angaben zu Alter und Wohnort nur für Gruppen mit mindestens fünf.
+        </p>
+        <h3>Freiwillige Angaben: Alter und Wohnort</h3>
+        <p>
+          Du kannst freiwillig angeben, zu welcher Altersgruppe du gehörst (unter 30, 30–59, 60 und älter) und ob du in
+          <span class="city">Konstanz</span> wohnst. Damit kann die Stadt einschätzen, wen die Zahlen abbilden. Die Angabe liegt im Speicher deines
+          Browsers und wird bei jeder Verbindung an den Server geschickt. Der Server hält sie nur im Arbeitsspeicher und
+          speichert ausschließlich, wie viele Spielende an einem Tag welche Angabe gemacht haben. Sie wird nicht mit Orten,
+          Zeitfenstern, Bewertungen oder deinem Spielstand verknüpft. Du kannst sie jederzeit in der Rangliste ändern oder
+          zurücknehmen, indem du die gewählte Antwort noch einmal antippst.
+        </p>
+        <h3>Ortsbewertungen</h3>
+        <p>
+          Wenn du einen Ort bewertest (zum Beispiel „voll“ oder „ruhig“), speichern wir nur, wie oft dieser Ort an diesem
+          Tag und in dieser Stunde in dieser Kategorie bewertet wurde, ohne Bezug zu dir. Gezeigt werden nur Orte mit
+          mindestens drei Bewertungen.
+        </p>
+        <h3>Spielstand und Rangliste</h3>
+        <p>
+          Für Punkte und Rangliste speichern wir zu deiner zufälligen Sitzungskennung (siehe unten) einen Spielstand:
+          deine Seite (Feuer oder Wasser), einen vom Spiel ausgewürfelten Spielnamen (zum Beispiel „Stille Möwe 42“),
+          deine Punkte insgesamt und von heute, das Datum deines letzten Besuchs und ob du in der Rangliste erscheinen
+          willst. Die Kennung selbst speichern wir nicht, nur einen nicht umkehrbaren Hashwert davon. Nicht gespeichert
+          werden Orte, Wege oder Zeitpunkte einzelner Eroberungen: Deine Position nutzt der Server nur im Arbeitsspeicher,
+          um Punkte zu berechnen. Der Spielstand wird nicht mit der zusammengefassten Auswertung verknüpft.
+        </p>
+        <p>
+          Die Rangliste zeigt öffentlich Spielname, Seite und Punkte, sonst nichts. Du kannst dich dort ausblenden, einen
+          neuen Namen auswürfeln oder deinen Spielstand sofort löschen. Die Punkte deiner Seite bleiben dabei erhalten,
+          sie sind nur eine Summe.
+        </p>
+        <p>
+          Seite, Spielname, Erfahrung und der Code zum Sichern gelten in allen Städten, in denen Glut &amp; Flut läuft. Punkte
+          und Rangliste gibt es je Stadt; dafür speichern wir zusätzlich, in welchen Städten du Punkte hast. Dazu kommen die Zahl deiner Eroberungen, deine Punkte der laufenden Woche (für den Titel „vorn diese Woche“) und deine Abzeichen, jeweils ohne Zeitpunkt.
+          Für die Wochenserie zählen wir außerdem, wie viele Wochen du hintereinander geschafft hast und wie viele Spieltage du in der laufenden Woche hast, nicht an welchen Tagen.
+          Je Stadt kommen der Tag hinzu, an dem du dort zum ersten Mal gespielt hast, und an wie vielen Tagen du dort gespielt hast (nur die Zahl). Daraus entstehen Zählungen je Stadt und Tag, etwa wie viele wiederkommen, ohne Bezug zu dir.
+        </p>
+
+        <h3>Sitzungskennung im Browser</h3>
+        <p>
+          Damit du nach einem Neuladen auf deiner Seite (Feuer oder Wasser) bleibst und deine Punkte behältst, legt das Spiel eine zufällige
+          Kennung im Speicher deines Browsers ab (localStorage). Sie enthält keine persönlichen Angaben und ist für den
+          Spielbetrieb erforderlich. Dieselbe Kennung setzt der Server zusätzlich als ein einziges Cookie
+          („elements_token“, nur für diese Seite, 400 Tage), weil manche Browser den Speicher sonst nach einigen Tagen
+          ohne Besuch leeren. Ein Einwilligungsdialog ist dafür nicht nötig: Das Cookie ist für das von dir genutzte Spiel
+          unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Weitere Cookies, Tracking oder Werbung gibt es nicht. Beim Umzug von elements-game.de auf glutflut.com nimmt die alte Adresse diese Kennung und die übrigen Spieleinstellungen deines Browsers einmal mit, im Teil der Adresse hinter „#“, den kein Server sieht; die neue Seite speichert sie und entfernt ihn sofort aus der Adresszeile. Du kannst
+          Kennung und Cookie jederzeit über die Browsereinstellungen löschen; „Spielstand löschen“ entfernt beide.
+        </p>
+
+        <h3>Code zum Sichern des Spielstands</h3>
+        <p>
+          Auf Wunsch erzeugt das Spiel einen Code, mit dem du deinen Spielstand auf ein anderes Gerät holst. Wir speichern
+          davon nur einen nicht umkehrbaren Hashwert beim Spielstand. Den Code selbst bewahrst du auf, etwa per Mail an
+          dich selbst; diese Mail schickt dein eigenes Mailprogramm, wir sehen keine Adresse. Ein Code gilt einmal; beim
+          Einlösen bekommt der Spielstand eine neue Kennung, und das alte Gerät verliert ihn. Er wird mit dem Spielstand
+          gelöscht.
+        </p>
+
+        <h3>Glut und Eis (dauerhafte Quelle)</h3>
+        <p>
+          Machst du eine Eroberung zu deiner dauerhaften Quelle (Glut oder Eis), bekommt nur dein Gerät dafür einen
+          zufälligen Schein. Der Server speichert die Quelle mit Kreuzung, Seite und Stärke und einen nicht umkehrbaren
+          Hashwert des Scheins, aber nicht, wem sie gehört. Zu deinem Spielstand speichert er einen zweiten Hashwert
+          desselben Scheins, der nur sagt, dass dein Platz belegt ist. Ohne den Schein auf deinem Gerät lassen sich die
+          beiden nicht verbinden. Punkte für eine stehende Quelle holt dein Gerät mit dem Schein ab; fällt sie, warten
+          ihre Punkte ohne Ort, nur mit der Woche, höchstens acht Wochen auf den Schein. Bei Beginn und Ende einer
+          Kampagne werden alle dauerhaften Quellen zurückgesetzt. Rechtsgrundlage wie beim Spielstand.
+        </p>
+
+        <h3>Feedback (freiwillig)</h3>
+        <p>
+          Über „Feedback geben“ in den Einstellungen kannst du sagen, wie dir das Spiel gefällt (drei Gesichter) und
+          freiwillig einen Text schreiben. Gespeichert werden nur Stadt, Tag, die Wahl, der Text, die Sprache und die
+          App-Version, ohne Bezug zu deinem Spielstand, ohne Position und ohne Uhrzeit. Bitte schreib keine Namen,
+          Telefonnummern oder Mail-Adressen hinein. Wir lesen das Feedback, um das Spiel zu verbessern, und löschen es
+          nach einem Jahr. Rechtsgrundlage ist deine Einwilligung durch das Absenden (Art. 6 Abs. 1 lit. a DSGVO); da der
+          Eintrag keiner Person zugeordnet ist, können wir ihn auf Wunsch nur finden, wenn du uns seinen Wortlaut nennst.
+        </p>
+
+        <h3>Fundstücke (freiwillig)</h3>
+        <p>
+          Bist du etwa zehn Sekunden in der Nähe eines besonderen Orts (Brunnen, Aussichtspunkt, Kunst …) oder eroberst du dort eine Kreuzung, deckt das Spiel ihn auf. Nur wenn du „Fundstücke sammeln“ einschaltest, speichern wir zu deinem Spielstand, welche Fundstücke du
+          aufgedeckt hast, ohne Zeitpunkt. Ohne diese Einwilligung gilt ein Fund nur bis zum Ende des Besuchs. Ausschalten
+          löscht die gespeicherten Funde sofort, „Spielstand löschen“ ebenso. Rechtsgrundlage ist deine Einwilligung
+          (Art. 6 Abs. 1 lit. a DSGVO).
+        </p>
+
+        <h3>Bestätigung vor Ort</h3>
+        <p>
+          Manche Links zum Spiel, etwa auf Plakaten oder an einem Stand, enthalten einen Code. Öffnest du einen solchen Link, prüft der Server mit deinem aktuellen Standort, ob du in der Nähe des Codes bist. Wenn ja, speichern wir zu deinem Spielstand, welchen Code du bestätigt hast, ohne Zeitpunkt; damit spielst du sofort mit voller Kraft und bekommst ein Abzeichen. Der Code wird mit deinem Spielstand gelöscht. Rechtsgrundlage ist die Bereitstellung des Spiels (Art. 6 Abs. 1 lit. b DSGVO).
+        </p>
+
+        <h3>„Ich will hier spielen“</h3>
+        <p>
+          Außerhalb der Städte, in denen Glut &amp; Flut läuft, kannst du dir das Spiel für deinen Ort wünschen. Dann sendet dein
+          Gerät deinen auf etwa einen Kilometer gerundeten Standort. Der Server macht daraus sofort eine grobe sechseckige
+          Fläche (etwa 6 km weit) und speichert nur, wie oft sie an einem Tag gewünscht wurde, ohne Kennung und ohne
+          genauen Standort. Dein Browser merkt sich, dass du für diesen Ort schon gewünscht hast.
+        </p>
+
+        <h3>Kameraansicht (Experiment)</h3>
+        <p>
+          In den Einstellungen kannst du die Kameraansicht einschalten. Dann zeigt dein Browser das Bild der Kamera und liest die
+          Lagesensoren deines Geräts (Kompass, Neigung), um Feuer und Wasser über das Bild zu legen. Bild und Sensorwerte bleiben
+          auf deinem Gerät: Sie werden weder gespeichert noch an uns oder Dritte gesendet. Der Browser fragt dich vorher um
+          Erlaubnis; schließt du die Ansicht, ist die Kamera wieder aus.
+        </p>
+
+        <h2>3. Rechtsgrundlage</h2>
+        <p>
+          Die Verarbeitung des Standorts für das Spiel erfolgt auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung
+          des von dir genutzten Spiels) und deiner Standortfreigabe im Browser. Die zusammengefasste Auswertung beruht auf
+          unserem berechtigten Interesse, Aufenthaltsmuster in der Innenstadt anonym sichtbar zu machen (Art. 6 Abs. 1
+          lit. f DSGVO). Die freiwilligen Angaben zu Alter und Wohnort beruhen auf deiner Einwilligung (Art. 6 Abs. 1
+          lit. a DSGVO), die du durch Zurücknehmen der Angabe jederzeit widerrufen kannst. Der Spielstand dient ebenfalls der Bereitstellung des Spiels (Art. 6 Abs. 1 lit. b DSGVO). Die
+          Speicherung der Sitzungskennung ist nach § 25 Abs. 2 Nr. 2 TDDDG unbedingt erforderlich.
+          Einwilligungen (Fundstücke, freiwillige Angaben) kannst du erst ab 16 Jahren geben (Art. 8 DSGVO); das bestätigst du im Spiel.
+        </p>
+
+        <h2>4. Server, Karten, Dritte</h2>
+        <p>
+          Das Spiel läuft auf einem Server der Hetzner Online GmbH in Deutschland. Bilder zu Fundstücken und Orten lädt die App aus einem Objektspeicher von Hetzner in Deutschland; dabei sieht Hetzner wie bei jedem Abruf deine IP-Adresse. Die Bilder selbst enthalten keine Angaben über dich. Spielstände und die zusammengefassten Zahlen liegen
+          in einer Datenbank von Neon (Neon, LLC, ein Unternehmen der Databricks, Inc., USA) im Rechenzentrum Frankfurt (EU). Für Regionen
+          in Südamerika (derzeit Bogotá, Medellín und Montevideo) liegen sie in einer Neon-Datenbank in São Paulo (Brasilien), für Regionen in Nordamerika (derzeit Toronto, Windsor, New York, San Francisco und Mexiko-Stadt)
+          in einer Neon-Datenbank in Ohio (USA). Wechselst du zwischen Regionen auf verschiedenen Kontinenten, geben unsere Server deinen Spielstand (Name, Seite, Erfahrung, Abzeichen und eine Kennung)
+          untereinander weiter, damit du dort weiterspielen kannst. Mit Hetzner und Neon bestehen Verträge zur Auftragsverarbeitung
+          (Art. 28 DSGVO). Weil Neon zu einem US-Unternehmen gehört, sind Zugriffe aus den USA nicht ausgeschlossen. Grundlage dafür ist
+          der Angemessenheitsbeschluss zum EU-US Data Privacy Framework (Art. 45 DSGVO), unter dem Databricks und Neon zertifiziert sind;
+          hilfsweise und für Brasilien gelten die Standardvertragsklauseln im Vertrag mit Neon (Art. 46 DSGVO).
+          Beim Aufruf verarbeitet der Server technisch deine IP-Adresse, um die Seite auszuliefern. Außerdem zählt er im Arbeitsspeicher,
+          wie viele Anfragen und neue Spielstände von einer Adresse kommen, um das Spiel vor Überlastung und Missbrauch zu schützen
+          (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO); diese Zähler verfallen spätestens nach einer Stunde. Wir speichern und
+          protokollieren die IP-Adresse nicht. Kartenkacheln, Schriften und Symbole liefern wir selbst aus; dein Browser lädt
+          nichts von Dritten nach. Es gibt kein Tracking und keine Analysewerkzeuge.
+          Das Wetter für die Tagesaufgabe holt unser Server bei Open-Meteo, nur für den Mittelpunkt der Stadt; dein Standort oder andere Angaben über dich gehen dorthin nicht.
+          Kurzlinks wie glutflut.com/s (auf Aufklebern und Karten) zählen nur, wie oft sie an einem Tag aufgerufen wurden, ohne Cookie und ohne Bezug zu dir.
+        </p>
+
+        <h2>5. Speicherdauer</h2>
+        <p>
+          Positionen und Pseudonyme werden spätestens eine Stunde nach deinem letzten Signal aus dem Arbeitsspeicher
+          entfernt. Dein Spielstand wird gelöscht, sobald du es in der Rangliste auswählst, spätestens 30 Tage nach deinem
+          letzten Besuch. Die zusammengefassten Zahlen enthalten keine personenbezogenen Daten und werden für die Dauer
+          des Projekts aufbewahrt. Das gilt auch für die Wünsche („Ich will hier spielen“): Zahlen je Fläche und Tag.
+          Gelöschte Daten bleiben höchstens einen Tag in der Datensicherung der Datenbank.
+        </p>
+
+        <h2>6. Deine Rechte</h2>
+        <p>
+          Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und
+          Widerspruch (Art. 15–21 DSGVO). Mit dir verbunden ist nur dein Spielstand, und zwar allein über die zufällige
+          Kennung in deinem Browser. Du siehst ihn vollständig in der Rangliste und kannst ihn dort selbst löschen. Darüber
+          hinaus speichern wir nichts, was dir zugeordnet werden kann. Du kannst dich bei der zuständigen Aufsichtsbehörde beschweren:
+          dem Landesbeauftragten für den Datenschutz und die Informationsfreiheit Baden-Württemberg.
+          Der zusammengefassten Auswertung kannst du jederzeit widersprechen (Art. 21 DSGVO): Schalte in den Einstellungen „In der Auswertung für die Stadt mitzählen“ aus. Du spielst dann weiter, deine Positionen fließen aber in keine Zählung mehr ein; was noch nicht gespeichert war, wird verworfen.
+        </p>
+
+        <p class="small">Stand: Oktober 2026 · <a href="/impressum.html">Impressum</a></p>
+      </article>
+      <article data-lang="en" data-title="Privacy policy – Glut &amp; Flut" hidden>
+        <p><a href="/">← back to the game</a></p>
+        <h1>Privacy policy</h1>
+        <p class="small">This translation is provided for convenience. Only the German version is legally binding.</p>
+
+        <p class="lead">
+          In short: Glut &amp; Flut needs your location so you can play. We don’t store the routes of individual people, no
+          names and no accounts. What we store are aggregated numbers that always stand for several people, and your
+          score under a random ID that you can delete at any time.
+        </p>
+
+        <h2>1. Controller</h2>
+        <p>
+          Thorsten Rieß, Scientific Wave Solutions, Radolfzeller Str. 105A, 78467 Konstanz<br />
+          Email: <a href="mailto:tr@scientific-wave.com">tr@scientific-wave.com</a>
+        </p>
+
+        <h2>2. What happens while you play</h2>
+        <h3>Location</h3>
+        <p>
+          If you allow it in your browser, the game sends your position to our server about once per second. The server
+          needs it to apply the game rules, for example whether you are close enough to a place to claim it. The
+          position is only kept in memory and is not stored. Without location access you can’t play.
+          To detect faked positions, the server checks in memory whether your track looks like real GPS (accuracy, scatter, distance to the middle of the street). If it looks computed, your game progress does not count in the leaderboard, your side's points or the analysis for one day. Only the number of players this affected per day is stored.
+        </p>
+        <h3>Finding your city</h3>
+        <p>
+          At start the game asks once for your location and checks on your device which city you are in. For that it
+          only loads the outlines of the cities; your location does not leave your device. Your browser remembers the
+          city (localStorage), so it opens again even without a location.
+        </p>
+        <h3>Aggregated analysis</h3>
+        <p>
+          For urban planning, the server counts how many players spend how long on a street segment, in time windows of
+          15 minutes each. To do this, your position is snapped to the nearest street segment; the exact coordinates are
+          discarded. To count people rather than signals, the server derives a pseudonym from your session that is newly
+          generated every day and exists only in memory. Only numbers per street segment and time window reach the
+          database, and only if at least five different people were there. Following the same rule, the server also
+          counts people per hexagonal area (with edge lengths between about 25 and 460 metres) and hour. What stays below five people in a time window is pooled for the same place into the hour and then the day, and is stored only if it reaches five people there. For places the city wants to observe, the server counts people per hour by the same rule. It also counts how many people went from one larger area of the city (such as the station or the market square) to another, per hour and only from five people; what stays below is pooled into the day. These numbers
+          cannot be traced back to you. They only become visible on the following day, so nobody can follow live who is
+          playing where.
+        </p>
+        <p>
+          We also count how many players were near a game event (“Hotspot”) and how many went there. Here, too, only
+          numbers are stored.
+        </p>
+        <p>
+          Before any numbers about people are shown or passed on, each one gets a small, random but fixed deviation of at
+          most two. This way, even combining several numbers cannot reveal whether individual people were at a place.
+          Place ratings are only shown for places with at least three ratings, and information on age and place of
+          residence only for groups of at least five.
+        </p>
+        <h3>Voluntary information: age and place of residence</h3>
+        <p>
+          You can voluntarily tell us which age group you belong to (under 30, 30–59, 60 and older) and whether you live
+          in <span class="city">Konstanz</span>. This helps the city judge whom the numbers represent. The information is kept in your browser’s
+          storage and sent to the server with every connection. The server keeps it only in memory and stores nothing but
+          how many players gave which answer on a given day. It is not linked to places, time windows, ratings or your
+          game progress. You can change or withdraw it at any time in the leaderboard by tapping your chosen answer again.
+        </p>
+        <h3>Place ratings</h3>
+        <p>
+          When you rate a place (for example “crowded” or “quiet”), we only store how often that place was rated in that
+          category on that day and in that hour, without any link to you. Only places with at least three ratings are shown.
+        </p>
+        <h3>Game progress and leaderboard</h3>
+        <p>
+          For points and the leaderboard, we store a game progress record for your random session ID (see below): your
+          side (Fire or Water), a player name rolled by the game (for example “Stille Möwe 42”), your total points and
+          today’s points, the date of your last visit and whether you want to appear on the leaderboard. We don’t store
+          the ID itself, only an irreversible hash of it. We do not store places, routes or times of individual claims:
+          the server only uses your position in memory to calculate points. Your game progress is not linked to the
+          aggregated analysis.
+        </p>
+        <p>
+          The leaderboard publicly shows player name, side and points, nothing else. There you can hide yourself, roll a
+          new name or delete your game progress immediately. Your side’s points are kept, as they are only a sum.
+        </p>
+        <p>
+          Your side, game name, experience and the code to keep your progress apply in every city where Glut &amp; Flut runs.
+          Points and leaderboards are per city; for that we also store in which cities you have points. On top come the number of your claims, your points this week (for the title “ahead this week”) and your badges, all without times.
+          For the weekly streak we also count how many weeks in a row you made and how many play days you have this week, not which days.
+          Per city we add the day you first played there and on how many days you have played there (only the number). From this we make counts per city and day, such as how many come back, with no link to you.
+        </p>
+
+        <h3>Session ID in the browser</h3>
+        <p>
+          So that you stay on your side (Fire or Water) and keep your points after reloading, the game puts a random ID
+          in your browser’s storage (localStorage). It contains no personal information and is required to run the game.
+          The server also sets the same ID as a single cookie (“elements_token”, only for this site, 400 days), because
+          some browsers otherwise clear the storage after a few days without a visit. No consent dialog is needed for
+          this: the cookie is strictly necessary for the game you are using (§ 25(2) no. 2 TDDDG). There are no other
+          cookies, no tracking and no advertising. When moving from elements-game.de to glutflut.com, the old address takes this ID and your browser’s other game settings along once, in the part of the address after “#”, which no server sees; the new page stores them and removes it from the address bar at once. You can delete the ID and the cookie at any time in your browser
+          settings; “Delete my progress” removes both.
+        </p>
+
+        <h3>Code to keep your progress</h3>
+        <p>
+          If you ask for it, the game creates a code with which you can move your progress to another device. We only
+          store an irreversible hash of it with your progress. You keep the code yourself, e.g. by emailing it to
+          yourself; that email is sent by your own mail app, we never see an address. A code works once: when it is
+          redeemed, the progress gets a new ID and the old device loses it. It is deleted together with your progress.
+        </p>
+
+        <h3>Embers and ice (permanent source)</h3>
+        <p>
+          If you turn a claim into your permanent source (embers or ice), only your device gets a random ticket for it.
+          The server stores the source with junction, side and strength and a non-reversible hash of the ticket, but not
+          whose it is. With your game progress it stores a second hash of the same ticket that only says your slot is
+          taken. Without the ticket on your device the two cannot be linked. Your device collects the points of a standing
+          source with the ticket; if it falls, its points wait for the ticket without a place, only with the week, for at
+          most eight weeks. All permanent sources are reset when a campaign starts and when it ends. Legal basis as for
+          your game progress.
+        </p>
+
+        <h3>Feedback (optional)</h3>
+        <p>
+          With “Give feedback” in the settings you can say how you like the game (three faces) and, if you like, write a
+          text. We store only the city, the day, your choice, the text, the language and the app version, without any link
+          to your game progress, without a position and without a time of day. Please don’t include names, phone numbers
+          or email addresses. We read feedback to improve the game and delete it after one year. Legal basis is your
+          consent by sending it (Art. 6(1)(a) GDPR); as an entry belongs to no one, we can only find it on request if you
+          tell us its wording.
+        </p>
+
+        <h3>Finds (optional)</h3>
+        <p>
+          If you stay near a special place (fountain, viewpoint, art …) for about ten seconds or claim a junction there, the game uncovers it. Only if you switch
+          on “Collect finds” do we store with your game progress which finds you uncovered, without times. Without this
+          consent a find lasts only until the end of your visit. Switching it off deletes the stored finds at once, and so
+          does “Delete my progress”. The legal basis is your consent (Art. 6(1)(a) GDPR).
+        </p>
+
+        <h3>Confirmation on site</h3>
+        <p>
+          Some links to the game, for example on posters or at a stand, contain a code. When you open such a link, the server checks with your current location whether you are near the code. If so, we store with your game progress which code you confirmed, without a time; you then play at full strength right away and get a badge. The code is deleted with your game progress. The legal basis is providing the game (Art. 6(1)(b) GDPR).
+        </p>
+
+        <h3>“I want to play here”</h3>
+        <p>
+          Outside the cities where Glut &amp; Flut runs, you can wish for the game at your place. Your device then sends your
+          location rounded to about one kilometre. The server turns it at once into a coarse hexagonal area (about 6 km
+          across) and only stores how often it was wished for on a day, without any ID and without your exact location.
+          Your browser remembers that you already wished for this place.
+        </p>
+
+        <h3>Camera view (experimental)</h3>
+        <p>
+          In the settings you can switch on the camera view. Your browser then shows the camera image and reads your device's
+          motion sensors (compass, tilt) to lay fire and water over the picture. Image and sensor readings stay on your device:
+          they are neither stored nor sent to us or anyone else. The browser asks your permission first; closing the view
+          switches the camera off again.
+        </p>
+
+        <h2>3. Legal basis</h2>
+        <p>
+          Processing your location for the game is based on Art. 6(1)(b) GDPR (providing the game you are using) and on
+          your permission to share your location in the browser. The aggregated analysis is based on our legitimate
+          interest in making patterns of presence in the city centre visible anonymously (Art. 6(1)(f) GDPR). The
+          voluntary information on age and place of residence is based on your consent (Art. 6(1)(a) GDPR), which you
+          can withdraw at any time by withdrawing the information. Game progress likewise serves to provide the game
+          (Art. 6(1)(b) GDPR). Storing the session ID is strictly necessary under § 25(2) no. 2 TDDDG.
+          You can only give consent (finds, optional information) from the age of 16 (Art. 8 GDPR); you confirm this in the game.
+        </p>
+
+        <h2>4. Servers, maps, third parties</h2>
+        <p>
+          The game runs on a server of Hetzner Online GmbH in Germany. The app loads pictures of finds and places from Hetzner object storage in Germany; as with any request, Hetzner sees your IP address. The pictures themselves contain no information about you. Game progress and the aggregated numbers are kept in a
+          database of Neon (Neon, LLC, a company of Databricks, Inc., USA) in the Frankfurt data centre (EU). For regions in South
+          America (currently Bogotá, Medellín and Montevideo) they are kept in a Neon database in São Paulo (Brazil), for regions in North America (currently
+          Toronto, Windsor, New York, San Francisco and Mexico City) in a Neon database in Ohio (USA). If you switch between regions on different continents, our servers pass your game progress (name, side, experience, badges and an ID) to each other so you
+          can keep playing there. Data processing agreements are in place with Hetzner and Neon (Art. 28 GDPR). Because Neon belongs to
+          a US company, access from the USA cannot be ruled out. This is based on the adequacy decision for the EU-U.S. Data Privacy
+          Framework (Art. 45 GDPR), under which Databricks and Neon are certified; as a fallback, and for Brazil, the standard
+          contractual clauses in the agreement with Neon apply (Art. 46 GDPR).
+          When you open the page, the server technically processes your IP address to deliver it. It also counts in memory how many
+          requests and new game profiles come from one address, to protect the game from overload and abuse (legitimate interest,
+          Art. 6(1)(f) GDPR); these counters expire after one hour at the latest. We neither store nor log your IP address. We serve
+          map tiles, fonts and icons ourselves; your browser loads nothing from third parties. There is no tracking and there are no
+          analytics tools.
+          Our server gets the weather for the daily task from Open-Meteo, only for the centre of the city; your location or anything else about you is not sent there.
+          Short links such as glutflut.com/s (on stickers and cards) only count how often they were opened on a day, without a cookie and with no link to you.
+        </p>
+
+        <h2>5. Retention</h2>
+        <p>
+          Positions and pseudonyms are removed from memory at the latest one hour after your last signal. Your game
+          progress is deleted as soon as you choose to in the leaderboard, and at the latest 30 days after your last
+          visit. The aggregated numbers contain no personal data and are kept for the duration of the project. The same goes for the wishes (“I want to play here”): numbers per area and day.
+          Deleted data stays in the database backup for one day at most.
+        </p>
+
+        <h2>6. Your rights</h2>
+        <p>
+          You have the right of access, rectification, erasure, restriction of processing, data portability and to
+          object (Art. 15–21 GDPR). The only thing linked to you is your game progress, and only through the random ID
+          in your browser. You can see all of it in the leaderboard and delete it there yourself. Beyond that, we store
+          nothing that can be linked to you. You can lodge a complaint with the competent supervisory authority:
+          the Landesbeauftragter für den Datenschutz und die Informationsfreiheit Baden-Württemberg (State Commissioner
+          for Data Protection and Freedom of Information of Baden-Württemberg).
+          You can object to the aggregated analysis at any time (Art. 21 GDPR): switch off “Count me in the analysis for the city” in the settings. You keep playing, but your positions no longer go into any count; whatever was not yet stored is discarded.
+        </p>
+
+        <p class="small">Last updated: October 2026 · <a href="/impressum.html">Legal notice</a></p>
+      </article>
+      <article data-lang="fr" data-title="Politique de confidentialité – Glut &amp; Flut" hidden>
+        <p><a href="/">← retour au jeu</a></p>
+        <h1>Politique de confidentialité</h1>
+        <p class="small">Cette traduction est fournie à titre indicatif. Seule la version allemande fait foi.</p>
+
+        <p class="lead">
+          En bref&nbsp;: Glut &amp; Flut a besoin de ta position pour que tu puisses jouer. Nous n’enregistrons ni les trajets
+          de personnes individuelles, ni de noms, ni de comptes. Nous enregistrons des chiffres agrégés, derrière lesquels
+          il y a toujours plusieurs personnes, et ton score sous un identifiant aléatoire que tu peux effacer à tout
+          moment.
+        </p>
+
+        <h2>1. Responsable du traitement</h2>
+        <p>
+          Thorsten Rieß, Scientific Wave Solutions, Radolfzeller Str. 105A, 78467 Konstanz<br />
+          E-mail&nbsp;: <a href="mailto:tr@scientific-wave.com">tr@scientific-wave.com</a>
+        </p>
+
+        <h2>2. Ce qui se passe quand tu joues</h2>
+        <h3>Position</h3>
+        <p>
+          Si tu l’autorises dans ton navigateur, le jeu envoie ta position à notre serveur environ une fois par seconde.
+          Le serveur en a besoin pour appliquer les règles du jeu, par exemple pour savoir si tu es assez près d’un lieu
+          pour le conquérir. La position reste uniquement en mémoire vive et n’est pas enregistrée. Sans accès à ta
+          position, tu ne peux pas jouer.
+          Pour détecter les positions falsifiées, le serveur vérifie en mémoire vive si ta trace ressemble à un vrai GPS (précision, dispersion, distance au milieu de la rue). Si elle semble calculée, ta progression ne compte pas pendant un jour dans le classement, les points de ton camp et l’analyse. Seul le nombre de joueurs concernés par jour est enregistré.
+        </p>
+        <h3>Trouver ta ville</h3>
+        <p>
+          Au démarrage, le jeu demande une fois ta position et vérifie sur ton appareil dans quelle ville tu te trouves.
+          Pour cela, il ne charge que les contours des villes&nbsp;; ta position ne quitte pas ton appareil. Ton
+          navigateur retient la ville (localStorage), pour la rouvrir même sans position.
+        </p>
+        <h3>Analyse agrégée</h3>
+        <p>
+          Pour l’urbanisme, le serveur compte combien de joueurs restent combien de temps sur un tronçon de rue, par
+          tranches de 15 minutes. Pour cela, ta position est rattachée au tronçon de rue le plus proche&nbsp;; les
+          coordonnées exactes sont supprimées. Pour compter des personnes plutôt que des signaux, le serveur crée à
+          partir de ta session un pseudonyme, regénéré chaque jour et qui n’existe qu’en mémoire vive. Seuls des chiffres
+          par tronçon de rue et par tranche horaire entrent dans la base de données, et uniquement si au moins cinq
+          personnes différentes y sont passées. Selon la même règle, le serveur compte aussi les personnes par zone
+          hexagonale (avec des côtés d’environ 25 à 460 mètres) et par heure. Ce qui reste sous cinq personnes dans une tranche est regroupé pour le même lieu à l’heure puis à la journée, et n’est enregistré que s’il y atteint cinq personnes. Pour les lieux que la ville veut observer, le serveur compte selon la même règle les personnes par heure. Il compte aussi combien de personnes sont passées d’un grand secteur de la ville (par exemple la gare ou la place du marché) à un autre, par heure et seulement à partir de cinq personnes ; le reste est regroupé à la journée. Ces chiffres ne permettent pas de remonter
+          jusqu’à toi. Ils ne deviennent visibles que le lendemain&nbsp;: personne ne peut donc suivre en direct qui joue
+          où.
+        </p>
+        <p>
+          Nous comptons aussi combien de joueurs se trouvaient près d’un événement du jeu («&nbsp;Hotspot&nbsp;») et
+          combien s’y sont rendus. Là aussi, seuls des chiffres sont enregistrés.
+        </p>
+        <p>
+          Avant que des chiffres sur des personnes soient affichés ou transmis, chacun reçoit un petit écart aléatoire
+          mais fixe, de deux au plus. Ainsi, même en combinant plusieurs chiffres, on ne peut pas savoir si une personne
+          précise était à un endroit. Les avis sur les lieux ne sont affichés que pour les lieux ayant au moins trois
+          avis, et les indications sur l’âge et le lieu de résidence seulement pour des groupes d’au moins cinq.
+        </p>
+        <h3>Indications facultatives&nbsp;: âge et lieu de résidence</h3>
+        <p>
+          Tu peux indiquer, si tu le souhaites, ta tranche d’âge (moins de 30 ans, 30–59, 60 ans et plus) et si tu
+          habites à <span class="city">Konstanz</span>. Cela permet à la ville d’estimer qui les chiffres représentent. L’indication est conservée
+          dans la mémoire de ton navigateur et envoyée au serveur à chaque connexion. Le serveur la garde uniquement en
+          mémoire vive et enregistre seulement combien de joueurs ont donné quelle réponse un jour donné. Elle n’est liée
+          ni à des lieux, ni à des tranches horaires, ni à des avis, ni à ta progression. Tu peux la modifier ou la
+          retirer à tout moment dans le classement, en appuyant à nouveau sur la réponse choisie.
+        </p>
+        <h3>Avis sur les lieux</h3>
+        <p>
+          Quand tu donnes un avis sur un lieu (par exemple «&nbsp;bondé&nbsp;» ou «&nbsp;calme&nbsp;»), nous enregistrons
+          seulement combien de fois ce lieu a reçu cet avis ce jour-là et à cette heure-là, sans lien avec toi. Seuls les
+          lieux ayant au moins trois avis sont affichés.
+        </p>
+        <h3>Progression et classement</h3>
+        <p>
+          Pour les points et le classement, nous enregistrons une progression liée à ton identifiant de session aléatoire
+          (voir plus bas)&nbsp;: ton camp (Feu ou Eau), un pseudo tiré au hasard par le jeu (par exemple «&nbsp;Stille
+          Möwe 42&nbsp;»), tes points au total et du jour, la date de ta dernière visite et si tu veux apparaître dans le
+          classement. Nous n’enregistrons pas l’identifiant lui-même, seulement une empreinte (hash) irréversible. Nous
+          n’enregistrons ni les lieux, ni les trajets, ni les moments de chaque conquête&nbsp;: le serveur n’utilise ta
+          position qu’en mémoire vive pour calculer les points. Ta progression n’est pas liée à l’analyse agrégée.
+        </p>
+        <p>
+          Le classement affiche publiquement le pseudo, le camp et les points, rien d’autre. Tu peux t’y masquer, tirer un
+          nouveau pseudo ou effacer immédiatement ta progression. Les points de ton camp sont conservés, car ce n’est
+          qu’une somme.
+        </p>
+        <p>
+          Ton camp, ton nom de jeu, ton expérience et le code de sauvegarde valent dans toutes les villes où Glut &amp; Flut
+          fonctionne. Les points et le classement sont propres à chaque ville&nbsp;; pour cela, nous enregistrons aussi
+          dans quelles villes tu as des points. S’y ajoutent le nombre de tes conquêtes, tes points de la semaine en cours
+          (pour le titre «&nbsp;en tête cette semaine&nbsp;») et tes badges, toujours sans heure.
+          Pour la série hebdomadaire, nous comptons aussi combien de semaines d’affilée tu as réussies et combien de jours de jeu tu as cette semaine, pas lesquels.
+          Par ville s’ajoutent le jour où tu y as joué pour la première fois et le nombre de jours où tu y as joué (seulement le nombre). Nous en tirons des comptages par ville et par jour, par exemple combien reviennent, sans lien avec toi.
+        </p>
+
+        <h3>Identifiant de session dans le navigateur</h3>
+        <p>
+          Pour que tu restes dans ton camp (Feu ou Eau) et gardes tes points après un rechargement, le jeu dépose un
+          identifiant aléatoire dans la mémoire de ton navigateur (localStorage). Il ne contient aucune donnée personnelle
+          et il est nécessaire au fonctionnement du jeu. Tu peux l’effacer à tout moment dans les réglages de ton
+          navigateur. Le serveur dépose en plus ce même identifiant dans un seul cookie («&nbsp;elements_token&nbsp;»,
+          uniquement pour ce site, 400 jours), car certains navigateurs vident sinon la mémoire après quelques jours sans
+          visite. Aucune demande de consentement n’est nécessaire&nbsp;: ce cookie est strictement nécessaire au jeu que
+          tu utilises (§ 25, al. 2, n° 2 TDDDG). Pas d’autres cookies, pas de pistage, pas de publicité. Lors du passage d’elements-game.de à glutflut.com, l’ancienne adresse emporte une fois cet identifiant et les autres réglages de jeu de ton navigateur, dans la partie de l’adresse après «&nbsp;#&nbsp;», qu’aucun serveur ne voit&nbsp;; la nouvelle page les enregistre et la retire aussitôt de la barre d’adresse. Tu peux effacer
+          l’identifiant et le cookie à tout moment dans les réglages de ton navigateur&nbsp;; «&nbsp;Supprimer ma
+          progression&nbsp;» supprime les deux.
+        </p>
+
+        <h3>Code pour sauvegarder ta progression</h3>
+        <p>
+          Si tu le demandes, le jeu crée un code qui te permet de récupérer ta progression sur un autre appareil. Nous
+          n’en conservons qu’une empreinte irréversible avec ta progression. C’est toi qui gardes le code, par exemple en
+          te l’envoyant par e-mail&nbsp;; ce message part de ta propre application de messagerie, nous ne voyons aucune
+          adresse. Un code ne sert qu’une fois&nbsp;: à son utilisation, la progression reçoit un nouvel identifiant et
+          l’ancien appareil la perd. Il est supprimé avec ta progression.
+        </p>
+
+        <h3>Braises et glace (source permanente)</h3>
+        <p>
+          Si tu fais d’une conquête ta source permanente (braises ou glace), seul ton appareil reçoit pour elle un ticket
+          aléatoire. Le serveur enregistre la source avec le carrefour, le camp et la force ainsi qu’une empreinte
+          irréversible du ticket, mais pas à qui elle appartient. Avec ta progression, il enregistre une seconde empreinte
+          du même ticket qui indique seulement que ta place est prise. Sans le ticket sur ton appareil, les deux ne peuvent
+          pas être reliées. Ton appareil récupère avec le ticket les points d’une source debout&nbsp;; si elle tombe, ses
+          points attendent le ticket sans lieu, seulement avec la semaine, huit semaines au plus. Toutes les sources
+          permanentes sont réinitialisées au début et à la fin d’une campagne. Base juridique comme pour ta progression.
+        </p>
+
+        <h3>Avis (facultatif)</h3>
+        <p>
+          Avec «&nbsp;Donner ton avis&nbsp;» dans les réglages, tu peux dire si le jeu te plaît (trois visages) et, si tu
+          veux, écrire un texte. Nous enregistrons seulement la ville, le jour, ton choix, le texte, la langue et la version
+          de l’appli, sans lien avec ta progression, sans position et sans heure. Merci de ne pas y mettre de noms, numéros
+          de téléphone ou adresses e-mail. Nous lisons les avis pour améliorer le jeu et les supprimons au bout d’un an.
+          Base juridique&nbsp;: ton consentement en l’envoyant (art. 6, par. 1, point a du RGPD)&nbsp;; comme une entrée
+          n’appartient à personne, nous ne pouvons la retrouver sur demande que si tu nous en donnes le texte.
+        </p>
+
+        <h3>Trouvailles (facultatif)</h3>
+        <p>
+          Si tu restes une dizaine de secondes près d’un lieu particulier (fontaine, point de vue, œuvre d’art …) ou y conquiers un carrefour, le jeu le découvre. Seulement si tu actives «&nbsp;Collectionner les trouvailles&nbsp;», nous enregistrons avec ta progression
+          quelles trouvailles tu as découvertes, sans heure. Sans ce consentement, une trouvaille ne vaut que jusqu’à la fin
+          de ta visite. Désactiver efface aussitôt les trouvailles enregistrées, tout comme «&nbsp;Supprimer ma
+          progression&nbsp;». La base juridique est ton consentement (art. 6, par. 1, point a du RGPD).
+        </p>
+
+        <h3>Confirmation sur place</h3>
+        <p>
+          Certains liens vers le jeu, par exemple sur des affiches ou à un stand, contiennent un code. Quand tu ouvres un tel lien, le serveur vérifie avec ta position actuelle si tu es près du code. Si oui, nous enregistrons avec ta progression quel code tu as confirmé, sans heure&nbsp;; tu joues alors tout de suite à pleine force et reçois un badge. Le code est effacé avec ta progression. La base juridique est la fourniture du jeu (art. 6, par. 1, point b RGPD).
+        </p>
+
+        <h3>«&nbsp;Je veux jouer ici&nbsp;»</h3>
+        <p>
+          En dehors des villes où Glut &amp; Flut fonctionne, tu peux souhaiter le jeu pour ton lieu. Ton appareil envoie alors
+          ta position arrondie à environ un kilomètre. Le serveur en fait aussitôt une zone hexagonale grossière (environ
+          6 km) et n’enregistre que le nombre de souhaits par jour, sans identifiant ni position exacte. Ton navigateur
+          retient que tu as déjà fait ce souhait pour ce lieu.
+        </p>
+
+        <h3>Vue caméra (expérimentale)</h3>
+        <p>
+          Dans les réglages, tu peux activer la vue caméra. Ton navigateur affiche alors l'image de la caméra et lit les capteurs
+          de mouvement de ton appareil (boussole, inclinaison) pour superposer le feu et l'eau à l'image. L'image et les mesures
+          des capteurs restent sur ton appareil&nbsp;: elles ne sont ni enregistrées ni envoyées à nous ou à des tiers. Le
+          navigateur te demande d'abord ton autorisation&nbsp;; fermer la vue éteint la caméra.
+        </p>
+
+        <h2>3. Base juridique</h2>
+        <p>
+          Le traitement de ta position pour le jeu repose sur l’art. 6, par. 1, point b du RGPD (fourniture du jeu que tu
+          utilises) et sur ton autorisation de localisation dans le navigateur. L’analyse agrégée repose sur notre intérêt
+          légitime à rendre visibles de manière anonyme les schémas de fréquentation du centre-ville (art. 6, par. 1,
+          point f du RGPD). Les indications facultatives sur l’âge et le lieu de résidence reposent sur ton consentement
+          (art. 6, par. 1, point a du RGPD), que tu peux retirer à tout moment en retirant l’indication. La progression
+          sert elle aussi à fournir le jeu (art. 6, par. 1, point b du RGPD). L’enregistrement de l’identifiant de session
+          est strictement nécessaire au sens du § 25, al. 2, n° 2 TDDDG.
+          Tu ne peux donner ton consentement (trouvailles, informations facultatives) qu’à partir de 16 ans (art. 8 RGPD)&nbsp;; tu le confirmes dans le jeu.
+        </p>
+
+        <h2>4. Serveurs, cartes, tiers</h2>
+        <p>
+          Le jeu tourne sur un serveur de Hetzner Online GmbH en Allemagne. L’appli charge les images des trouvailles et des lieux depuis un stockage objet de Hetzner en Allemagne&nbsp;; comme pour toute requête, Hetzner voit ton adresse IP. Les images elles-mêmes ne contiennent aucune information sur toi. Les progressions et les chiffres agrégés se trouvent
+          dans une base de données de Neon (Neon, LLC, une société de Databricks, Inc., États-Unis) au centre de données de Francfort
+          (UE). Pour les régions d’Amérique du Sud (actuellement Bogotá, Medellín et Montevideo), ils se trouvent dans une base de données Neon à São Paulo
+          (Brésil), pour celles d’Amérique du Nord (actuellement Toronto, Windsor, New York, San Francisco et Mexico) dans une base de données Neon dans l’Ohio (États-Unis).
+          Si tu passes d’une région à une autre sur un autre continent, nos serveurs se transmettent ta progression (nom,
+          camp, expérience, badges et un identifiant) pour que tu puisses continuer à y jouer. Des contrats de sous-traitance sont
+          conclus avec Hetzner et Neon (art. 28 RGPD). Comme Neon appartient à une entreprise américaine, un accès depuis les
+          États-Unis ne peut pas être exclu. Il repose sur la décision d’adéquation relative au cadre de protection des données
+          UE-États-Unis (Data Privacy Framework, art. 45 RGPD), sous lequel Databricks et Neon sont certifiés&nbsp;; à titre subsidiaire, et
+          pour le Brésil, les clauses contractuelles types du contrat avec Neon s’appliquent (art. 46 RGPD).
+          Quand tu ouvres la page, le serveur traite techniquement ton adresse IP pour te la livrer. Il compte aussi en mémoire vive
+          combien de requêtes et de nouvelles progressions viennent d’une même adresse, afin de protéger le jeu contre la surcharge et
+          les abus (intérêt légitime, art. 6, par. 1, point f RGPD)&nbsp;; ces compteurs expirent au plus tard au bout d’une heure. Nous ne
+          stockons ni n’enregistrons ton adresse IP. Nous servons nous-mêmes les tuiles de carte, les polices et les
+          icônes&nbsp;; ton navigateur ne charge rien depuis des tiers. Il n’y a ni pistage ni outil d’analyse.
+          Notre serveur récupère la météo pour la tâche du jour auprès d’Open-Meteo, uniquement pour le centre de la ville&nbsp;; ni ta position ni aucune autre donnée te concernant n’y sont envoyées.
+          Les liens courts comme glutflut.com/s (sur les autocollants et les cartes) comptent seulement combien de fois ils ont été ouverts dans la journée, sans cookie et sans lien avec toi.
+        </p>
+
+        <h2>5. Durée de conservation</h2>
+        <p>
+          Les positions et les pseudonymes sont effacés de la mémoire vive au plus tard une heure après ton dernier signal.
+          Ta progression est effacée dès que tu le choisis dans le classement, et au plus tard 30 jours après ta dernière
+          visite. Les chiffres agrégés ne contiennent aucune donnée personnelle et sont conservés pendant toute la durée
+          du projet. Il en va de même pour les souhaits («&nbsp;Je veux jouer ici&nbsp;»)&nbsp;: des nombres par zone et par jour.
+          Les données effacées restent au plus un jour dans la sauvegarde de la base de données.
+        </p>
+
+        <h2>6. Tes droits</h2>
+        <p>
+          Tu as un droit d’accès, de rectification, d’effacement, de limitation du traitement, de portabilité des données
+          et d’opposition (art. 15 à 21 du RGPD). La seule chose liée à toi est ta progression, et uniquement via
+          l’identifiant aléatoire dans ton navigateur. Tu la vois en entier dans le classement et tu peux l’y effacer
+          toi-même. Au-delà, nous n’enregistrons rien qui puisse t’être attribué. Tu peux déposer une réclamation auprès
+          de l’autorité de contrôle compétente&nbsp;: le Landesbeauftragter für den Datenschutz und die
+          Informationsfreiheit Baden-Württemberg (délégué régional à la protection des données et à la liberté
+          d’information du Bade-Wurtemberg).
+          Tu peux t’opposer à tout moment à l’analyse agrégée (art. 21 RGPD)&nbsp;: désactive «&nbsp;Me compter dans l’analyse pour la ville&nbsp;» dans les réglages. Tu continues à jouer, mais tes positions n’entrent plus dans aucun comptage&nbsp;; ce qui n’était pas encore enregistré est écarté.
+        </p>
+
+        <p class="small">Mise à jour&nbsp;: octobre 2026 · <a href="/impressum.html">Mentions légales</a></p>
+      </article>
+      <article data-lang="es" data-title="Política de privacidad – Glut &amp; Flut" hidden>
+        <p><a href="/">← volver al juego</a></p>
+        <h1>Política de privacidad</h1>
+        <p class="small">Esta traducción se ofrece solo como referencia. Solo la versión en alemán es jurídicamente vinculante.</p>
+
+        <p class="lead">
+          En resumen: Glut &amp; Flut necesita tu ubicación para que puedas jugar. No guardamos los recorridos de personas
+          individuales, ni nombres, ni cuentas. Lo que guardamos son cifras agregadas que siempre representan a varias
+          personas, y tu progreso bajo un ID aleatorio que puedes borrar cuando quieras.
+        </p>
+
+        <h2>1. Responsable</h2>
+        <p>
+          Thorsten Rieß, Scientific Wave Solutions, Radolfzeller Str. 105A, 78467 Konstanz<br />
+          Correo: <a href="mailto:tr@scientific-wave.com">tr@scientific-wave.com</a>
+        </p>
+
+        <h2>2. Qué pasa mientras juegas</h2>
+        <h3>Ubicación</h3>
+        <p>
+          Si lo permites en tu navegador, el juego envía tu posición a nuestro servidor más o menos una vez por segundo.
+          El servidor la necesita para aplicar las reglas del juego, por ejemplo para saber si estás lo bastante cerca de
+          un lugar para conquistarlo. La posición solo se mantiene en memoria y no se guarda. Sin acceso a la ubicación no
+          puedes jugar.
+          Para detectar posiciones falsas, el servidor comprueba en memoria si tu recorrido parece GPS real (precisión, dispersión, distancia al centro de la calle). Si parece calculado, tu progreso no cuenta durante un día en la clasificación, los puntos de tu bando ni el análisis. Solo se guarda cuántos jugadores se vieron afectados por día.
+        </p>
+        <h3>Encontrar tu ciudad</h3>
+        <p>
+          Al empezar, el juego pide una vez tu ubicación y comprueba en tu dispositivo en qué ciudad estás. Para ello solo
+          descarga los contornos de las ciudades; tu ubicación no sale de tu dispositivo. Tu navegador recuerda la ciudad
+          (localStorage) para volver a abrirla incluso sin ubicación.
+        </p>
+        <h3>Análisis agregado</h3>
+        <p>
+          Para la planeación urbana, el servidor cuenta cuántos jugadores pasan cuánto tiempo en un tramo de calle, en
+          intervalos de 15 minutos. Para eso, tu posición se asigna al tramo de calle más cercano; las coordenadas exactas
+          se descartan. Para contar personas y no señales, el servidor deriva de tu sesión un seudónimo que se genera de
+          nuevo cada día y solo existe en memoria. A la base de datos solo llegan cifras por tramo de calle e intervalo, y
+          solo si estuvieron allí al menos cinco personas distintas. Con la misma regla, el servidor también cuenta
+          personas por área hexagonal (con lados de entre unos 25 y 460 metros) y por hora. Lo que queda por debajo de cinco personas en un intervalo se agrupa para el mismo lugar en la hora y luego en el día, y solo se guarda si allí llega a cinco personas. Para los lugares que la ciudad quiere observar, el servidor cuenta con la misma regla personas por hora. Además cuenta cuántas personas fueron de una zona amplia de la ciudad (por ejemplo la estación o la plaza del mercado) a otra, por hora y solo a partir de cinco personas; lo que queda por debajo se agrupa en el día. Estas cifras no permiten
+          identificarte. Solo se vuelven visibles al día siguiente, así que nadie puede seguir en vivo quién está jugando
+          dónde.
+        </p>
+        <p>
+          También contamos cuántos jugadores estaban cerca de un evento del juego (“Hotspot”) y cuántos fueron hasta allí.
+          Aquí también solo se guardan cifras.
+        </p>
+        <p>
+          Antes de mostrar o compartir cualquier cifra sobre personas, a cada una se le aplica una pequeña desviación
+          aleatoria pero fija de máximo dos. Así, ni siquiera combinando varias cifras se puede saber si ciertas personas
+          estuvieron en un lugar. Las valoraciones del lugar solo se muestran para lugares con al menos tres valoraciones,
+          y los datos de edad y lugar de residencia solo para grupos de al menos cinco.
+        </p>
+        <h3>Datos voluntarios: edad y lugar de residencia</h3>
+        <p>
+          Si quieres, puedes decirnos a qué grupo de edad perteneces (menos de 30, 30–59, 60 o más) y si vives en
+          <span class="city">Konstanz</span>. Esto ayuda a la ciudad a saber a quién representan las cifras. El dato se guarda en el
+          almacenamiento de tu navegador y se envía al servidor en cada conexión. El servidor lo mantiene solo en memoria y
+          no guarda nada más que cuántos jugadores dieron cada respuesta en un día. No se vincula con lugares, intervalos,
+          valoraciones ni con tu progreso. Puedes cambiarlo o retirarlo cuando quieras en la clasificación, tocando de
+          nuevo la respuesta que elegiste.
+        </p>
+        <h3>Valoraciones del lugar</h3>
+        <p>
+          Cuando valoras un lugar (por ejemplo “lleno” o “tranquilo”), solo guardamos cuántas veces se valoró ese lugar en
+          esa categoría ese día y a esa hora, sin ninguna relación contigo. Solo se muestran lugares con al menos tres
+          valoraciones.
+        </p>
+        <h3>Progreso y clasificación</h3>
+        <p>
+          Para los puntos y la clasificación, guardamos un registro de progreso para tu ID de sesión aleatorio (ver abajo):
+          tu lado (Fuego o Agua), un nombre de jugador asignado por el juego (por ejemplo “Stille Möwe 42”), tus puntos
+          totales y los de hoy, la fecha de tu última visita y si quieres aparecer en la clasificación. No guardamos el ID
+          en sí, solo un hash irreversible de él. No guardamos lugares, recorridos ni horas de conquistas individuales: el
+          servidor solo usa tu posición en memoria para calcular los puntos. Tu progreso no se vincula con el análisis
+          agregado.
+        </p>
+        <p>
+          La clasificación muestra públicamente el nombre de jugador, el lado y los puntos, nada más. Ahí puedes ocultarte,
+          pedir un nombre nuevo o borrar tu progreso de inmediato. Los puntos de tu lado se mantienen, porque son solo una
+          suma.
+        </p>
+        <p>
+          Tu bando, tu nombre de juego, tu experiencia y el código para guardar tu progreso valen en todas las ciudades
+          donde funciona Glut &amp; Flut. Los puntos y la clasificación son por ciudad; para ello guardamos también en qué
+          ciudades tienes puntos. Además, el número de tus conquistas, tus puntos de la semana en curso (para el título
+          «en cabeza esta semana») y tus insignias, siempre sin horas.
+          Para la racha semanal contamos además cuántas semanas seguidas has logrado y cuántos días de juego llevas esta semana, no cuáles.
+          Por ciudad se añaden el día en que jugaste allí por primera vez y en cuántos días has jugado allí (solo el número). Con ello hacemos recuentos por ciudad y día, como cuántas personas vuelven, sin relación contigo.
+        </p>
+
+        <h3>ID de sesión en el navegador</h3>
+        <p>
+          Para que sigas en tu lado (Fuego o Agua) y conserves tus puntos al recargar, el juego guarda un ID aleatorio en
+          el almacenamiento de tu navegador (localStorage). No contiene datos personales y es necesario para que el juego
+          funcione. El servidor también pone el mismo ID como una única cookie (“elements_token”, solo para este sitio,
+          400 días), porque algunos navegadores borran el almacenamiento si no visitas el sitio durante unos días. Para
+          esto no hace falta un aviso de consentimiento: la cookie es estrictamente necesaria para el juego que estás
+          usando (§ 25, apdo. 2, n.º 2 TDDDG). No hay otras cookies, ni rastreo, ni publicidad. Al pasar de elements-game.de a glutflut.com, la dirección antigua lleva una vez este ID y los demás ajustes de juego de tu navegador, en la parte de la dirección tras «#», que ningún servidor ve; la página nueva los guarda y la quita enseguida de la barra de direcciones. Puedes borrar el ID y la
+          cookie cuando quieras en la configuración de tu navegador; “Borrar mi progreso” elimina los dos.
+        </p>
+
+        <h3>Código para guardar tu progreso</h3>
+        <p>
+          Si lo pides, el juego crea un código con el que puedes pasar tu progreso a otro dispositivo. Solo guardamos un
+          hash irreversible de él junto con tu progreso. El código lo guardas tú, por ejemplo enviándotelo por correo;
+          ese correo lo envía tu propia app de correo, nosotros nunca vemos una dirección. Un código sirve una sola vez:
+          al usarlo, el progreso recibe un ID nuevo y el dispositivo anterior lo pierde. Se borra junto con tu progreso.
+        </p>
+
+        <h3>Brasas y hielo (fuente permanente)</h3>
+        <p>
+          Si conviertes una conquista en tu fuente permanente (brasas o hielo), solo tu dispositivo recibe un vale
+          aleatorio para ella. El servidor guarda la fuente con el cruce, el bando y la fuerza y un hash irreversible del
+          vale, pero no de quién es. Con tu progreso guarda un segundo hash del mismo vale que solo indica que tu plaza
+          está ocupada. Sin el vale en tu dispositivo no se pueden relacionar. Tu dispositivo recoge con el vale los puntos
+          de una fuente en pie; si cae, sus puntos esperan al vale sin lugar, solo con la semana, como mucho ocho semanas.
+          Todas las fuentes permanentes se reinician al empezar y al terminar una campaña. Base jurídica como para tu
+          progreso.
+        </p>
+
+        <h3>Opinión (opcional)</h3>
+        <p>
+          Con «Dar tu opinión» en los ajustes puedes decir qué te parece el juego (tres caras) y, si quieres, escribir un
+          texto. Solo guardamos la ciudad, el día, tu elección, el texto, el idioma y la versión de la app, sin relación con
+          tu progreso, sin posición y sin hora. Por favor, no incluyas nombres, teléfonos ni correos electrónicos. Leemos
+          las opiniones para mejorar el juego y las borramos al cabo de un año. Base jurídica: tu consentimiento al
+          enviarla (art. 6.1.a RGPD); como una entrada no pertenece a nadie, solo podemos encontrarla a petición si nos
+          dices su texto.
+        </p>
+
+        <h3>Hallazgos (opcional)</h3>
+        <p>
+          Si te quedas unos diez segundos cerca de un lugar especial (fuente, mirador, arte …) o conquistas allí un cruce, el juego lo descubre. Solo si
+          activas «Coleccionar hallazgos» guardamos con tu progreso qué hallazgos descubriste, sin horas. Sin este
+          consentimiento, un hallazgo solo dura hasta el final de tu visita. Al desactivarlo se borran de inmediato los
+          hallazgos guardados, igual que con «Borrar mi progreso». La base jurídica es tu consentimiento (art. 6.1.a RGPD).
+        </p>
+
+        <h3>Confirmación en el lugar</h3>
+        <p>
+          Algunos enlaces al juego, por ejemplo en carteles o en un puesto, contienen un código. Cuando abres uno de esos enlaces, el servidor comprueba con tu ubicación actual si estás cerca del código. Si es así, guardamos con tu progreso qué código confirmaste, sin hora; así juegas enseguida con toda tu fuerza y recibes una insignia. El código se borra junto con tu progreso. La base jurídica es la prestación del juego (art. 6, apdo. 1, letra b del RGPD).
+        </p>
+
+        <h3>«Quiero jugar aquí»</h3>
+        <p>
+          Fuera de las ciudades donde funciona Glut &amp; Flut, puedes pedir el juego para tu lugar. Tu dispositivo envía
+          entonces tu ubicación redondeada a aproximadamente un kilómetro. El servidor la convierte al instante en una
+          zona hexagonal aproximada (unos 6 km) y solo guarda cuántas veces se pidió en un día, sin identificador ni
+          ubicación exacta. Tu navegador recuerda que ya lo pediste para este lugar.
+        </p>
+
+        <h3>Vista de cámara (experimental)</h3>
+        <p>
+          En los ajustes puedes activar la vista de cámara. Tu navegador muestra entonces la imagen de la cámara y lee los
+          sensores de movimiento de tu dispositivo (brújula, inclinación) para superponer fuego y agua a la imagen. La imagen y
+          las lecturas de los sensores se quedan en tu dispositivo: no se guardan ni se envían a nosotros ni a terceros. El
+          navegador te pide permiso antes; al cerrar la vista, la cámara se apaga.
+        </p>
+
+        <h2>3. Base jurídica</h2>
+        <p>
+          El tratamiento de tu ubicación para el juego se basa en el art. 6, apdo. 1, letra b del RGPD (prestación del
+          juego que estás usando) y en tu permiso para compartir tu ubicación en el navegador. El análisis agregado se basa
+          en nuestro interés legítimo en mostrar de forma anónima los patrones de presencia en el centro de la ciudad
+          (art. 6, apdo. 1, letra f del RGPD). Los datos voluntarios de edad y lugar de residencia se basan en tu
+          consentimiento (art. 6, apdo. 1, letra a del RGPD), que puedes retirar en cualquier momento retirando el dato.
+          El progreso también sirve para prestar el juego (art. 6, apdo. 1, letra b del RGPD). Guardar el ID de sesión es
+          estrictamente necesario según el § 25, apdo. 2, n.º 2 TDDDG.
+          Solo puedes dar tu consentimiento (hallazgos, datos opcionales) a partir de los 16 años (art. 8 del RGPD); lo confirmas en el juego.
+        </p>
+
+        <h2>4. Servidores, mapas, terceros</h2>
+        <p>
+          El juego funciona en un servidor de Hetzner Online GmbH en Alemania. La app carga las imágenes de hallazgos y lugares desde un almacenamiento de objetos de Hetzner en Alemania; como en cualquier petición, Hetzner ve tu dirección IP. Las imágenes no contienen datos sobre ti. El progreso y las cifras agregadas se guardan en
+          una base de datos de Neon (Neon, LLC, una empresa de Databricks, Inc., EE. UU.) en el centro de datos de Fráncfort (UE).
+          Para las regiones de Sudamérica (actualmente Bogotá, Medellín y Montevideo) se guardan en una base de datos de Neon en São Paulo (Brasil), para
+          las de Norteamérica (actualmente Toronto, Windsor, Nueva York, San Francisco y Ciudad de México) en una base de datos de Neon en Ohio (EE. UU.). Si cambias entre regiones
+          de distintos continentes, nuestros servidores se pasan tu progreso (nombre, bando, experiencia,
+          insignias y un ID) para que puedas seguir jugando allí. Con Hetzner y Neon hay contratos de encargo de tratamiento (art. 28
+          del RGPD). Como Neon pertenece a una empresa estadounidense, no se puede descartar un acceso desde EE. UU. Este se basa en
+          la decisión de adecuación sobre el Marco de Privacidad de Datos UE-EE. UU. (art. 45 del RGPD), bajo el cual Databricks y
+          Neon están certificados; de forma subsidiaria, y para Brasil, se aplican las cláusulas contractuales tipo del contrato con
+          Neon (art. 46 del RGPD).
+          Cuando abres la página, el servidor procesa técnicamente tu dirección IP para entregarla. Además cuenta en memoria cuántas
+          solicitudes y nuevos progresos llegan desde una misma dirección, para proteger el juego de sobrecargas y abusos (interés
+          legítimo, art. 6, apdo. 1, letra f del RGPD); estos contadores caducan a más tardar en una hora. No guardamos ni registramos
+          tu dirección IP. Servimos nosotros mismos las teselas del mapa, las fuentes tipográficas y los íconos; tu navegador no carga
+          nada de terceros. No hay rastreo ni herramientas de analítica.
+          Nuestro servidor obtiene el tiempo para la tarea del día de Open-Meteo, solo para el centro de la ciudad; ni tu ubicación ni ningún otro dato sobre ti se envía allí.
+          Los enlaces cortos como glutflut.com/s (en pegatinas y tarjetas) solo cuentan cuántas veces se abrieron en un día, sin cookie y sin relación contigo.
+        </p>
+
+        <h2>5. Conservación</h2>
+        <p>
+          Las posiciones y los seudónimos se eliminan de la memoria a más tardar una hora después de tu última señal. Tu
+          progreso se borra en cuanto lo decidas en la clasificación, y a más tardar 30 días después de tu última visita.
+          Las cifras agregadas no contienen datos personales y se conservan mientras dure el proyecto. Lo mismo vale para las peticiones («Quiero jugar aquí»): cifras por zona y día.
+          Los datos borrados permanecen como máximo un día en la copia de seguridad de la base de datos.
+        </p>
+
+        <h2>6. Tus derechos</h2>
+        <p>
+          Tienes derecho de acceso, rectificación, supresión, limitación del tratamiento, portabilidad de los datos y
+          oposición (arts. 15 a 21 del RGPD). Lo único vinculado a ti es tu progreso, y solo a través del ID aleatorio en
+          tu navegador. Puedes verlo todo en la clasificación y borrarlo tú mismo ahí. Aparte de eso, no guardamos nada
+          que pueda vincularse contigo. Puedes presentar una reclamación ante la autoridad de control competente:
+          el Landesbeauftragter für den Datenschutz und die Informationsfreiheit Baden-Württemberg (Comisionado de
+          Protección de Datos y Libertad de Información del estado de Baden-Wurtemberg).
+          Puedes oponerte en cualquier momento al análisis agregado (art. 21 del RGPD): desactiva «Contarme en el análisis para la ciudad» en los ajustes. Sigues jugando, pero tus posiciones ya no entran en ningún recuento; lo que aún no se había guardado se descarta.
+        </p>
+
+        <p class="small">Última actualización: octubre de 2026 · <a href="/impressum.html">Aviso legal</a></p>
+      </article>
+      <article data-lang="pl" data-title="Polityka prywatności – Glut &amp; Flut" hidden>
+        <p><a href="/">← powrót do gry</a></p>
+        <h1>Polityka prywatności</h1>
+        <p class="small">Niniejsze tłumaczenie ma charakter wyłącznie informacyjny. Wiążąca prawnie jest jedynie wersja niemiecka.</p>
+
+        <p class="lead">
+          W skrócie: Glut &amp; Flut potrzebuje twojej lokalizacji do gry. Nie zapisujemy tras poszczególnych osób, żadnych
+          nazwisk ani kont. Zapisujemy zagregowane liczby, które zawsze dotyczą kilku osób, oraz twój
+          wynik pod losowym identyfikatorem, który możesz w każdej chwili usunąć.
+        </p>
+
+        <h2>1. Administrator danych</h2>
+        <p>
+          Thorsten Rieß, Scientific Wave Solutions, Radolfzeller Str. 105A, 78467 Konstanz<br />
+          E-mail: <a href="mailto:tr@scientific-wave.com">tr@scientific-wave.com</a>
+        </p>
+
+        <h2>2. Co się dzieje podczas gry</h2>
+        <h3>Lokalizacja</h3>
+        <p>
+          Jeśli zezwolisz na to w przeglądarce, gra przesyła twoją pozycję do naszego serwera mniej więcej raz na sekundę. Serwer
+          potrzebuje jej do stosowania zasad gry, na przykład do sprawdzenia, czy jesteś wystarczająco blisko miejsca, aby je zdobyć.
+          Pozycja jest przechowywana wyłącznie w pamięci operacyjnej i nie jest zapisywana. Bez dostępu do lokalizacji nie możesz grać.
+          Aby wykrywać sfałszowane pozycje, serwer sprawdza w pamięci operacyjnej, czy twój ślad wygląda jak prawdziwy GPS (dokładność, rozrzut, odległość od środka ulicy). Jeśli wygląda na wyliczony, twój postęp przez jeden dzień nie liczy się w rankingu, punktach twojej strony ani w analizie. Zapisywana jest tylko liczba graczy, których to dotyczyło w danym dniu.
+        </p>
+        <h3>Znalezienie miasta</h3>
+        <p>
+          Na starcie gra raz prosi o twoją lokalizację i sprawdza na twoim urządzeniu, w którym mieście jesteś. Pobiera do
+          tego tylko granice miast; twoja lokalizacja nie opuszcza urządzenia. Przeglądarka zapamiętuje miasto
+          (localStorage), aby otworzyć je ponownie także bez lokalizacji.
+        </p>
+        <h3>Analiza zagregowana</h3>
+        <p>
+          Na potrzeby planowania miejskiego serwer liczy, ilu graczy spędza ile czasu na danym odcinku ulicy, w przedziałach czasowych
+          po 15 minut. W tym celu twoja pozycja jest przypisywana do najbliższego odcinka ulicy; dokładne współrzędne są
+          odrzucane. Aby liczyć osoby, a nie sygnały, serwer tworzy na podstawie twojej sesji pseudonim, który jest generowany
+          na nowo każdego dnia i istnieje wyłącznie w pamięci operacyjnej. Do bazy danych trafiają jedynie liczby dla poszczególnych
+          odcinków ulic i przedziałów czasowych, i to tylko wtedy, gdy było tam co najmniej pięć różnych osób. Według tej samej zasady serwer
+          liczy również osoby w obszarach sześciokątnych (o długości boku od ok. 25 do 460 metrów) w ujęciu godzinowym. To, co w przedziale czasowym nie osiąga pięciu osób, jest łączone dla tego samego miejsca w godzinę, a potem w dzień, i zapisywane tylko wtedy, gdy osiągnie tam pięć osób. Dla miejsc, które miasto chce obserwować, serwer według tej samej zasady liczy osoby na godzinę. Liczy też, ile osób przeszło z jednego większego obszaru miasta (np. dworca lub rynku) do innego, w ujęciu godzinowym i tylko od pięciu osób; to, co pozostaje poniżej, jest łączone w dzień. Na podstawie tych liczb
+          nie można cię zidentyfikować. Stają się one widoczne dopiero następnego dnia, tak aby nikt nie mógł na bieżąco śledzić, kto
+          gdzie gra.
+        </p>
+        <p>
+          Liczymy także, ilu graczy znajdowało się w pobliżu wydarzenia w grze („hotspot”) i ilu się tam udało. Również w tym przypadku
+          zapisywane są wyłącznie liczby.
+        </p>
+        <p>
+          Zanim jakiekolwiek liczby dotyczące osób zostaną pokazane lub przekazane, do każdej z nich dodaje się niewielkie, losowe, ale stałe
+          odchylenie wynoszące najwyżej dwa. Dzięki temu nawet zestawienie kilku liczb nie pozwala ustalić, czy poszczególne osoby
+          przebywały w danym miejscu. Oceny miejsc są pokazywane tylko dla miejsc z co najmniej trzema ocenami, a informacje o wieku
+          i miejscu zamieszkania tylko dla grup liczących co najmniej pięć osób.
+        </p>
+        <h3>Informacje dobrowolne: wiek i miejsce zamieszkania</h3>
+        <p>
+          Możesz dobrowolnie podać, do której grupy wiekowej należysz (poniżej 30, 30–59, 60 i więcej), oraz czy mieszkasz
+          w mieście <span class="city">Konstanz</span>. Pomaga to miastu ocenić, kogo reprezentują liczby. Informacje te są przechowywane
+          w pamięci twojej przeglądarki i przesyłane do serwera przy każdym połączeniu. Serwer przechowuje je wyłącznie w pamięci operacyjnej
+          i zapisuje jedynie, ilu graczy danego dnia udzieliło której odpowiedzi. Nie są one powiązane z miejscami, przedziałami
+          czasowymi, ocenami ani twoim postępem w grze. Możesz je w każdej chwili zmienić lub wycofać w rankingu, ponownie stukając
+          wybraną odpowiedź.
+        </p>
+        <h3>Oceny miejsc</h3>
+        <p>
+          Gdy oceniasz miejsce (na przykład „tłoczno” lub „cicho”), zapisujemy jedynie, jak często to miejsce zostało ocenione w tej
+          kategorii danego dnia i w danej godzinie, bez żadnego powiązania z tobą. Pokazywane są tylko miejsca z co najmniej trzema ocenami.
+        </p>
+        <h3>Postęp w grze i ranking</h3>
+        <p>
+          Na potrzeby punktów i rankingu zapisujemy dla twojego losowego identyfikatora sesji (zob. niżej) rekord postępu w grze: twoją
+          stronę (Ogień lub Woda), nazwę gracza wylosowaną przez grę (na przykład „Stille Möwe 42”), łączną liczbę punktów oraz
+          punkty z bieżącego dnia, datę ostatniej wizyty oraz informację, czy chcesz pojawiać się w rankingu. Nie zapisujemy
+          samego identyfikatora, lecz wyłącznie jego nieodwracalny skrót (hash). Nie zapisujemy miejsc, tras ani godzin poszczególnych zdobyć:
+          serwer wykorzystuje twoją pozycję wyłącznie w pamięci operacyjnej do obliczania punktów. Twój postęp w grze nie jest powiązany
+          z analizą zagregowaną.
+        </p>
+        <p>
+          Ranking publicznie pokazuje nazwę gracza, stronę i punkty, nic więcej. Możesz tam się ukryć, wylosować
+          nową nazwę lub natychmiast usunąć swój postęp w grze. Punkty twojej strony pozostają, ponieważ stanowią jedynie sumę.
+        </p>
+        <p>
+          Twoja strona, nazwa w grze, doświadczenie i kod do zachowania postępu obowiązują we wszystkich miastach, w
+          których działa Glut &amp; Flut. Punkty i ranking są osobne dla każdego miasta; dlatego zapisujemy też, w których
+          miastach masz punkty. Do tego liczba twoich zdobyć, punkty z bieżącego tygodnia (dla tytułu „na prowadzeniu w tym
+          tygodniu”) i twoje odznaki, zawsze bez godzin.
+          Na potrzeby serii tygodniowej liczymy też, ile tygodni z rzędu jest zaliczonych i ile dni gry masz w tym tygodniu, ale nie, które to dni.
+          Dla każdego miasta dochodzi dzień pierwszej gry w tym mieście oraz liczba dni gry w nim (tylko liczba). Na tej podstawie powstają zliczenia na miasto i dzień, np. ile osób wraca, bez związku z tobą.
+        </p>
+
+        <h3>Identyfikator sesji w przeglądarce</h3>
+        <p>
+          Aby po ponownym załadowaniu strony zachować twoją stronę (Ogień lub Woda) i twoje punkty, gra zapisuje losowy
+          identyfikator w pamięci twojej przeglądarki (localStorage). Nie zawiera on żadnych danych osobowych i jest niezbędny do działania gry.
+          Serwer ustawia ten sam identyfikator również jako jedyny plik cookie („elements_token”, tylko dla tej witryny, 400 dni), ponieważ
+          niektóre przeglądarki w przeciwnym razie czyszczą tę pamięć po kilku dniach bez wizyty. Nie jest do tego potrzebne
+          okno zgody: plik cookie jest bezwzględnie niezbędny do świadczenia gry, z której korzystasz (§ 25 ust. 2 pkt 2 TDDDG). Nie ma innych
+          plików cookie, śledzenia ani reklam. Przy przeprowadzce z elements-game.de na glutflut.com stary adres jednorazowo przenosi ten identyfikator i pozostałe ustawienia gry twojej przeglądarki, w części adresu po „#”, której nie widzi żaden serwer; nowa strona je zapisuje i od razu usuwa ją z paska adresu. Możesz w każdej chwili usunąć identyfikator i plik cookie w ustawieniach
+          przeglądarki; przycisk „Usuń mój postęp” usuwa oba.
+        </p>
+
+        <h3>Kod do zachowania postępu</h3>
+        <p>
+          Na twoje życzenie gra tworzy kod, za pomocą którego możesz przenieść swój postęp na inne urządzenie. Zapisujemy
+          jedynie jego nieodwracalny skrót (hash) wraz z twoim postępem. Kod przechowujesz samodzielnie, np. wysyłając go e-mailem
+          do siebie; wiadomość tę wysyła twoja własna aplikacja pocztowa, my nigdy nie widzimy żadnego adresu. Kod działa jednokrotnie:
+          po jego użyciu postęp otrzymuje nowy identyfikator, a dotychczasowe urządzenie go traci. Kod jest usuwany wraz z twoim postępem.
+        </p>
+
+        <h3>Żar i lód (stałe źródło)</h3>
+        <p>
+          Jeśli zamienisz zdobycie w swoje stałe źródło (żar lub lód), tylko twoje urządzenie otrzymuje dla niego losowy
+          bilet. Serwer zapisuje źródło ze skrzyżowaniem, stroną i siłą oraz nieodwracalny skrót biletu, ale nie to, do
+          kogo należy. Przy twoim stanie gry zapisuje drugi skrót tego samego biletu, który mówi tylko, że twoje miejsce jest
+          zajęte. Bez biletu na twoim urządzeniu nie da się ich powiązać. Twoje urządzenie odbiera biletem punkty stojącego
+          źródła; jeśli upadnie, jego punkty czekają na bilet bez miejsca, tylko z tygodniem, najwyżej osiem tygodni.
+          Wszystkie stałe źródła są resetowane na początku i na końcu kampanii. Podstawa prawna jak dla stanu gry.
+        </p>
+
+        <h3>Opinia (dobrowolnie)</h3>
+        <p>
+          Przez „Wyślij opinię” w ustawieniach możesz powiedzieć, jak podoba ci się gra (trzy buźki), i jeśli chcesz,
+          napisać tekst. Zapisujemy tylko miasto, dzień, twój wybór, tekst, język i wersję aplikacji, bez powiązania z
+          twoim stanem gry, bez pozycji i bez godziny. Prosimy nie wpisywać imion, numerów telefonów ani adresów e-mail.
+          Czytamy opinie, aby ulepszać grę, i usuwamy je po roku. Podstawa prawna: twoja zgoda przez wysłanie (art. 6
+          ust. 1 lit. a RODO); ponieważ wpis nie należy do nikogo, na życzenie możemy go znaleźć tylko, jeśli podasz nam
+          jego treść.
+        </p>
+
+        <h3>Znaleziska (dobrowolnie)</h3>
+        <p>
+          Gdy przez około dziesięć sekund będziesz w pobliżu wyjątkowego miejsca (fontanny, punktu widokowego, dzieła sztuki …) albo zdobędziesz tam skrzyżowanie, gra je odkrywa. Tylko jeśli włączysz „Zbieraj znaleziska”, zapisujemy przy twoim postępie, które znaleziska odkryto, bez
+          godzin. Bez tej zgody znalezisko obowiązuje tylko do końca wizyty. Wyłączenie natychmiast usuwa zapisane
+          znaleziska, podobnie jak „Usuń mój postęp”. Podstawą prawną jest twoja zgoda (art. 6 ust. 1 lit. a RODO).
+        </p>
+
+        <h3>Potwierdzenie na miejscu</h3>
+        <p>
+          Niektóre linki do gry, na przykład na plakatach lub przy stoisku, zawierają kod. Gdy otworzysz taki link, serwer sprawdza na podstawie twojej bieżącej lokalizacji, czy jesteś w pobliżu kodu. Jeśli tak, zapisujemy przy twoim postępie, który kod potwierdziłeś, bez godziny; od razu grasz z pełną siłą i dostajesz odznakę. Kod jest usuwany razem z twoim postępem. Podstawą prawną jest udostępnienie gry (art. 6 ust. 1 lit. b RODO).
+        </p>
+
+        <h3>„Chcę tu grać”</h3>
+        <p>
+          Poza miastami, w których działa Glut &amp; Flut, możesz zgłosić, że chcesz grać w swoim miejscu. Twoje urządzenie
+          wysyła wtedy lokalizację zaokrągloną do ok. jednego kilometra. Serwer od razu zamienia ją na przybliżony
+          sześciokątny obszar (ok. 6 km) i zapisuje tylko, ile razy danego dnia go zgłoszono, bez identyfikatora i bez
+          dokładnej lokalizacji. Przeglądarka zapamiętuje, że to miejsce zostało już zgłoszone z tego urządzenia.
+        </p>
+
+        <h3>Widok z kamery (eksperymentalny)</h3>
+        <p>
+          W ustawieniach możesz włączyć widok z kamery. Przeglądarka pokazuje wtedy obraz z kamery i odczytuje czujniki ruchu
+          twojego urządzenia (kompas, nachylenie), aby nałożyć ogień i wodę na obraz. Obraz i odczyty czujników pozostają na
+          twoim urządzeniu: nie są zapisywane ani wysyłane do nas czy osób trzecich. Przeglądarka najpierw prosi o zgodę;
+          zamknięcie widoku wyłącza kamerę.
+        </p>
+
+        <h2>3. Podstawa prawna</h2>
+        <p>
+          Przetwarzanie twojej lokalizacji na potrzeby gry odbywa się na podstawie art. 6 ust. 1 lit. b RODO (świadczenie gry, z której
+          korzystasz) oraz twojego zezwolenia na udostępnienie lokalizacji w przeglądarce. Analiza zagregowana opiera się na naszym prawnie
+          uzasadnionym interesie polegającym na anonimowym ukazaniu wzorców obecności w centrum miasta (art. 6 ust. 1 lit. f RODO).
+          Dobrowolne informacje o wieku i miejscu zamieszkania są przetwarzane na podstawie twojej zgody (art. 6 ust. 1 lit. a RODO), którą
+          możesz w każdej chwili odwołać, wycofując te informacje. Postęp w grze również służy świadczeniu gry
+          (art. 6 ust. 1 lit. b RODO). Przechowywanie identyfikatora sesji jest bezwzględnie niezbędne w rozumieniu § 25 ust. 2 pkt 2 TDDDG.
+          Zgodę (znaleziska, dobrowolne informacje) możesz wyrazić dopiero od 16. roku życia (art. 8 RODO); potwierdzasz to w grze.
+        </p>
+
+        <h2>4. Serwery, mapy, podmioty trzecie</h2>
+        <p>
+          Gra działa na serwerze Hetzner Online GmbH w Niemczech. Zdjęcia znalezisk i miejsc aplikacja wczytuje z magazynu obiektów Hetzner w Niemczech; jak przy każdym zapytaniu, Hetzner widzi przy tym twój adres IP. Same zdjęcia nie zawierają żadnych informacji o tobie. Postępy w grze i zagregowane liczby są przechowywane w bazie
+          danych Neon (Neon, LLC, spółka Databricks, Inc., USA) w centrum danych we Frankfurcie (UE). Dla regionów w Ameryce
+          Południowej (obecnie Bogota, Medellín i Montevideo) są przechowywane w bazie danych Neon w São Paulo (Brazylia), a dla regionów w Ameryce Północnej
+          (obecnie Toronto, Windsor, Nowy Jork, San Francisco i Meksyk) w bazie danych Neon w Ohio (USA). Jeśli przechodzisz między regionami na różnych kontynentach, nasze serwery przekazują sobie twój postęp w grze (nazwę, stronę, doświadczenie,
+          odznaki i identyfikator), abyś mógł grać dalej. Z Hetzner i Neon zawarto umowy powierzenia przetwarzania danych (art. 28
+          RODO). Ponieważ Neon należy do amerykańskiej spółki, nie można wykluczyć dostępu z USA. Podstawą jest decyzja
+          stwierdzająca odpowiedni stopień ochrony w ramach EU-U.S. Data Privacy Framework (art. 45 RODO), w którym Databricks i Neon
+          są certyfikowane; pomocniczo, a dla Brazylii, obowiązują standardowe klauzule umowne w umowie z Neon (art. 46 RODO).
+          Gdy otwierasz stronę, serwer ze względów technicznych przetwarza twój adres IP, aby ją dostarczyć. Ponadto liczy w pamięci
+          operacyjnej, ile żądań i nowych profili gry pochodzi z jednego adresu, aby chronić grę przed przeciążeniem i nadużyciami
+          (prawnie uzasadniony interes, art. 6 ust. 1 lit. f RODO); te liczniki wygasają najpóźniej po godzinie. Nie przechowujemy
+          twojego adresu IP ani nie zapisujemy go w logach. Kafelki mapy, czcionki i ikony udostępniamy sami; twoja przeglądarka nie
+          pobiera niczego od podmiotów trzecich. Nie stosujemy śledzenia ani narzędzi analitycznych.
+          Pogodę do zadania dnia nasz serwer pobiera z Open-Meteo, wyłącznie dla środka miasta; twoja lokalizacja ani inne dane o tobie nie są tam przesyłane.
+          Krótkie linki, takie jak glutflut.com/s (na naklejkach i wizytówkach), liczą tylko, ile razy otwarto je danego dnia, bez plików cookie i bez związku z tobą.
+        </p>
+
+        <h2>5. Okres przechowywania</h2>
+        <p>
+          Pozycje i pseudonimy są usuwane z pamięci operacyjnej najpóźniej godzinę po twoim ostatnim sygnale. Twój postęp w grze
+          jest usuwany, gdy tylko zdecydujesz o tym w rankingu, a najpóźniej 30 dni po twojej ostatniej
+          wizycie. Zagregowane liczby nie zawierają danych osobowych i są przechowywane przez czas trwania projektu. To samo dotyczy zgłoszeń („Chcę tu grać”): liczby na obszar i dzień.
+          Usunięte dane pozostają w kopii zapasowej bazy danych najwyżej jeden dzień.
+        </p>
+
+        <h2>6. Twoje prawa</h2>
+        <p>
+          Przysługuje ci prawo dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia danych oraz
+          prawo sprzeciwu (art. 15–21 RODO). Jedyną rzeczą powiązaną z tobą jest twój postęp w grze, i to wyłącznie poprzez losowy
+          identyfikator w twojej przeglądarce. Możesz go w całości zobaczyć w rankingu i samodzielnie tam usunąć. Poza tym nie przechowujemy
+          niczego, co można by z tobą powiązać. Masz prawo wnieść skargę do właściwego organu nadzorczego:
+          Landesbeauftragter für den Datenschutz und die Informationsfreiheit Baden-Württemberg (Pełnomocnik Kraju Związkowego
+          Badenia-Wirtembergia ds. Ochrony Danych i Wolności Informacji).
+          W każdej chwili możesz sprzeciwić się zagregowanej analizie (art. 21 RODO): wyłącz w ustawieniach „Uwzględniaj mnie w analizie dla miasta”. Grasz dalej, ale twoje pozycje nie trafiają już do żadnych zliczeń; to, co nie zostało jeszcze zapisane, jest odrzucane.
+        </p>
+
+        <p class="small">Stan na: październik 2026 · <a href="/impressum.html">Nota prawna</a></p>
+      </article>
+      <article data-lang="it" data-title="Informativa sulla privacy – Glut &amp; Flut" hidden>
+        <p><a href="/">← torna al gioco</a></p>
+        <h1>Informativa sulla privacy</h1>
+        <p class="small">Questa traduzione ha carattere puramente informativo. Fa fede esclusivamente la versione tedesca.</p>
+
+        <p class="lead">
+          In breve: Glut &amp; Flut ha bisogno della tua posizione perché tu possa giocare. Non salviamo i percorsi di singole
+          persone, né nomi, né account. Salviamo numeri aggregati, dietro ai quali ci sono più
+          persone, e il tuo punteggio sotto un identificativo casuale che puoi cancellare in qualsiasi momento.
+        </p>
+
+        <h2>1. Titolare del trattamento</h2>
+        <p>
+          Thorsten Rieß, Scientific Wave Solutions, Radolfzeller Str. 105A, 78467 Konstanz<br />
+          E-mail: <a href="mailto:tr@scientific-wave.com">tr@scientific-wave.com</a>
+        </p>
+
+        <h2>2. Cosa succede mentre giochi</h2>
+        <h3>Posizione</h3>
+        <p>
+          Se lo consenti nel browser, il gioco invia la tua posizione al nostro server circa una volta al secondo. Il
+          server ne ha bisogno per applicare le regole del gioco, per esempio per sapere se sei abbastanza vicino a un luogo per conquistarlo.
+          La posizione resta solo nella memoria di lavoro e non viene salvata. Senza consentire l’accesso alla posizione non puoi
+          giocare.
+          Per riconoscere posizioni falsificate, il server verifica nella memoria di lavoro se la tua traccia sembra un vero GPS (precisione, dispersione, distanza dal centro della strada). Se sembra calcolata, per un giorno i tuoi progressi non contano nella classifica, nei punti della squadra e nell’analisi. Viene salvato solo quanti giocatori ne sono stati interessati in un giorno.
+        </p>
+        <h3>Trovare la città</h3>
+        <p>
+          All’avvio il gioco chiede una volta la tua posizione e verifica sul tuo dispositivo in quale città ti trovi.
+          Per farlo carica solo i contorni delle città; la tua posizione non lascia il tuo dispositivo. La città viene ricordata
+          dal tuo browser (localStorage), così si riapre anche senza posizione.
+        </p>
+        <h3>Analisi aggregata</h3>
+        <p>
+          Per la pianificazione urbana il server conta quanti giocatori si trattengono per quanto tempo su un tratto di strada,
+          in finestre temporali di 15 minuti. A questo scopo la tua posizione viene ricondotta al tratto di strada più vicino;
+          le coordinate esatte vengono scartate. Per contare persone anziché segnali, il server ricava dalla tua
+          sessione uno pseudonimo, che viene generato di nuovo ogni giorno ed esiste solo nella memoria di lavoro. Nel database
+          finiscono solo numeri per tratto di strada e finestra temporale, e solo se lì c’erano almeno cinque persone
+          diverse. Con la stessa regola il server conta anche le persone per area esagonale (con lato tra circa 25 e
+          460 metri) e per ora. Ciò che in una finestra temporale resta sotto le cinque persone viene aggregato per lo stesso luogo all’ora e poi al giorno, e anche allora salvato solo a partire da cinque persone. Per i luoghi che la città vuole osservare, il server conta con la stessa regola le persone per ora. Inoltre conta quante persone sono passate da una zona più grande della città (per esempio la stazione o la piazza del mercato) a un’altra, per ora e solo a partire da cinque persone; ciò che resta al di sotto viene aggregato al giorno. Da questi numeri non si può risalire a te. Diventano visibili
+          solo il giorno successivo, quindi nessuno può seguire in diretta chi sta giocando e dove.
+        </p>
+        <p>
+          Allo stesso modo si conta quanti giocatori erano vicini a un evento di gioco («hotspot») e quanti
+          ci sono andati. Anche qui vengono salvati solo numeri.
+        </p>
+        <p>
+          Prima che i numeri relativi a persone vengano mostrati o trasmessi, ognuno riceve un piccolo scarto casuale, ma fisso,
+          di al massimo due. Così, nemmeno combinando più numeri, si può scoprire se
+          singole persone sono state in un luogo. Le valutazioni dei luoghi vengono mostrate solo per luoghi con almeno tre valutazioni,
+          i dati su età e residenza solo per gruppi di almeno cinque.
+        </p>
+        <h3>Dati facoltativi: età e residenza</h3>
+        <p>
+          Puoi indicare facoltativamente a quale fascia d’età appartieni (sotto i 30, 30–59, 60 e oltre) e se abiti a
+          <span class="city">Konstanz</span>. Così la città può valutare chi rappresentano i numeri. Il dato resta nella memoria del tuo
+          browser e viene inviato al server a ogni connessione. Il server lo tiene solo nella memoria di lavoro e
+          salva esclusivamente quanti giocatori in un giorno hanno dato quale risposta. Non viene collegato a luoghi,
+          finestre temporali, valutazioni o ai tuoi progressi. Puoi modificarlo in qualsiasi momento nella classifica o
+          ritirarlo toccando di nuovo la risposta scelta.
+        </p>
+        <h3>Valutazioni dei luoghi</h3>
+        <p>
+          Quando valuti un luogo (per esempio «affollato» o «tranquillo»), salviamo solo quante volte questo luogo è stato valutato in quel
+          giorno e in quell’ora in quella categoria, senza riferimento a te. Vengono mostrati solo luoghi con
+          almeno tre valutazioni.
+        </p>
+        <h3>Progressi e classifica</h3>
+        <p>
+          Per i punti e la classifica salviamo, legati al tuo identificativo di sessione casuale (vedi sotto), i tuoi progressi:
+          la tua squadra (fuoco o acqua), un nome di gioco estratto a sorte dal gioco (per esempio «Gabbiano Sereno 42»),
+          i tuoi punti totali e di oggi, la data della tua ultima visita e se vuoi comparire nella
+          classifica. L’identificativo in sé non lo salviamo, solo un suo valore hash non invertibile. Non vengono salvati
+          luoghi, percorsi o orari delle singole conquiste: il server usa la tua posizione solo nella memoria di lavoro
+          per calcolare i punti. I progressi non vengono collegati all’analisi aggregata.
+        </p>
+        <p>
+          La classifica mostra pubblicamente nome di gioco, squadra e punti, nient’altro. Lì puoi nasconderti, estrarre un
+          nuovo nome o cancellare subito i tuoi progressi. I punti della tua squadra restano comunque,
+          sono solo una somma.
+        </p>
+        <p>
+          Squadra, nome di gioco, esperienza e codice di salvataggio valgono in tutte le città in cui è attivo Glut &amp; Flut. Punti
+          e classifica sono per città; per questo salviamo anche in quali città hai punti. A ciò si aggiungono il numero delle tue conquiste, i tuoi punti della settimana in corso (per il titolo «in testa questa settimana») e i tuoi distintivi, sempre senza orario.
+          Per la serie settimanale contiamo inoltre quante settimane di fila hai completato e quanti giorni di gioco hai questa settimana, non quali giorni.
+          Per ogni città si aggiungono il giorno in cui vi hai giocato per la prima volta e in quanti giorni vi hai giocato (solo il numero). Ne ricaviamo conteggi per città e giorno, ad esempio quante persone tornano, senza legame con te.
+        </p>
+
+        <h3>Identificativo di sessione nel browser</h3>
+        <p>
+          Perché dopo un ricaricamento tu resti nella tua squadra (fuoco o acqua) e conservi i tuoi punti, il gioco salva un identificativo
+          casuale nella memoria del tuo browser (localStorage). Non contiene dati personali ed è necessario per
+          il funzionamento del gioco. Lo stesso identificativo viene impostato dal server anche come un unico cookie
+          («elements_token», solo per questo sito, 400 giorni), perché alcuni browser altrimenti svuotano la memoria dopo alcuni giorni
+          senza visite. Non serve una richiesta di consenso: il cookie è strettamente necessario per il gioco
+          che stai usando (§ 25, comma 2, n. 2 TDDDG). Non ci sono altri cookie, tracciamento o pubblicità. Con il trasloco da elements-game.de a glutflut.com, il vecchio indirizzo porta con sé una volta questo identificativo e le altre impostazioni di gioco del tuo browser, nella parte dell’indirizzo dopo «#», che nessun server vede; il nuovo sito li salva e la rimuove subito dalla barra degli indirizzi. Puoi
+          cancellare identificativo e cookie in qualsiasi momento dalle impostazioni del browser; «Cancella i miei progressi» li rimuove entrambi.
+        </p>
+
+        <h3>Codice per salvare i progressi</h3>
+        <p>
+          Su richiesta il gioco genera un codice con cui puoi trasferire i tuoi progressi su un altro dispositivo. Di questo
+          salviamo solo un valore hash non invertibile insieme ai progressi. Il codice lo conservi tu, per esempio inviandolo per e-mail
+          a te stesso; questa e-mail la invia il tuo programma di posta, noi non vediamo alcun indirizzo. Un codice vale una sola volta; quando
+          lo usi, i progressi ricevono un nuovo identificativo e il vecchio dispositivo li perde. Il codice viene cancellato insieme ai
+          progressi.
+        </p>
+
+        <h3>Brace e Ghiaccio (sorgente permanente)</h3>
+        <p>
+          Se trasformi una conquista nella tua sorgente permanente (Brace o Ghiaccio), solo il tuo dispositivo riceve per questo un
+          gettone casuale. Il server salva la sorgente con incrocio, squadra e forza e un valore hash non invertibile
+          del gettone, ma non a chi appartiene. Insieme ai tuoi progressi salva un secondo valore hash
+          dello stesso gettone, che dice solo che il tuo posto è occupato. Senza il gettone sul tuo dispositivo i due
+          non possono essere collegati. I punti per una sorgente in piedi li ritira il tuo dispositivo con il gettone; se cade,
+          i suoi punti aspettano il gettone senza luogo, solo con la settimana, per al massimo otto settimane. All’inizio e alla fine di una
+          campagna tutte le sorgenti permanenti vengono azzerate. Base giuridica come per i progressi.
+        </p>
+
+        <h3>Feedback (facoltativo)</h3>
+        <p>
+          Con «Lascia un feedback» nelle impostazioni puoi dire quanto ti piace il gioco (tre faccine) e
+          scrivere facoltativamente un testo. Vengono salvati solo città, giorno, la scelta, il testo, la lingua e la
+          versione dell’app, senza riferimento ai tuoi progressi, senza posizione e senza orario. Per favore non scrivere nomi,
+          numeri di telefono o indirizzi e-mail. Leggiamo il feedback per migliorare il gioco e lo cancelliamo
+          dopo un anno. La base giuridica è il tuo consenso dato con l’invio (art. 6, par. 1, lett. a) GDPR); poiché la
+          voce non è associata a nessuna persona, su richiesta possiamo trovarla solo se ci dici il suo testo esatto.
+        </p>
+
+        <h3>Reperti (facoltativo)</h3>
+        <p>
+          Se resti per circa dieci secondi vicino a un luogo speciale (fontana, punto panoramico, arte …) o vi conquisti un incrocio, il gioco lo scopre. Solo se attivi «Raccogli reperti» salviamo insieme ai tuoi progressi quali reperti hai
+          scoperto, senza orario. Senza questo consenso un reperto vale solo fino alla fine della visita. Disattivare
+          cancella subito i reperti salvati, e lo stesso fa «Cancella i miei progressi». La base giuridica è il tuo consenso
+          (art. 6, par. 1, lett. a) GDPR).
+        </p>
+
+        <h3>Conferma sul posto</h3>
+        <p>
+          Alcuni link al gioco, per esempio su manifesti o presso uno stand, contengono un codice. Se apri un link di questo tipo, il server verifica con la tua posizione attuale se ti trovi vicino al codice. Se sì, salviamo insieme ai tuoi progressi quale codice hai confermato, senza orario; così giochi subito a forza piena e ricevi un distintivo. Il codice viene cancellato insieme ai tuoi progressi. La base giuridica è la fornitura del gioco (art. 6, par. 1, lett. b) GDPR).
+        </p>
+
+        <h3>«Voglio giocare qui»</h3>
+        <p>
+          Fuori dalle città in cui è attivo Glut &amp; Flut, puoi chiedere il gioco per il tuo luogo. In questo caso il tuo
+          dispositivo invia la tua posizione arrotondata a circa un chilometro. Il server ne ricava subito un’area esagonale
+          approssimativa (larga circa 6 km) e salva solo quante volte è stata richiesta in un giorno, senza identificativo e senza
+          posizione esatta. Il tuo browser ricorda che hai già fatto la richiesta per questo luogo.
+        </p>
+
+        <h3>Vista fotocamera (esperimento)</h3>
+        <p>
+          Nelle impostazioni puoi attivare la vista fotocamera. Il tuo browser mostra allora l’immagine della fotocamera e legge i
+          sensori di orientamento del tuo dispositivo (bussola, inclinazione), per sovrapporre fuoco e acqua all’immagine. Immagine e valori dei sensori restano
+          sul tuo dispositivo: non vengono né salvati né inviati a noi o a terzi. Il browser ti chiede prima
+          il permesso; quando chiudi la vista, la fotocamera si spegne di nuovo.
+        </p>
+
+        <h2>3. Base giuridica</h2>
+        <p>
+          Il trattamento della posizione per il gioco avviene sulla base dell’art. 6, par. 1, lett. b) GDPR (fornitura
+          del gioco che usi) e del tuo consenso all’accesso alla posizione nel browser. L’analisi aggregata si basa sul
+          nostro legittimo interesse a rendere visibili in forma anonima i modelli di permanenza nel centro città (art. 6, par. 1,
+          lett. f) GDPR). I dati facoltativi su età e residenza si basano sul tuo consenso (art. 6, par. 1,
+          lett. a) GDPR), che puoi revocare in qualsiasi momento ritirando il dato. Anche i progressi servono alla fornitura del gioco (art. 6, par. 1, lett. b) GDPR). La
+          memorizzazione dell’identificativo di sessione è strettamente necessaria ai sensi del § 25, comma 2, n. 2 TDDDG.
+          Puoi dare i consensi (reperti, dati facoltativi) solo a partire dai 16 anni (art. 8 GDPR); lo confermi nel gioco.
+        </p>
+
+        <h2>4. Server, mappe, terzi</h2>
+        <p>
+          Il gioco gira su un server di Hetzner Online GmbH in Germania. Le immagini dei ritrovamenti e dei luoghi l’app le carica da uno storage a oggetti di Hetzner in Germania; come per ogni richiesta, Hetzner vede il tuo indirizzo IP. Le immagini non contengono dati su di te. I progressi e i numeri aggregati si trovano
+          in un database di Neon (Neon, LLC, una società di Databricks, Inc., USA) nel centro dati di Francoforte (UE). Per le regioni
+          in Sud America (attualmente Bogotá, Medellín e Montevideo) si trovano in un database Neon a San Paolo (Brasile), per le regioni in Nord America (attualmente Toronto, Windsor, New York, San Francisco e Città del Messico)
+          in un database Neon in Ohio (USA). Se passi da una regione all’altra in continenti diversi, i nostri server si scambiano i tuoi progressi (nome, squadra, esperienza, distintivi e un identificativo)
+          perché tu possa continuare a giocare lì. Con Hetzner e Neon sono in essere contratti per il trattamento dei dati per conto del titolare
+          (art. 28 GDPR). Poiché Neon appartiene a una società statunitense, non sono esclusi accessi dagli USA. La base per questo è
+          la decisione di adeguatezza relativa all’EU-US Data Privacy Framework (art. 45 GDPR), nell’ambito del quale Databricks e Neon sono certificate;
+          in via sussidiaria e per il Brasile si applicano le clausole contrattuali standard del contratto con Neon (art. 46 GDPR).
+          Quando visiti il sito, il server tratta per ragioni tecniche il tuo indirizzo IP per fornire la pagina. Inoltre conta nella memoria di lavoro
+          quante richieste e nuovi progressi provengono da un indirizzo, per proteggere il gioco da sovraccarico e abusi
+          (legittimo interesse, art. 6, par. 1, lett. f) GDPR); questi contatori scadono al più tardi dopo un’ora. Non salviamo né
+          registriamo l’indirizzo IP. Tasselli della mappa, caratteri e icone li forniamo noi stessi; il tuo browser non carica
+          nulla da terzi. Non ci sono tracciamento né strumenti di analisi.
+          Il meteo per la sfida del giorno il nostro server lo prende da Open-Meteo, solo per il centro della città; la tua posizione o altri dati su di te non vengono inviati lì.
+          I link brevi come glutflut.com/s (su adesivi e biglietti) contano solo quante volte sono stati aperti in un giorno, senza cookie e senza legame con te.
+        </p>
+
+        <h2>5. Durata della conservazione</h2>
+        <p>
+          Posizioni e pseudonimi vengono rimossi dalla memoria di lavoro al più tardi un’ora dopo il tuo ultimo segnale.
+          I tuoi progressi vengono cancellati non appena lo scegli nella classifica, al più tardi 30 giorni dopo la tua
+          ultima visita. I numeri aggregati non contengono dati personali e vengono conservati per la durata
+          del progetto. Lo stesso vale per le richieste («Voglio giocare qui»): numeri per area e giorno.
+          I dati cancellati restano al massimo un giorno nel backup del database.
+        </p>
+
+        <h2>6. I tuoi diritti</h2>
+        <p>
+          Hai diritto di accesso, rettifica, cancellazione, limitazione del trattamento, portabilità dei dati e
+          opposizione (artt. 15–21 GDPR). A te sono collegati solo i tuoi progressi, e unicamente tramite l’identificativo
+          casuale nel tuo browser. Li vedi per intero nella classifica e lì puoi cancellarli tu stesso. Oltre a questo
+          non salviamo nulla che possa essere associato a te. Puoi proporre reclamo all’autorità di controllo competente:
+          il Landesbeauftragter für den Datenschutz und die Informationsfreiheit Baden-Württemberg (Garante per la protezione dei dati e la libertà d’informazione del Baden-Württemberg).
+          Puoi opporti in qualsiasi momento all’analisi aggregata (art. 21 GDPR): disattiva nelle impostazioni «Contami nell’analisi per la città». Continui a giocare, ma le tue posizioni non entrano più in alcun conteggio; ciò che non era ancora stato salvato viene scartato.
+        </p>
+
+        <p class="small">Aggiornata a: ottobre 2026 · <a href="/impressum.html">Note legali</a></p>
+      </article>
+      <article data-lang="pt" data-title="Política de privacidade – Glut &amp; Flut" hidden>
+        <p><a href="/">← voltar ao jogo</a></p>
+        <h1>Política de privacidade</h1>
+        <p class="small">Esta tradução é apenas informativa. Somente a versão em alemão é juridicamente válida.</p>
+
+        <p class="lead">
+          Em resumo: o Glut &amp; Flut precisa da sua localização para você poder jogar. Não guardamos os percursos de pessoas
+          individuais, nem nomes, nem contas. Guardamos números agregados, por trás dos quais há várias
+          pessoas, e a sua pontuação sob um identificador aleatório que você pode apagar a qualquer momento.
+        </p>
+
+        <h2>1. Responsável pelo tratamento</h2>
+        <p>
+          Thorsten Rieß, Scientific Wave Solutions, Radolfzeller Str. 105A, 78467 Konstanz<br />
+          E-mail: <a href="mailto:tr@scientific-wave.com">tr@scientific-wave.com</a>
+        </p>
+
+        <h2>2. O que acontece enquanto você joga</h2>
+        <h3>Localização</h3>
+        <p>
+          Se você permitir no navegador, o jogo envia a sua posição ao nosso servidor cerca de uma vez por segundo. O
+          servidor precisa dela para aplicar as regras do jogo, por exemplo para saber se você está perto o bastante de um lugar para conquistá-lo.
+          A posição fica só na memória de trabalho e não é guardada. Sem permitir o acesso à localização você não consegue
+          jogar.
+          Para reconhecer posições falsificadas, o servidor verifica na memória de trabalho se o seu rastro parece um GPS de verdade (precisão, dispersão, distância do centro da rua). Se parecer calculado, por um dia o seu progresso não conta no ranking, nos pontos do time nem na análise. Só é guardado quantos jogadores foram afetados num dia.
+        </p>
+        <h3>Encontrar a cidade</h3>
+        <p>
+          Ao iniciar, o jogo pede a sua posição uma vez e verifica no seu aparelho em que cidade você está.
+          Para isso, ele carrega só os contornos das cidades; a sua posição não sai do seu aparelho. A cidade fica guardada
+          no seu navegador (localStorage), para que ela abra de novo mesmo sem localização.
+        </p>
+        <h3>Análise agregada</h3>
+        <p>
+          Para o planejamento urbano, o servidor conta quantos jogadores ficam por quanto tempo num trecho de rua,
+          em janelas de tempo de 15 minutos. Para isso, a sua posição é atribuída ao trecho de rua mais próximo;
+          as coordenadas exatas são descartadas. Para contar pessoas em vez de sinais, o servidor deriva da sua
+          sessão um pseudônimo, que é gerado de novo todos os dias e existe só na memória de trabalho. No banco de dados
+          entram só números por trecho de rua e janela de tempo, e só se havia pelo menos cinco pessoas
+          diferentes ali. Com a mesma regra o servidor também conta as pessoas por área hexagonal (com lado entre cerca de 25 e
+          460 metros) e por hora. O que numa janela de tempo fica abaixo de cinco pessoas é agrupado para o mesmo lugar por hora e depois por dia, e também então só é guardado a partir de cinco pessoas. Para os lugares que a cidade quer observar, o servidor conta com a mesma regra as pessoas por hora. Além disso, conta quantas pessoas passaram de uma zona maior da cidade (por exemplo a estação ou a praça do mercado) para outra, por hora e só a partir de cinco pessoas; o que fica abaixo disso é agrupado por dia. Com esses números não é possível chegar até você. Eles só ficam visíveis
+          no dia seguinte, então ninguém pode acompanhar ao vivo quem está jogando e onde.
+        </p>
+        <p>
+          Da mesma forma se conta quantos jogadores estavam perto de um evento do jogo (“hotspot”) e quantos
+          foram até lá. Aqui também são guardados só números.
+        </p>
+        <p>
+          Antes que os números referentes a pessoas sejam mostrados ou transmitidos, cada um recebe um pequeno desvio aleatório, mas fixo,
+          de no máximo dois. Assim, nem combinando vários números é possível descobrir se
+          pessoas individuais estiveram num lugar. As avaliações de lugares só são mostradas para lugares com pelo menos três avaliações,
+          os dados de idade e residência só para grupos de pelo menos cinco.
+        </p>
+        <h3>Dados opcionais: idade e residência</h3>
+        <p>
+          Você pode informar, se quiser, a que faixa etária pertence (menos de 30, 30–59, 60 ou mais) e se mora em
+          <span class="city">Konstanz</span>. Assim a cidade pode avaliar quem os números representam. O dado fica na memória do seu
+          navegador e é enviado ao servidor a cada conexão. O servidor o mantém só na memória de trabalho e
+          guarda exclusivamente quantos jogadores deram qual resposta num dia. Ele não é ligado a lugares,
+          janelas de tempo, avaliações nem ao seu progresso. Você pode alterá-lo a qualquer momento no ranking ou
+          retirá-lo tocando de novo na resposta escolhida.
+        </p>
+        <h3>Avaliações de lugares</h3>
+        <p>
+          Quando você avalia um lugar (por exemplo “lotado” ou “tranquilo”), guardamos só quantas vezes esse lugar foi avaliado naquele
+          dia e naquela hora nessa categoria, sem referência a você. Só são mostrados lugares com
+          pelo menos três avaliações.
+        </p>
+        <h3>Progresso e ranking</h3>
+        <p>
+          Para os pontos e o ranking guardamos, ligado ao seu identificador de sessão aleatório (veja abaixo), o seu progresso:
+          o seu time (fogo ou água), um nome de jogo sorteado pelo jogo (por exemplo “Capivara Serena 42”),
+          os seus pontos totais e de hoje, a data da sua última visita e se você quer aparecer no
+          ranking. O identificador em si não guardamos, só um valor hash não reversível dele. Não são guardados
+          lugares, percursos nem horários das conquistas individuais: o servidor usa a sua posição só na memória de trabalho
+          para calcular os pontos. O progresso não é ligado à análise agregada.
+        </p>
+        <p>
+          O ranking mostra publicamente nome de jogo, time e pontos, nada mais. Lá você pode se esconder, sortear um
+          nome novo ou apagar o seu progresso na hora. Os pontos do seu time continuam mesmo assim,
+          eles são só uma soma.
+        </p>
+        <p>
+          Time, nome de jogo, experiência e código de salvamento valem em todas as cidades onde o Glut &amp; Flut está ativo. Pontos
+          e ranking são por cidade; por isso guardamos também em quais cidades você tem pontos. Além disso, o número das suas conquistas, os seus pontos da semana atual (para o título “na liderança esta semana”) e as suas insígnias, sempre sem horário.
+          Para a sequência semanal contamos ainda quantas semanas seguidas você completou e quantos dias de jogo você tem nesta semana, não quais dias.
+          Por cidade acrescentamos o dia em que você jogou lá pela primeira vez e em quantos dias você jogou lá (só o número). Disso saem contagens por cidade e dia, como quantas pessoas voltam, sem relação com você.
+        </p>
+
+        <h3>Identificador de sessão no navegador</h3>
+        <p>
+          Para que depois de recarregar você continue no seu time (fogo ou água) e mantenha os seus pontos, o jogo guarda um identificador
+          aleatório na memória do seu navegador (localStorage). Ele não contém dados pessoais e é necessário para
+          o funcionamento do jogo. O mesmo identificador também é definido pelo servidor como um único cookie
+          (“elements_token”, só para este site, 400 dias), porque alguns navegadores de outra forma esvaziam a memória depois de alguns dias
+          sem visitas. Não é preciso pedir consentimento: o cookie é estritamente necessário para o jogo
+          que você está usando (§ 25, alínea 2, n.º 2 TDDDG). Não há outros cookies, rastreamento nem publicidade. Com a mudança de elements-game.de para glutflut.com, o endereço antigo leva consigo uma única vez esse identificador e as outras configurações de jogo do seu navegador, na parte do endereço depois de “#”, que nenhum servidor vê; o novo site os guarda e a remove imediatamente da barra de endereço. Você pode
+          apagar identificador e cookie a qualquer momento nas configurações do navegador; “Apagar meu progresso” remove os dois.
+        </p>
+
+        <h3>Código para guardar o progresso</h3>
+        <p>
+          A pedido, o jogo gera um código com o qual você pode transferir o seu progresso para outro aparelho. Dele
+          guardamos só um valor hash não reversível junto com o progresso. O código fica com você, por exemplo enviando-o por e-mail
+          para você mesmo; esse e-mail é enviado pelo seu programa de e-mail, nós não vemos nenhum endereço. Um código vale só uma vez; quando
+          você o usa, o progresso recebe um novo identificador e o aparelho antigo o perde. O código é apagado junto com o
+          progresso.
+        </p>
+
+        <h3>Brasa e Gelo (fonte permanente)</h3>
+        <p>
+          Se você transforma uma conquista na sua fonte permanente (Brasa ou Gelo), só o seu aparelho recebe para isso uma
+          ficha aleatória. O servidor guarda a fonte com cruzamento, time e força e um valor hash não reversível
+          da ficha, mas não a quem ela pertence. Junto com o seu progresso ele guarda um segundo valor hash
+          da mesma ficha, que diz apenas que a sua vaga está ocupada. Sem a ficha no seu aparelho os dois
+          não podem ser ligados. Os pontos de uma fonte de pé são retirados pelo seu aparelho com a ficha; se ela cair,
+          os pontos dela esperam pela ficha sem lugar, só com a semana, por no máximo oito semanas. No início e no fim de uma
+          campanha todas as fontes permanentes são zeradas. Base legal igual à do progresso.
+        </p>
+
+        <h3>Feedback (opcional)</h3>
+        <p>
+          Com “Dar feedback” nas configurações você pode dizer o quanto gosta do jogo (três carinhas) e
+          escrever um texto, se quiser. São guardados só cidade, dia, a escolha, o texto, o idioma e a
+          versão do app, sem referência ao seu progresso, sem posição e sem horário. Por favor, não escreva nomes,
+          números de telefone ou endereços de e-mail. Lemos o feedback para melhorar o jogo e o apagamos
+          depois de um ano. A base legal é o seu consentimento dado com o envio (art. 6(1)(a) do RGPD, o Regulamento Geral sobre a Proteção de Dados da UE); como a
+          entrada não está associada a nenhuma pessoa, a pedido só conseguimos encontrá-la se você nos disser o texto exato.
+        </p>
+
+        <h3>Achados (opcional)</h3>
+        <p>
+          Se você fica uns dez segundos perto de um lugar especial (chafariz, mirante, arte …) ou conquista um cruzamento ali, o jogo o descobre. Só se você ativar “Colecionar achados” guardamos junto com o seu progresso quais achados você
+          descobriu, sem horário. Sem esse consentimento um achado vale só até o fim da visita. Desativar
+          apaga na hora os achados guardados, e o mesmo faz “Apagar meu progresso”. A base legal é o seu consentimento
+          (art. 6(1)(a) do RGPD).
+        </p>
+
+        <h3>Confirmação no local</h3>
+        <p>
+          Alguns links para o jogo, por exemplo em cartazes ou num estande, contêm um código. Se você abrir um link desse tipo, o servidor verifica com a sua posição atual se você está perto do código. Se estiver, guardamos junto com o seu progresso qual código você confirmou, sem horário; assim você joga logo com força total e recebe uma insígnia. O código é apagado junto com o seu progresso. A base legal é a prestação do jogo (art. 6(1)(b) do RGPD).
+        </p>
+
+        <h3>“Quero jogar aqui”</h3>
+        <p>
+          Fora das cidades onde o Glut &amp; Flut está ativo, você pode pedir o jogo para o seu lugar. Nesse caso o seu
+          aparelho envia a sua posição arredondada para cerca de um quilômetro. O servidor deriva dela imediatamente uma área hexagonal
+          aproximada (com cerca de 6 km de largura) e guarda só quantas vezes ela foi pedida num dia, sem identificador e sem
+          posição exata. O seu navegador lembra que você já fez o pedido para esse lugar.
+        </p>
+
+        <h3>Visão da câmera (experimento)</h3>
+        <p>
+          Nas configurações você pode ativar a visão da câmera. O seu navegador então mostra a imagem da câmera e lê os
+          sensores de orientação do seu aparelho (bússola, inclinação), para sobrepor fogo e água à imagem. Imagem e valores dos sensores ficam
+          no seu aparelho: não são guardados nem enviados para nós ou para terceiros. O navegador pede antes a sua
+          permissão; quando você fecha a visão, a câmera é desligada de novo.
+        </p>
+
+        <h2>3. Base legal</h2>
+        <p>
+          O tratamento da localização para o jogo é feito com base no art. 6(1)(b) do RGPD (prestação
+          do jogo que você usa) e no seu consentimento para o acesso à localização no navegador. A análise agregada se baseia no
+          nosso interesse legítimo em tornar visíveis, de forma anônima, os padrões de permanência no centro da cidade (art. 6(1)(f)
+          do RGPD). Os dados opcionais de idade e residência se baseiam no seu consentimento (art. 6(1)(a)
+          do RGPD), que você pode revogar a qualquer momento retirando o dado. O progresso também serve à prestação do jogo (art. 6(1)(b) do RGPD). O
+          armazenamento do identificador de sessão é estritamente necessário nos termos do § 25, alínea 2, n.º 2 TDDDG.
+          Você só pode dar os consentimentos (achados, dados opcionais) a partir dos 16 anos (art. 8 do RGPD); você confirma isso no jogo.
+        </p>
+
+        <h2>4. Servidor, mapas, terceiros</h2>
+        <p>
+          O jogo roda num servidor da Hetzner Online GmbH na Alemanha. As imagens de achados e lugares o app carrega de um armazenamento de objetos da Hetzner na Alemanha; como em qualquer acesso, a Hetzner vê seu endereço IP. As imagens não contêm dados sobre você. O progresso e os números agregados ficam
+          num banco de dados da Neon (Neon, LLC, uma empresa da Databricks, Inc., EUA) no centro de dados de Frankfurt (UE). Para as regiões
+          na América do Sul (atualmente Bogotá, Medellín e Montevidéu) eles ficam num banco de dados Neon em São Paulo (Brasil), para as regiões na América do Norte (atualmente Toronto, Windsor, New York, San Francisco e Cidade do México)
+          num banco de dados Neon em Ohio (EUA). Se você passa de uma região para outra em continentes diferentes, os nossos servidores trocam o seu progresso (nome, time, experiência, insígnias e um identificador)
+          para que você possa continuar jogando lá. Com a Hetzner e a Neon existem contratos de tratamento de dados por conta do responsável
+          (art. 28 do RGPD). Como a Neon pertence a uma empresa dos EUA, não se pode excluir o acesso a partir dos EUA. A base para isso é
+          a decisão de adequação relativa ao EU-US Data Privacy Framework (art. 45 do RGPD), no qual a Databricks e a Neon são certificadas;
+          de forma subsidiária e para o Brasil, aplicam-se as cláusulas contratuais-padrão do contrato com a Neon (art. 46 do RGPD).
+          Quando você visita o site, o servidor trata por razões técnicas o seu endereço IP para entregar a página. Além disso, conta na memória de trabalho
+          quantas requisições e novos progressos vêm de um endereço, para proteger o jogo contra sobrecarga e abuso
+          (interesse legítimo, art. 6(1)(f) do RGPD); esses contadores expiram no máximo depois de uma hora. Não guardamos nem
+          registramos o endereço IP. Blocos do mapa, fontes tipográficas e ícones são fornecidos por nós mesmos; o seu navegador não carrega
+          nada de terceiros. Não há rastreamento nem ferramentas de análise.
+          O tempo para o desafio do dia o nosso servidor obtém do Open-Meteo, só para o centro da cidade; a sua posição ou outros dados sobre você não são enviados para lá.
+          Links curtos como glutflut.com/s (em adesivos e cartões) contam apenas quantas vezes foram abertos em um dia, sem cookie e sem relação com você.
+        </p>
+
+        <h2>5. Prazo de armazenamento</h2>
+        <p>
+          Posições e pseudônimos são removidos da memória de trabalho no máximo uma hora depois do seu último sinal.
+          O seu progresso é apagado assim que você escolher isso no ranking, no máximo 30 dias depois da sua
+          última visita. Os números agregados não contêm dados pessoais e são guardados durante a duração
+          do projeto. O mesmo vale para os pedidos (“Quero jogar aqui”): números por área e dia.
+          Os dados apagados ficam no máximo um dia no backup do banco de dados.
+        </p>
+
+        <h2>6. Os seus direitos</h2>
+        <p>
+          Você tem direito de acesso, retificação, apagamento, limitação do tratamento, portabilidade dos dados e
+          oposição (arts. 15–21 do RGPD). Ligado a você está só o seu progresso, e unicamente pelo identificador
+          aleatório no seu navegador. Você o vê por inteiro no ranking e lá pode apagá-lo você mesmo. Além disso,
+          não guardamos nada que possa ser associado a você. Você pode apresentar reclamação à autoridade de controle competente:
+          o Landesbeauftragter für den Datenschutz und die Informationsfreiheit Baden-Württemberg (Encarregado Estadual de Proteção de Dados e Liberdade de Informação de Baden-Württemberg).
+          Você pode se opor a qualquer momento à análise agregada (art. 21 do RGPD): desative nas configurações “Contar comigo na análise para a cidade”. Você continua jogando, mas as suas posições não entram mais em nenhuma contagem; o que ainda não tinha sido guardado é descartado.
+        </p>
+
+        <p class="small">Atualizada em: outubro de 2026 · <a href="/impressum.html">Aviso legal</a></p>
+      </article>
+    </main>
+    <script type="module" src="/src/pagelang.ts"></script>
+  </body>
+</html>

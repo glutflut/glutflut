@@ -1,0 +1,52 @@
+# Virtual workspace for Glut & Flut (code name Elements).
+#
+#   crates/shared  -> rules, simulation and graph types
+#   crates/server  -> headless authoritative Bevy server with the web gateway
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+default-members = ["crates/shared", "crates/server"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "AGPL-3.0-or-later"
+authors = ["Thorsten Riess <tr@scientific-wave.com>"]
+repository = "https://github.com/glutflut/glutflut"
+
+[workspace.dependencies]
+# --- internal crates ---
+elements-shared = { path = "crates/shared" }
+
+# --- engine ---
+# Lean by default (no rendering/windowing): `shared` and `server` are headless.
+bevy = { version = "0.18", default-features = false }
+
+# --- serialization / misc ---
+serde = { version = "1", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
+tracing = "0.1"
+
+# Faster iteration: build our own crates with light opt, deps with full opt.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+# A leaner release profile for shipping the server.
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# Lints applied across the whole workspace. Opt in per-crate with
+# `[lints] workspace = true`.
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[workspace.lints.clippy]
+type_complexity = "allow"     # Bevy system signatures trip this constantly.
+too_many_arguments = "allow"  # ditto
