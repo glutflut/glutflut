@@ -487,10 +487,6 @@ pub fn prepare(start: regions::RegionStart) -> Prepared {
     let _span = region_span(&start.slug).entered();
     let rules = actions::load_rules(start.rules.as_deref());
     let analytics = analytics::spawn_writer(start.db.clone(), start.slug.clone());
-    let mut scores = score::Scores::new(start.db.clone(), start.slug.clone(), start.board);
-    scores.prog = rules.progression.clone();
-    scores.points = rules.score.clone();
-    scores.streak_rules = rules.streak.clone();
     let keeps = keep::Keeps::new(start.db.clone(), start.slug.clone(), rules.keep.enabled);
     let campaign = campaign::Campaign::spawn(start.db.clone(), start.slug.clone());
     let mut data = match (&start.graph_file, start.db.as_deref()) {
@@ -522,6 +518,12 @@ pub fn prepare(start: regions::RegionStart) -> Prepared {
             d.tiles = Some(Arc::new(set));
         }
     }
+    // Scores count local days from the first load on (`clock.rs`).
+    let clock = clock::Clock::new(data.as_ref().and_then(|d| d.region.timezone.as_deref()));
+    let mut scores = score::Scores::new(start.db.clone(), start.slug.clone(), start.board, clock);
+    scores.prog = rules.progression.clone();
+    scores.points = rules.score.clone();
+    scores.streak_rules = rules.streak.clone();
     Prepared {
         slug: start.slug,
         stop: start.stop,
@@ -718,8 +720,7 @@ fn load_geo(
     let shore = tide.as_ref().map(tide::Setup::shore).unwrap_or_default();
     commands.insert_resource(tide::LiveTide::new(tide));
     // Days in local time (`clock.rs`).
-    let clock = clock::Clock::new(region.timezone.as_deref());
-    scores.set_clock(clock.clone());
+    let clock = scores.clock.clone();
     keeps.clock = clock.clone();
     commands.insert_resource(clock.clone());
     info!(blocks = blocks.len(), "blocks");

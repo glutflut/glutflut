@@ -368,7 +368,7 @@ mod tests {
     use elements_shared::prelude::Faction;
 
     fn setup() -> (Challenges, Scores, u32, Progression) {
-        let mut scores = Scores::new(None, "test".into(), Default::default());
+        let mut scores = Scores::new(None, "test".into(), Default::default(), Default::default());
         let p = Progression {
             enabled: true,
             ..Default::default()

@@ -208,7 +208,7 @@ mod tests {
             edge(3, 1, 4, 60.0),
         ];
         let mut w = world(rules.clone(), nodes, edges);
-        let mut scores = Scores::new(None, "t".into(), Default::default());
+        let mut scores = Scores::new(None, "t".into(), Default::default(), Default::default());
         let slots: Vec<u32> = ["b", "c", "d"]
             .iter()
             .map(|t| player(&mut scores, t, Faction::Water))

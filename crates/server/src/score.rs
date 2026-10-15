@@ -42,6 +42,8 @@ pub struct ScoreSlot(pub u32);
 /// Leaderboard JSON for `GET /api/leaderboard`.
 pub type SharedBoard = Arc<RwLock<Option<Arc<str>>>>;
 
+/// The UTC day (tests; the game counts the region's local days, `clock.rs`).
+#[cfg(test)]
 pub fn day_of(now: f64) -> i64 {
     (now as i64).div_euclid(86_400)
 }
@@ -319,8 +321,17 @@ pub struct Scores {
 
 impl Scores {
     /// Load the region's rows (deleting stale ones) and start the writer.
-    pub fn new(db: Option<String>, region: String, board: SharedBoard) -> Self {
-        let today = day_of(now_s());
+    /// Days are the region's local days from the start: loading by the UTC
+    /// day carried yesterday's side totals into a day that began before UTC
+    /// midnight (Konstanz 00:00-02:00), or started them at zero under
+    /// tomorrow's date (the Americas in the evening).
+    pub fn new(
+        db: Option<String>,
+        region: String,
+        board: SharedBoard,
+        clock: crate::clock::Clock,
+    ) -> Self {
+        let today = clock.day(now_s());
         let mut s = Self {
             recs: Vec::new(),
             by_id: HashMap::new(),
@@ -329,7 +340,7 @@ impl Scores {
             fac_claims: [0; 2],
             wins: [0; 2],
             city_days: 0,
-            clock: Default::default(),
+            clock,
             fac_dirty: false,
             tx: None,
             board,
@@ -974,13 +985,6 @@ impl Scores {
             title: self.titles.contains(&Some(slot)),
             streak: self.streak_view(slot),
         })
-    }
-
-    /// The region's clock: from now on days are local days. A local day
-    /// behind the current one (switching from UTC in the Americas) waits.
-    pub fn set_clock(&mut self, clock: crate::clock::Clock) {
-        self.today = self.today.max(clock.day(now_s()));
-        self.clock = clock;
     }
 
     /// New local day: book yesterday's winner, reset daily totals. Never back.
@@ -1687,7 +1691,23 @@ mod tests {
     use super::*;
 
     fn scores() -> Scores {
-        Scores::new(None, "test".into(), SharedBoard::default())
+        Scores::new(
+            None,
+            "test".into(),
+            SharedBoard::default(),
+            Default::default(),
+        )
+    }
+
+    /// A region starts on its local day, whatever the UTC day: at any time
+    /// at least one of UTC+14 and UTC-11 is on another day than UTC.
+    #[test]
+    fn starts_on_the_local_day() {
+        for tz in ["Pacific/Kiritimati", "Pacific/Pago_Pago", "Europe/Berlin"] {
+            let clock = crate::clock::Clock::new(Some(tz));
+            let s = Scores::new(None, "t".into(), SharedBoard::default(), clock.clone());
+            assert_eq!(s.today, clock.day(now_s()), "{tz}");
+        }
     }
 
     fn global(name: &str, faction: Faction, xp_prev: f32) -> Global {
