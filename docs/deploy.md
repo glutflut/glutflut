@@ -176,7 +176,7 @@ The image ships `rules/default.toml` (plus `rules.local/*.toml` if you add your 
 
   Without `--region` a token opens all regions. Roles: `read` (default) the dashboard; `editor` also writes chapters, places and images in `/editor.html` (logged in `ops.audit_log`); `admin` also hotspots, region reloads and approving phrases. Images need a second token with another label to approve them.
 - Presence codes for posters and stands: `elements-server code add --region <slug> --lat … --lon … --label "…"` prints the link for the QR code; `code list`, `code revoke <code>`.
-- Redeploys are safe: on SIGTERM the server writes open aggregation windows (grace period 30 s).
+- Redeploys are safe: on SIGTERM the server writes open aggregation windows, scores and permanent sources (grace period 30 s), and the live claims, anchors and sparks (`game.live_sources`, anonymous: no player behind them). The next start puts them back, aged by the time in between, so a deploy costs players only the reconnect. The same happens when an idle region is unloaded.
 
 ## Backups (aggregates)
 

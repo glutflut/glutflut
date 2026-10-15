@@ -34,6 +34,7 @@ mod hotspot;
 mod info;
 mod keep;
 mod limits;
+mod live;
 mod live_rain;
 mod login;
 mod marble;
@@ -462,6 +463,7 @@ pub struct Prepared {
     analytics: analytics::AnalyticsTx,
     scores: score::Scores,
     keeps: keep::Keeps,
+    live: live::Live,
     campaign: campaign::Campaign,
     data: Option<RegionData>,
 }
@@ -488,6 +490,7 @@ pub fn prepare(start: regions::RegionStart) -> Prepared {
     let rules = actions::load_rules(start.rules.as_deref());
     let analytics = analytics::spawn_writer(start.db.clone(), start.slug.clone());
     let keeps = keep::Keeps::new(start.db.clone(), start.slug.clone(), rules.keep.enabled);
+    let live = live::Live::new(start.db.clone(), start.slug.clone());
     let campaign = campaign::Campaign::spawn(start.db.clone(), start.slug.clone());
     let mut data = match (&start.graph_file, start.db.as_deref()) {
         (Some(path), _) => bench::load_file(path, &start.slug)
@@ -536,6 +539,7 @@ pub fn prepare(start: regions::RegionStart) -> Prepared {
         analytics,
         scores,
         keeps,
+        live,
         campaign,
         data,
     }
@@ -572,6 +576,7 @@ pub fn build(p: Prepared) -> App {
     app.insert_resource(motion::AllowSim::from_env());
     app.insert_resource(p.scores);
     app.insert_resource(p.keeps);
+    app.insert_resource(p.live);
     app.insert_resource(weather::BaseRules(rules.clone()));
     app.init_resource::<live_rain::LiveRain>();
     app.init_resource::<live_rain::LiveSun>();
@@ -617,8 +622,8 @@ pub fn build(p: Prepared) -> App {
                 live_rain::update.run_if(resource_exists::<live_rain::LiveRain>),
                 tide::update.run_if(resource_exists::<tide::LiveTide>),
                 weather::apply,
-                keep::restore,
-                keep::tick,
+                (keep::restore, live::restore).chain(),
+                (keep::tick, live::save_on_stop).chain(),
                 web::send_scores,
             )
                 .chain()

@@ -4,6 +4,21 @@ All notable changes to Glut & Flut. Versions follow
 [Semantic Versioning](https://semver.org/); the format is loosely
 [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Fixed
+
+- A region that woke up between UTC midnight and its local midnight took the
+  day's side totals from the wrong day: Europe carried yesterday's into the
+  new day, the Americas started at zero under tomorrow's date. Scores now load
+  by the region's local day from the start.
+
+### Added
+
+- Live claims, anchors and sparks survive a restart or an idle unload
+  (`game.live_sources`, migration V2): saved anonymously when the region
+  stops, put back aged by the pause.
+
 ## 0.1.0 – first public version
 
 The game as it runs today, published under the GNU AGPL v3 or later.
