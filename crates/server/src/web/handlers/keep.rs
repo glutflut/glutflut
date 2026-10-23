@@ -125,6 +125,8 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         reply(false, Some("slot"), None, false, 0.0);
         return;
     }
+    // Moving takes the tag line along.
+    let mut motto = 0u16;
     if let Some((h1, h2)) = moving {
         let old = game
             .keep_info
@@ -133,6 +135,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
             .map(|(oe, k)| (oe, *k));
         let pts = match old {
             Some((oe, k)) => {
+                motto = game.sources.get(oe).map_or(0, |(_, s)| s.motto);
                 game.commands
                     .entity(oe)
                     .remove::<crate::keep::KeepInfo>()
@@ -160,6 +163,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         s.age = 0.0;
         s.ramp = rest;
         s.built = 0.0;
+        s.motto = motto;
     }
     game.commands.entity(ent).insert(crate::keep::KeepInfo {
         ticket: h1,

@@ -229,6 +229,8 @@ export function setupPerm(
   };
 
   function forget(ticket: string) {
+    const gone = mine.find((m) => m.ticket === ticket);
+    if (gone) shownMotto.delete(gone.node);
     mine = mine.filter((m) => m.ticket !== ticket);
     save(mine);
   }
@@ -266,14 +268,18 @@ export function setupPerm(
         moving = null;
         if (m.ok && m.ticket) {
           const spot = lastSources.find((s) => s.node === m.node);
+          // A move takes the tag line along (the server keeps it on the source).
+          const from = moved ? mine.find((x) => x.ticket === moved)?.node : undefined;
+          const carried = from === undefined ? "" : (shownMotto.get(from) ?? "");
           if (moved) forget(moved);
           else used++;
           const placed = { ticket: m.ticket, node: m.node, ...(spot ? { ll: spot.ll } : {}) };
           mine.push(placed);
           save(mine);
+          if (carried) shownMotto.set(m.node, carried);
           toast(name(moved ? "moved" : "placed"), 6000);
           focus(m.node);
-          offerMotto(placed);
+          if (!carried) offerMotto(placed);
         } else if (m.ok && m.topup) {
           toast(name("topped"));
         } else if (m.reason === "slot") {
