@@ -32,6 +32,8 @@ All notable changes to Glut & Flut. Versions follow
   and keeps it under "what's new".
 - The editor marks a draft chapter that is due within a week in red: drafts
   don't play.
+- The city list has a search field; from the globe, "Zu mir" takes a player
+  straight back to where they stand (watchers still go back to the city).
 
 ## 0.1.0 – first public version
 

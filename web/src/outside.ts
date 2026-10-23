@@ -114,10 +114,17 @@ export function setupCities() {
     const centre: [number, number] | null = here
       ? [(here.bounds[0] + here.bounds[2]) / 2, (here.bounds[1] + here.bounds[3]) / 2]
       : null;
-    const list = regions.filter((r) => r.listed !== false || r.slug === region);
-    if (centre) list.sort((a, b) => distanceKm(a, centre) - distanceKm(b, centre));
-    else list.sort((a, b) => a.city.localeCompare(b.city, lang));
-    $("cities-list").replaceChildren(
+    const all = regions.filter((r) => r.listed !== false || r.slug === region);
+    if (centre) all.sort((a, b) => distanceKm(a, centre) - distanceKm(b, centre));
+    else all.sort((a, b) => a.city.localeCompare(b.city, lang));
+    // Search by name (accents and case don't matter): the list narrows as one types.
+    const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const search = $("cities-search") as HTMLInputElement;
+    const draw = () => {
+      const q = fold(search.value.trim());
+      const list = q ? all.filter((r) => fold(`${r.city} ${r.name}`).includes(q)) : all;
+      $("cities-none").hidden = list.length > 0;
+      $("cities-list").replaceChildren(
       ...list.map((r) => {
         const li = document.createElement("li");
         const b = document.createElement("button");
@@ -135,8 +142,17 @@ export function setupCities() {
         li.append(b);
         return li;
       }),
-    );
+      );
+    };
+    search.value = "";
+    search.oninput = draw;
+    // Enter picks the first match.
+    search.onkeydown = (e) => {
+      if (e.key === "Enter") $("cities-list").querySelector("button")?.click();
+    };
+    draw();
     $("cities").hidden = false;
+    if (matchMedia("(hover: hover)").matches) search.focus();
   };
   openCities = open;
   pick.onclick = open;

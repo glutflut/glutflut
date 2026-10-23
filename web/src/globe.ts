@@ -18,6 +18,8 @@ const sky = (glow: number): maplibregl.SkySpecification => ({
   "atmosphere-blend": glow,
 });
 export const WEATHER_GLOBE = "https://www.weathermarble.com/glutflut/";
+/** No way home (watching). */
+const none = () => false;
 
 /** `#look=lat,lon,zoom` from a link (the globe's way back), once. */
 export function lookFromHash(): { center: [number, number]; zoom: number } | null {
@@ -32,6 +34,8 @@ export function setupGlobe(
   regions: () => RegionInfo[],
   here: string,
   open: (r: RegionInfo) => void,
+  /** Playing: back to the player's own position (true when it could). */
+  home: () => boolean = none,
 ) {
   map.setMinZoom(1.5);
   let globe = false;
@@ -119,6 +123,7 @@ export function setupGlobe(
       map.setSky(sky(0.6));
       polar(true);
       bar.hidden = false;
+      $("globe-back").textContent = t(home === none ? "globe.back" : "globe.me");
       document.body.classList.add("globe");
     } else if (globe && z > GLOBE_OUT) {
       globe = false;
@@ -131,7 +136,9 @@ export function setupGlobe(
   });
   map.on("moveend", () => globe && look());
   link.textContent = t("globe.weather");
+  // Players go back to where they stand, watchers to the city.
   $("globe-back").onclick = () => {
+    if (home()) return;
     const r = regions().find((x) => x.slug === here);
     if (r) map.flyTo({ center: centre(r), zoom: 14, duration: 4000, essential: true });
   };

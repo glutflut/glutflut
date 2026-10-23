@@ -927,6 +927,8 @@ body.outside #actions { display: none; }
 }
 #cities h2 { font-size: 20px; margin: 0; }
 #cities[hidden] { display: none; }
+#cities-search { display: block; width: 100%; margin: 10px 0 0; padding: 8px 10px; border: 1px solid var(--raised); border-radius: 8px; background: var(--ink); color: var(--fg); font: inherit; font-size: 16px; }
+#cities-none[hidden] { display: none; }
 #cities-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
 #cities-list button {
   width: 100%;

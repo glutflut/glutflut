@@ -243,7 +243,8 @@ async function main() {
   });
   const lapse = setupTimelapse(map, () => meta.region.slug);
   // Far out the globe, for players too; another city opens for watching there.
-  setupGlobe(map, knownRegions, meta.region.slug, (r) => void openRegion(r, true));
+  // From the globe: players back to where they stand, watchers to the city.
+  setupGlobe(map, knownRegions, meta.region.slug, (r) => void openRegion(r, true), () => !document.body.classList.contains("watching") && player.home());
   // Back from the weather globe (`#look=`): start up there and fly in.
   const look = lookFromHash();
   if (look) {

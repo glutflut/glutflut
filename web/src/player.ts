@@ -30,10 +30,17 @@ export function setupPlayer(d: {
   };
   setFollow(follow);
   map.on("dragstart", () => setFollow(false));
-  $("nav-me").onclick = () => {
-    if (!me) return toast(t("gps.searching"));
+  /** To the player; from far away (the globe) a flight, not a jump. */
+  const goHome = () => {
+    if (!me) return false;
     setFollow(true);
-    map.easeTo({ center: me, zoom: Math.max(map.getZoom(), 16.5) });
+    const zoom = Math.max(map.getZoom(), 16.5);
+    if (zoom - map.getZoom() > 4) map.flyTo({ center: me, zoom, duration: 2500, essential: true });
+    else map.easeTo({ center: me, zoom });
+    return true;
+  };
+  $("nav-me").onclick = () => {
+    if (!goHome()) toast(t("gps.searching"));
   };
   $("nav-city").onclick = () => {
     setFollow(false);
@@ -80,11 +87,11 @@ export function setupPlayer(d: {
     drawRange,
     follow: () => follow,
     setFollow,
-    /** Back to the player (after a tunnel or a flight elsewhere). */
+    /** Back to the player (after a tunnel, a flight elsewhere, the globe). */
     center() {
-      if (!me) return;
-      setFollow(true);
-      map.easeTo({ center: me, zoom: Math.max(map.getZoom(), 16.5) });
+      goHome();
     },
+    /** Like `center`, saying whether there was a position to go to. */
+    home: goHome,
   };
 }
