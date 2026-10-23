@@ -181,13 +181,22 @@ pub(super) fn hello(
         send(&out, &ServerMsg::Score(mine));
     }
     if let (Some(f), Some(s)) = (game.finds.as_deref(), slot) {
-        send_finds(&out, f, &game.scores, s);
+        let running = game.campaign.running(now);
+        send_finds(&out, f, &game.scores, s, &running);
     }
     if let Some(s) = slot {
         game.scores.catch_up(s, &game.campaign.past);
     }
     if let Some(m) = chapter_msg(&game.campaign, now) {
         send(&out, &m);
+    }
+    if !game.campaign.notices.is_empty() {
+        send(
+            &out,
+            &ServerMsg::Notices {
+                items: &game.campaign.notices,
+            },
+        );
     }
     let live = game.live_rain.as_ref().is_some_and(|l| l.on);
     let sun = game.live_sun.as_ref().is_some_and(|l| l.on);
@@ -364,8 +373,9 @@ pub(super) fn pos(
     {
         let known = game.scores.finds(slot).map(|k| k.1).unwrap_or_default();
         let p = Vec2::new(pos.0.x, pos.0.z);
+        let running = game.campaign.running(now);
         if let Some(near) = f
-            .near(p, c.rules.finds.hint_m)
+            .near(p, c.rules.finds.hint_m, &running)
             .into_iter()
             .find(|x| !known.contains(&x.id))
         {
@@ -385,7 +395,7 @@ pub(super) fn pos(
         // Being there uncovers too, also where all is one's own:
         // `dwell_s` near a find not known yet (not when flagged).
         let here = f
-            .near(p, c.rules.finds.uncover_m)
+            .near(p, c.rules.finds.uncover_m, &running)
             .into_iter()
             .find(|x| !known.contains(&x.id))
             .map(|x| x.id)

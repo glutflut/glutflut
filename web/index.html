@@ -244,6 +244,7 @@
       <section id="pane-help" class="me-box help-pane" role="tabpanel" hidden>
         <a class="help-item" href="/info.html"><b data-i18n="help">So geht's</b></a>
         <button class="help-item" id="news-open"><b data-i18n="news.open">Neuigkeiten</b></button>
+        <a class="help-item" href="/chronik.html"><b data-i18n="chron.open">Chronik</b></a>
         <button class="help-item" id="feedback-open"><b data-i18n="feedback.open">Feedback geben</b></button>
         <button class="help-item" id="reload"><b data-i18n="board.reload">App neu laden</b></button>
         <nav class="legal"><a href="/impressum.html" data-i18n="legal">Impressum</a> · <a href="/datenschutz.html" data-i18n="privacy">Datenschutz</a></nav>
@@ -264,6 +265,17 @@
           <button id="find-yes" data-i18n="finds.ask.yes">Sammeln</button>
         </div>
       </div>
+    </div>
+
+    <div id="story" class="card story" role="dialog" aria-labelledby="story-title" hidden>
+      <button id="story-close" aria-label="×">×</button>
+      <div class="find-kicker" id="story-kicker"></div>
+      <b id="story-title"></b>
+      <div id="story-line" class="story-line"></div>
+      <div id="story-media"></div>
+      <div id="story-text" class="story-text"></div>
+      <p id="story-link" class="story-link" hidden><a target="_blank" rel="noopener noreferrer"></a></p>
+      <div class="row"><button id="story-ok"></button></div>
     </div>
 
     <div id="page" role="dialog" hidden>

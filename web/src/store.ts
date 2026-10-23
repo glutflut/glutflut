@@ -22,6 +22,10 @@ export const KEYS = {
   presence: "elements.presence",
   /** Chapter titles from the server, by key. */
   chapters: "elements.chapters",
+  /** Story cards shown on this device (chapter intros and endings, story.ts). */
+  storySeen: "elements.story.seen",
+  /** News flashes shown on this device (notices.ts). */
+  noticesSeen: "elements.notices.seen",
   chapterFolded: "elements.chapter.folded",
   challengeFolded: "elements.challenge.folded",
   topFolded: "elements.top.folded",

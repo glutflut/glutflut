@@ -19,7 +19,11 @@ pub(super) const LANGS: [&str; 7] = ["de", "en", "fr", "es", "pl", "it", "pt"];
 const GOALS: [&str; 6] = ["claims", "fronts", "finds", "points", "area", "hold"];
 const TITLE_MAX: usize = 60;
 const TEXT_MAX: usize = 240;
+/// A story text (intro, an ending): paragraphs allowed.
+pub(super) const STORY_MAX: usize = 1500;
 const DAYS_MAX: f64 = 31.0;
+/// Parts of a chapter's story.
+const STORY_PARTS: [&str; 4] = ["intro", "fire", "water", "tie"];
 
 /// A chapter as the editor sends it (times as unix seconds).
 #[derive(Deserialize, Clone, Debug)]
@@ -35,6 +39,9 @@ pub struct ChapterIn {
     pub target: i32,
     #[serde(default)]
     pub publish: bool,
+    /// `{lang: {intro?, fire?, water?, tie?}}`
+    #[serde(default)]
+    pub story: Value,
 }
 
 /// A stored chapter, as far as the checks need it.
@@ -60,6 +67,7 @@ pub struct Clean {
     pub goal: String,
     pub target: i32,
     pub published: bool,
+    pub story: Value,
 }
 
 fn slug_ok(s: &str, min: usize, max: usize) -> bool {
@@ -107,6 +115,45 @@ fn clean_names(v: &Value, primary: &str) -> Result<Value, &'static str> {
     Ok(Value::Object(out))
 }
 
+/// A longer text (story parts, letters): trimmed, paragraphs kept, no other
+/// control characters, at most `max` characters; `None` when empty.
+pub(super) fn clean_text(v: Option<&Value>, max: usize) -> Result<Option<String>, &'static str> {
+    let t = v.and_then(Value::as_str).unwrap_or("").trim();
+    if t.is_empty() {
+        return Ok(None);
+    }
+    if t.chars().count() > max {
+        return Err("text too long");
+    }
+    if t.chars().any(|c| c.is_control() && c != '\n' && c != '\r') {
+        return Err("control characters");
+    }
+    Ok(Some(t.replace("\r\n", "\n").replace('\r', "\n")))
+}
+
+/// The story: per known language the parts given (any may be missing);
+/// `Null` when nothing is.
+fn clean_story(v: &Value) -> Result<Value, &'static str> {
+    let mut out = serde_json::Map::new();
+    for lang in LANGS {
+        let Some(e) = v.get(lang) else { continue };
+        let mut parts = serde_json::Map::new();
+        for p in STORY_PARTS {
+            if let Some(t) = clean_text(e.get(p), STORY_MAX)? {
+                parts.insert(p.into(), t.into());
+            }
+        }
+        if !parts.is_empty() {
+            out.insert(lang.into(), Value::Object(parts));
+        }
+    }
+    Ok(if out.is_empty() {
+        Value::Null
+    } else {
+        Value::Object(out)
+    })
+}
+
 /// Check a chapter against the region's others at `now`.
 pub fn check(
     c: &ChapterIn,
@@ -118,6 +165,7 @@ pub fn check(
         return Err("campaign: 3-40 of a-z, 0-9, -");
     }
     let names = clean_names(&c.names, primary)?;
+    let story = clean_story(&c.story)?;
     if !GOALS.contains(&c.goal.as_str()) {
         return Err("unknown goal");
     }
@@ -186,6 +234,7 @@ pub fn check(
         goal: c.goal.clone(),
         target: c.target,
         published,
+        story,
     })
 }
 
@@ -266,7 +315,8 @@ pub(super) async fn list(
                 "SELECT ch.key, ch.campaign, ch.names::text, extract(epoch FROM ch.starts)::float8, \
                  extract(epoch FROM ch.ends)::float8, ch.goal, ch.target, ch.status, ch.created_by, \
                  coalesce((SELECT value FROM game.chapter_progress p WHERE p.region = ch.region AND p.key = ch.key AND p.faction = 'fire'), 0), \
-                 coalesce((SELECT value FROM game.chapter_progress p WHERE p.region = ch.region AND p.key = ch.key AND p.faction = 'water'), 0) \
+                 coalesce((SELECT value FROM game.chapter_progress p WHERE p.region = ch.region AND p.key = ch.key AND p.faction = 'water'), 0), \
+                 ch.story::text \
                  FROM game.chapters ch WHERE ch.region = $1 AND ch.kind IS NULL ORDER BY ch.starts DESC",
                 &[&slug],
             )
@@ -292,6 +342,7 @@ pub(super) async fn list(
                 "status": r.get::<_, String>(7),
                 "by": r.get::<_, Option<String>>(8),
                 "progress": [r.get::<_, i64>(9), r.get::<_, i64>(10)],
+                "story": r.get::<_, Option<String>>(11).and_then(|s| serde_json::from_str::<Value>(&s).ok()).unwrap_or(Value::Null),
             })
         })
         .collect();
@@ -328,12 +379,13 @@ pub(super) async fn save(
                 Err(e) => return Ok(Err(e)),
             };
             let mut t = db.transaction()?;
+            let story: Option<String> = (!clean.story.is_null()).then(|| clean.story.to_string());
             t.execute(
-                "INSERT INTO game.chapters (region, key, campaign, names, starts, ends, goal, target, status, created_by) \
-                 VALUES ($1, $2, $3, $4::text::jsonb, to_timestamp($5), to_timestamp($6), $7, $8, $9, $10) \
+                "INSERT INTO game.chapters (region, key, campaign, names, starts, ends, goal, target, status, created_by, story) \
+                 VALUES ($1, $2, $3, $4::text::jsonb, to_timestamp($5), to_timestamp($6), $7, $8, $9, $10, $11::text::jsonb) \
                  ON CONFLICT (region, key) DO UPDATE SET campaign = EXCLUDED.campaign, names = EXCLUDED.names, \
                  starts = EXCLUDED.starts, ends = EXCLUDED.ends, goal = EXCLUDED.goal, target = EXCLUDED.target, \
-                 status = EXCLUDED.status",
+                 status = EXCLUDED.status, story = EXCLUDED.story",
                 &[
                     &slug,
                     &clean.key,
@@ -345,6 +397,7 @@ pub(super) async fn save(
                     &clean.target,
                     &if clean.published { "published" } else { "draft" },
                     &by,
+                    &story,
                 ],
             )?;
             if clean.published {
@@ -494,6 +547,7 @@ mod tests {
             goal: "claims".into(),
             target: 300,
             publish: true,
+            story: json!({ "de": { "intro": " Es beginnt.\r\n\r\nZweiter Absatz. ", "fire": "" }, "xx": { "intro": "no" } }),
         }
     }
 
@@ -516,6 +570,21 @@ mod tests {
         assert_eq!(c.key, "advent-2026-1");
         assert!(c.names.get("xx").is_none(), "unknown languages dropped");
         assert!(c.published);
+        assert_eq!(
+            c.story,
+            json!({ "de": { "intro": "Es beginnt.\n\nZweiter Absatz." } }),
+            "story: trimmed, empty parts and unknown languages dropped"
+        );
+        let mut long = input(None, now + 3600.0, now + 7200.0);
+        long.story = json!({ "de": { "tie": "x".repeat(STORY_MAX + 1) } });
+        assert_eq!(check(&long, now, &[], "de").unwrap_err(), "text too long");
+        long.story = json!({ "de": { "tie": "a\u{7}b" } });
+        assert_eq!(
+            check(&long, now, &[], "de").unwrap_err(),
+            "control characters"
+        );
+        long.story = Value::Null;
+        assert!(check(&long, now, &[], "de").unwrap().story.is_null());
     }
 
     #[test]

@@ -75,11 +75,31 @@ pub struct Chapter {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[ts(optional, type = "Array<[number, number]>")]
     pub at: Vec<[f64; 2]>,
+    /// The story: `{lang: {intro, fire, water, tie}}` (all optional); the
+    /// intro when it starts, the ending for the outcome when it ends.
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
+    #[ts(
+        optional,
+        type = "Record<string, { intro?: string; fire?: string; water?: string; tie?: string }>"
+    )]
+    pub story: serde_json::Value,
+}
+
+/// A news flash of the region (`game.notices`), shown while it runs.
+#[derive(Clone, PartialEq, Serialize, Debug, ts_rs::TS)]
+pub struct Notice {
+    pub id: i64,
+    /// `{lang: {title, text}}`
+    #[ts(type = "Record<string, { title: string; text: string }>")]
+    pub names: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub url: Option<String>,
 }
 
 /// First side to its target wins; if neither got there, after the end the
 /// one closer to its target (cross-multiplied); a tie has no winner.
-fn decide(
+pub(crate) fn decide(
     progress: [i64; 2],
     reached: [Option<f64>; 2],
     targets: [i64; 2],
@@ -143,6 +163,10 @@ struct Loaded {
     boundary: Option<f64>,
     mottos: Vec<CityMotto>,
     periods: Vec<(f64, f64)>,
+    /// Campaigns of the region: slug, first start, last end.
+    campaigns: Vec<(String, f64, f64)>,
+    /// Notices running now.
+    notices: Vec<Notice>,
 }
 
 struct Save {
@@ -171,6 +195,12 @@ pub struct Campaign {
     /// Campaigns of the region, first start to last end (unix s): streak
     /// weeks outside them pause.
     pub periods: Vec<(f64, f64)>,
+    /// The same with the campaign's slug (finds bound to a campaign).
+    pub campaigns: Vec<(String, f64, f64)>,
+    /// News flashes running now.
+    pub notices: Vec<Notice>,
+    /// The notices changed: send them to the apps.
+    pub notices_changed: bool,
     /// The chapter whose end was handled (winner badges).
     finished: Option<String>,
     dirty: bool,
@@ -192,6 +222,9 @@ impl Campaign {
             boundary: None,
             mottos: Vec::new(),
             periods: Vec::new(),
+            campaigns: Vec::new(),
+            notices: Vec::new(),
+            notices_changed: false,
             finished: None,
             dirty: false,
             changed: false,
@@ -219,6 +252,15 @@ impl Campaign {
         self.chapter
             .as_ref()
             .filter(|c| c.starts <= now && now < c.ends)
+    }
+
+    /// Slugs of the campaigns running at `now` (first start to last end).
+    pub fn running(&self, now: f64) -> Vec<String> {
+        self.campaigns
+            .iter()
+            .filter(|(_, s, e)| *s <= now && now < *e)
+            .map(|(c, _, _)| c.clone())
+            .collect()
     }
 
     /// Count `n` for `faction` if the running chapter's goal is `goal`.
@@ -317,6 +359,11 @@ impl Campaign {
             self.boundary = l.boundary.or(self.boundary);
             self.mottos = l.mottos;
             self.periods = l.periods;
+            self.campaigns = l.campaigns;
+            if self.notices != l.notices {
+                self.notices = l.notices;
+                self.notices_changed = true;
+            }
             self.changed = true;
         }
     }
@@ -504,7 +551,7 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
         .query_opt(
             "SELECT key, campaign, names::text, extract(epoch FROM starts)::float8, \
              extract(epoch FROM ends)::float8, goal, target, coalesce(target_water, target), kind, \
-             coalesce(nodes, '{}') \
+             coalesce(nodes, '{}'), story::text \
              FROM game.chapters WHERE region = $1 AND status = 'published' AND ends > now() ORDER BY starts LIMIT 1",
             &[&region],
         )?
@@ -521,6 +568,10 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
                 kind: r.get(8),
                 nodes: r.get(9),
                 at: Vec::new(),
+                story: r
+                    .get::<_, Option<&str>>(10)
+                    .and_then(|s| serde_json::from_str(s).ok())
+                    .unwrap_or(serde_json::Value::Null),
             })
         });
     // Hold: where the junctions are (unknown ones are dropped); the target is
@@ -601,15 +652,29 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
             names: serde_json::from_str(r.get(2)).unwrap_or_default(),
         })
         .collect();
-    let periods = c
+    let campaigns: Vec<(String, f64, f64)> = c
         .query(
-            "SELECT extract(epoch FROM min(starts))::float8, extract(epoch FROM max(ends))::float8 \
+            "SELECT campaign, extract(epoch FROM min(starts))::float8, extract(epoch FROM max(ends))::float8 \
              FROM game.chapters WHERE region = $1 AND kind IS NULL AND status = 'published' \
-             GROUP BY campaign",
+             GROUP BY campaign ORDER BY campaign",
             &[&region],
         )?
         .into_iter()
-        .map(|r| (r.get(0), r.get(1)))
+        .map(|r| (r.get(0), r.get(1), r.get(2)))
+        .collect();
+    let periods = campaigns.iter().map(|(_, s, e)| (*s, *e)).collect();
+    let notices = c
+        .query(
+            "SELECT id, names::text, url FROM game.notices \
+             WHERE region = $1 AND starts <= now() AND ends > now() ORDER BY starts DESC, id DESC",
+            &[&region],
+        )?
+        .into_iter()
+        .map(|r| Notice {
+            id: r.get(0),
+            names: serde_json::from_str(r.get(1)).unwrap_or_default(),
+            url: r.get(2),
+        })
         .collect();
     Ok(Loaded {
         chapter,
@@ -620,6 +685,8 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
         boundary,
         mottos,
         periods,
+        campaigns,
+        notices,
     })
 }
 
@@ -662,6 +729,7 @@ mod tests {
             kind: None,
             nodes: Vec::new(),
             at: Vec::new(),
+            story: serde_json::Value::Null,
         });
         c
     }

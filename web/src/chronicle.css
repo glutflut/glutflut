@@ -1,0 +1,21 @@
+/* The chronicle page (chronicle.ts). */
+.chron-campaign { margin-top: 28px; }
+.chron-campaign h2 { margin-top: 0; }
+.chap { margin: 18px 0 26px; padding-left: 14px; border-left: 3px solid var(--neutral); }
+.chap.fire { border-color: var(--fire); }
+.chap.water { border-color: var(--water); }
+.chap.live { border-color: var(--gold); }
+.chap h3 { margin: 0 0 2px; font-size: 18px; }
+.chap .when { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+.chap .outcome { font-weight: 700; margin: 6px 0; }
+.chap.fire .outcome { color: var(--fire); }
+.chap.water .outcome { color: var(--water); }
+.chap .race { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 6px 0; }
+.chap .bars { flex: 1; display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--muted) 30%, transparent); }
+.chap .bars span { display: block; height: 100%; }
+.chap .bars .f { background: var(--fire); }
+.chap .bars .w { background: var(--water); margin-left: auto; }
+.chap .story p { margin: 6px 0; }
+.chap figure.media { margin: 8px 0; }
+.chap figure.media img { display: block; width: 100%; max-width: 480px; height: auto; border-radius: 8px; }
+.chap figure.media figcaption { font-size: 11px; color: var(--muted); }

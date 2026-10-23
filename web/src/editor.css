@@ -111,3 +111,7 @@ button.danger { background: #c92a2a; color: #fff; border-color: #c92a2a; font-we
 .media-pair > .media-item { border-bottom: none; flex: 1; }
 .media-was { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; font-size: 12px; color: var(--text-secondary); opacity: 0.85; }
 .media-sugg .sugg-alt { font: inherit; font-size: 12px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--text-primary); }
+/* A draft that is due soon (editor.ts), the story fields of a chapter. */
+.ed-table .st.warn { border-color: #e03131; color: #e03131; font-weight: 700; }
+.story-box { margin: 6px 0 10px; }
+.story-box label { margin-top: 8px; }

@@ -51,6 +51,7 @@ export default defineConfig({
         info: "info.html",
         impressum: "impressum.html",
         datenschutz: "datenschutz.html",
+        chronik: "chronik.html",
         sounds: "sounds.html",
       },
     },

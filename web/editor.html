@@ -27,6 +27,7 @@
       <nav id="tabs" class="ed-tabs" role="tablist">
         <button type="button" role="tab" data-tab="kapitel" data-i18n="tab.kapitel">Kapitel</button>
         <button type="button" role="tab" data-tab="inschriften" data-i18n="tab.inschriften">Inschriften</button>
+        <button type="button" role="tab" data-tab="aktuelles" data-i18n="tab.aktuelles">Aktuelles</button>
         <button type="button" role="tab" data-tab="orte" data-i18n="tab.orte">Orte</button>
         <button type="button" role="tab" data-tab="bilder"><span data-i18n="tab.bilder">Bilder</span> <span class="badge"></span></button>
       </nav>
@@ -112,6 +113,34 @@
       </section>
       </div>
 
+      <div data-panel="aktuelles" role="tabpanel" hidden>
+      <section class="card" id="notices-card" hidden>
+        <div class="map-head"><h2 data-i18n="nt.title">Aktuelles</h2><button type="button" id="notice-new" data-i18n="nt.new">Neue Meldung</button></div>
+        <details class="help"><summary data-i18n="nt.help.sum"></summary>
+          <p data-i18n="nt.help.more"></p></details>
+        <div id="notice-form" class="ed-form place-form" hidden>
+          <h3 id="notice-title" data-i18n="nt.new">Neue Meldung</h3>
+          <label><span><span id="notice-main-label">Deutsch</span> <small data-i18n="nt.f.required">(Pflicht, höchstens 60 Zeichen)</small></span> <input id="notice-main" maxlength="60" /></label>
+          <label><span data-i18n="nt.f.text">Text (höchstens 400 Zeichen)</span> <textarea id="notice-text" maxlength="400"></textarea></label>
+          <details class="motto-langs">
+            <summary><span data-i18n="mo.f.more">Weitere Sprachen</span> <small id="notice-langs-count"></small></summary>
+            <div id="notice-langs"></div>
+          </details>
+          <label><span><span data-i18n="nt.f.url">Link</span> <small data-i18n="nt.f.url.hint">(optional, https://…)</small></span> <input id="notice-url" type="url" maxlength="500" /></label>
+          <div class="ed-row">
+            <label><span data-i18n="ch.f.starts">Beginn</span> <input id="notice-starts" type="datetime-local" required /></label>
+            <label><span data-i18n="ch.f.ends">Ende</span> <input id="notice-ends" type="datetime-local" required /></label>
+          </div>
+          <div class="ed-row">
+            <button type="button" id="notice-save" class="primary" data-i18n="ui.save">Speichern</button>
+            <button type="button" id="notice-cancel" data-i18n="ui.cancel">Abbrechen</button>
+          </div>
+          <p id="notice-error" class="ed-error"></p>
+        </div>
+        <div id="notices-list"></div>
+      </section>
+      </div>
+
       <div data-panel="orte" role="tabpanel" hidden>
       <section class="card" id="places-card" hidden>
         <h2 data-i18n="pl.title">Orte</h2>
@@ -134,7 +163,13 @@
           <div id="place-find-fields" class="ed-row">
             <label><span data-i18n="pl.f.collection">Sammlung</span> <select id="place-collection"></select></label>
             <label class="check"><input id="place-hidden" type="checkbox" /> <span data-i18n="pl.f.hidden">ausgeblendet</span></label>
+            <label><span data-i18n="pl.f.campaign">Nur in der Kampagne</span> <select id="place-campaign"></select></label>
           </div>
+          <details id="place-letter" class="motto-langs">
+            <summary><span data-i18n="pl.f.letter">Text beim Finden (ein Brief, eine Tagebuchseite)</span> <small id="place-letter-count"></small></summary>
+            <p class="caption" data-i18n="pl.f.letter.note"></p>
+            <div id="place-letter-langs"></div>
+          </details>
           <p class="caption" id="place-find-note"></p>
           <p class="caption" id="place-site-note" data-i18n="pl.site.note"></p>
           <p class="caption" id="place-pos"></p>

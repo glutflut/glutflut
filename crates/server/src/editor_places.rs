@@ -13,7 +13,7 @@ use axum::Json;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use super::editor::{audit_entity, bad};
+use super::editor::{audit_entity, bad, clean_text, LANGS};
 use super::{who, AppState, Client, FromWeb, RegionQ, Role};
 
 const NAME_MAX: usize = 60;
@@ -29,6 +29,8 @@ const FOOD_M: f64 = 50.0;
 /// Finds must be this close to a junction (as the data import).
 const FIND_REACH_M: f64 = 40.0;
 const FINDS_MAX: i64 = 400;
+/// A find's text (a letter): characters per language.
+const LETTER_MAX: usize = 1500;
 /// Planned hotspots: 10 min to 12 h, at most this many not over yet.
 const PLAN_S: (f64, f64) = (600.0, 43_200.0);
 const PLANS_MAX: i64 = 50;
@@ -67,10 +69,27 @@ pub struct PlaceIn {
     /// Finds: hidden (doesn't play; players keep it).
     #[serde(default)]
     pub hidden: bool,
+    /// Finds: `{lang: text}`, shown when found (a letter); empty: none.
+    #[serde(default)]
+    pub text: Value,
+    /// Finds: plays only while this campaign runs; empty: always.
+    #[serde(default)]
+    pub campaign: String,
     /// Plans: the hotspot site (its number) and the window (unix seconds).
     pub site: Option<String>,
     pub starts: Option<f64>,
     pub ends: Option<f64>,
+}
+
+/// A find's text per known language (`None`: no text at all).
+fn letter(v: &Value) -> Result<Option<Value>, &'static str> {
+    let mut out = serde_json::Map::new();
+    for lang in LANGS {
+        if let Some(t) = clean_text(v.get(lang), LETTER_MAX)? {
+            out.insert(lang.into(), t.into());
+        }
+    }
+    Ok((!out.is_empty()).then_some(Value::Object(out)))
 }
 
 /// Checks that need no database.
@@ -116,6 +135,17 @@ pub fn check(p: &PlaceIn) -> Result<(), &'static str> {
     if let Some(r) = p.radius_m {
         if !(RADIUS.0..=RADIUS.1).contains(&r) {
             return Err("radius: 30-1000 m");
+        }
+    }
+    if p.kind == "find" {
+        letter(&p.text)?;
+        let c = &p.campaign;
+        let ok = c.is_empty()
+            || ((3..=40).contains(&c.len())
+                && c.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'));
+        if !ok {
+            return Err("campaign: a chapter's campaign, or none");
         }
     }
     if p.kind == "find"
@@ -255,7 +285,8 @@ pub(super) async fn list(
             let finds: Vec<Value> = db
                 .query(
                     "SELECT f.id, f.collection, f.name, f.lat, f.lon, f.hidden, f.osm LIKE 'city/%', \
-                     f.created_by, (SELECT count(*) FROM game.player_finds p WHERE p.find = f.id) \
+                     f.created_by, (SELECT count(*) FROM game.player_finds p WHERE p.find = f.id), \
+                     f.text::text, f.campaign \
                      FROM geo.finds f WHERE f.region = $1 ORDER BY f.collection, f.name",
                     &[&slug],
                 )?
@@ -271,8 +302,20 @@ pub(super) async fn list(
                         "own": r.get::<_, bool>(6),
                         "by": r.get::<_, Option<String>>(7),
                         "found": r.get::<_, i64>(8),
+                        "text": r.get::<_, Option<String>>(9).and_then(|s| serde_json::from_str::<Value>(&s).ok()).unwrap_or(Value::Null),
+                        "campaign": r.get::<_, Option<String>>(10).unwrap_or_default(),
                     })
                 })
+                .collect();
+            // Campaigns (drafts too: letters are written before publishing).
+            let campaigns: Vec<String> = db
+                .query(
+                    "SELECT campaign FROM game.chapters WHERE region = $1 AND kind IS NULL \
+                     GROUP BY campaign ORDER BY max(starts) DESC",
+                    &[&slug],
+                )?
+                .iter()
+                .map(|r| r.get(0))
                 .collect();
             // Plans not over, and those of the last week.
             let plans: Vec<Value> = db
@@ -299,6 +342,7 @@ pub(super) async fn list(
                 "zones": zones,
                 "sites": sites,
                 "finds": finds,
+                "campaigns": campaigns,
                 "plans": plans,
                 "collections": COLLECTIONS,
                 "food_checked": food,
@@ -355,15 +399,7 @@ pub(super) async fn save(
                 write(db, &region, &req, &by)?
             };
             let msg = if req.kind == "find" {
-                let rows = db
-                    .query(
-                        "SELECT id, collection, name, lat, lon FROM geo.finds WHERE region = $1 AND NOT hidden",
-                        &[&region],
-                    )?
-                    .iter()
-                    .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3), r.get(4)))
-                    .collect();
-                FromWeb::Finds(rows)
+                FromWeb::Finds(crate::db::find_rows(db, &region)?)
             } else {
                 FromWeb::Places(crate::places::load(db, &region)?)
             };
@@ -651,12 +687,26 @@ fn write_find(
         return Ok(Err("no street within 40 m"));
     }
     let coll = p.collection.clone().unwrap_or_default();
+    let text = letter(&p.text).unwrap_or(None).map(|v| v.to_string());
+    let campaign = (!p.campaign.is_empty()).then(|| p.campaign.clone());
+    if let Some(c) = &campaign {
+        let known: bool = t
+            .query_one(
+                "SELECT EXISTS (SELECT 1 FROM game.chapters WHERE region = $1 AND kind IS NULL AND campaign = $2)",
+                &[&region, c],
+            )?
+            .get(0);
+        if !known {
+            return Ok(Err("no chapter of this campaign yet"));
+        }
+    }
     let out = match id {
         Some(id) => {
             let n = t.execute(
                 "UPDATE geo.finds SET name = $3, collection = $4, lat = $5, lon = $6, hidden = $7, \
-                 created_by = $8, updated_at = now() WHERE region = $1 AND id = $2",
-                &[&region, &id, &name, &coll, &p.lat, &p.lon, &p.hidden, &by],
+                 created_by = $8, updated_at = now(), text = $9::text::jsonb, campaign = $10 \
+                 WHERE region = $1 AND id = $2",
+                &[&region, &id, &name, &coll, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign],
             )?;
             if n == 0 {
                 return Ok(Err("no such find"));
@@ -674,9 +724,9 @@ fn write_find(
                 return Ok(Err("too many finds (400)"));
             }
             t.query_one(
-                "INSERT INTO geo.finds (region, collection, name, osm, lat, lon, hidden, created_by, updated_at) \
-                 VALUES ($1, $2, $3, 'city/' || gen_random_uuid(), $4, $5, $6, $7, now()) RETURNING id",
-                &[&region, &coll, &name, &p.lat, &p.lon, &p.hidden, &by],
+                "INSERT INTO geo.finds (region, collection, name, osm, lat, lon, hidden, created_by, updated_at, text, campaign) \
+                 VALUES ($1, $2, $3, 'city/' || gen_random_uuid(), $4, $5, $6, $7, now(), $8::text::jsonb, $9) RETURNING id",
+                &[&region, &coll, &name, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign],
             )?
             .get(0)
         }
@@ -686,7 +736,8 @@ fn write_find(
         &format!("find {region}/{out}"),
         if id.is_some() { "change" } else { "add" },
         by,
-        json!({ "name": name, "collection": coll, "lat": p.lat, "lon": p.lon, "hidden": p.hidden }),
+        json!({ "name": name, "collection": coll, "lat": p.lat, "lon": p.lon, "hidden": p.hidden,
+                "letter": text.is_some(), "campaign": campaign }),
     )?;
     t.commit()?;
     Ok(Ok(out.to_string()))
@@ -708,6 +759,8 @@ mod tests {
             delete: false,
             collection: None,
             hidden: false,
+            text: Value::Null,
+            campaign: String::new(),
             site: None,
             starts: None,
             ends: None,
@@ -744,6 +797,20 @@ mod tests {
         assert!(check(&p).is_ok());
         p.collection = Some("shops".into());
         assert!(check(&p).is_err(), "only the app's collections");
+        p.collection = Some("art".into());
+        p.text = json!({ "de": "Liebe Türmerin,\n\nes friert.", "xx": "no" });
+        p.campaign = "advent-2026".into();
+        assert!(check(&p).is_ok(), "a letter of a campaign");
+        assert_eq!(
+            letter(&p.text).unwrap(),
+            Some(json!({ "de": "Liebe Türmerin,\n\nes friert." }))
+        );
+        assert_eq!(letter(&json!({ "de": "  " })).unwrap(), None);
+        p.campaign = "Advent".into();
+        assert!(check(&p).is_err(), "campaign slug");
+        p.campaign.clear();
+        p.text = json!({ "de": "a\u{1}b" });
+        assert!(check(&p).is_err(), "control characters");
         let mut p = place("plan");
         p.name.clear();
         assert!(check(&p).is_err(), "a plan needs a site");

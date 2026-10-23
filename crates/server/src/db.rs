@@ -314,8 +314,41 @@ pub fn junction_counts(
         .collect())
 }
 
-/// The region's finds: (id, collection, name, lat, lon).
-pub type FindRow = (i64, String, String, f64, f64);
+/// One of the region's finds as stored (`geo.finds`).
+#[derive(Clone, Debug)]
+pub struct FindRow {
+    pub id: i64,
+    pub collection: String,
+    pub name: String,
+    pub lat: f64,
+    pub lon: f64,
+    /// `{lang: text}`: a letter shown when found.
+    pub text: Option<serde_json::Value>,
+    /// Plays only while this campaign runs.
+    pub campaign: Option<String>,
+}
+
+/// The region's visible finds.
+pub fn find_rows(c: &mut Client, slug: &str) -> Result<Vec<FindRow>, postgres::Error> {
+    Ok(c.query(
+        "SELECT id, collection, name, lat, lon, text::text, campaign \
+         FROM geo.finds WHERE region = $1 AND NOT hidden",
+        &[&slug],
+    )?
+    .into_iter()
+    .map(|r| FindRow {
+        id: r.get(0),
+        collection: r.get(1),
+        name: r.get(2),
+        lat: r.get(3),
+        lon: r.get(4),
+        text: r
+            .get::<_, Option<String>>(5)
+            .and_then(|s| serde_json::from_str(&s).ok()),
+        campaign: r.get(6),
+    })
+    .collect())
+}
 
 /// The region's blocks (`geo.blocks`), outlines simplified to ~1 m.
 pub fn load_blocks(conn_str: &str, slug: &str) -> Result<Vec<crate::area::Block>, Box<dyn Error>> {
@@ -364,13 +397,7 @@ pub fn load_blocks(conn_str: &str, slug: &str) -> Result<Vec<crate::area::Block>
 
 pub fn load_finds(conn_str: &str, slug: &str) -> Result<Vec<FindRow>, Box<dyn Error>> {
     let mut c = connect(conn_str)?;
-    Ok(c.query(
-        "SELECT id, collection, name, lat, lon FROM geo.finds WHERE region = $1 AND NOT hidden",
-        &[&slug],
-    )?
-    .into_iter()
-    .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3), r.get(4)))
-    .collect())
+    Ok(find_rows(&mut c, slug)?)
 }
 
 /// Open a connection (TLS per `sslmode` in the string).

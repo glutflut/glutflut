@@ -533,6 +533,13 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     )
                     .route("/api/ops/media/commons", post(editor_media::pick))
                     .route("/api/ops/media/decide", post(editor_media::decide))
+                    .route(
+                        "/api/ops/notices",
+                        get(editor_notices::list)
+                            .post(editor_notices::save)
+                            .delete(editor_notices::delete),
+                    )
+                    .route("/api/chronicle", get(chronicle::chronicle))
                     .route("/api/media", get(editor_media::public))
                     .route("/api/media/{id}", get(editor_media::file));
                 for code in LINKS {
@@ -2315,6 +2322,9 @@ mod tests {
 /// Held areas for the dashboard.
 #[path = "areas.rs"]
 mod areas;
+/// The campaigns' chronicle (public).
+#[path = "chronicle.rs"]
+mod chronicle;
 /// Authoring tools (chapters), with this module's state and token checks.
 #[path = "editor.rs"]
 mod editor;
@@ -2324,6 +2334,9 @@ mod editor_media;
 /// Campaign phrases (editor).
 #[path = "editor_mottos.rs"]
 mod editor_mottos;
+/// News flashes (editor).
+#[path = "editor_notices.rs"]
+mod editor_notices;
 /// Authoring tools stage 2 (places).
 #[path = "editor_places.rs"]
 mod editor_places;

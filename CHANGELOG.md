@@ -13,11 +13,25 @@ All notable changes to Glut & Flut. Versions follow
   new day, the Americas started at zero under tomorrow's date. Scores now load
   by the region's local day from the start.
 
+- A moved permanent source lost its tag line; it takes it along now.
+
 ### Added
 
 - Live claims, anchors and sparks survive a restart or an idle unload
   (`game.live_sources`, migration V2): saved anonymously when the region
   stops, put back aged by the pause.
+- Story-driven campaigns (migration V3): a chapter may carry a story (an
+  intro shown once when it starts, an ending per outcome shown when it is
+  over), finds may carry a text per language (a letter, a diary page, shown
+  when found and kept in the album) and belong to a campaign (found only
+  while it runs). A public chronicle (`/chronik.html`, `GET /api/chronicle`)
+  tells what happened; whoever missed a chapter's end sees it on the next
+  visit. All of it is written in the editor.
+- News flashes per region (`game.notices`, editor tab "Aktuelles"): a title,
+  a text, a link and a period; the app shows a running one once as a card
+  and keeps it under "what's new".
+- The editor marks a draft chapter that is due within a week in red: drafts
+  don't play.
 
 ## 0.1.0 – first public version
 

@@ -1211,6 +1211,39 @@ body.outside #actions { display: none; }
 #news li + li { margin-top: 6px; }
 .news-rules { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); background: var(--gold); border-radius: 6px; padding: 1px 6px; vertical-align: 2px; }
 
+#news .news-notice { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+#news .news-notice p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
+#news .news-notice a { color: var(--gold); }
+
+/* Story card (story.ts): chapter intros and endings, letters, news flashes. */
+#story {
+  --card-top: 80px;
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  background: rgba(22, 24, 29, 0.98);
+  border: 2px solid var(--gold);
+  z-index: 8;
+  animation: find-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+#story.fire { border-color: var(--fire); }
+#story.water { border-color: var(--water); }
+#story.notice { border-color: var(--fg); }
+#story .find-kicker { font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+#story.fire .find-kicker { color: var(--fire-pale); }
+#story.water .find-kicker { color: var(--water-pale); }
+#story.notice .find-kicker { color: var(--soft); }
+#story-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
+#story-title { display: block; font-size: 20px; margin: 4px 24px 2px 0; }
+.story-line { font-size: 14px; color: var(--soft); }
+.story-text { margin-top: 8px; font-size: 15px; line-height: 1.45; }
+.story-text p { margin: 0 0 10px; }
+.story-link { margin: 4px 0 8px; font-size: 14px; }
+.story-link a { color: var(--gold); }
+#story .row { display: flex; justify-content: flex-end; }
+#story-ok { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; background: var(--fg); color: var(--ink); }
+/* A find with a text in the album: opens it again. */
+.find-letter { border: none; background: none; padding: 0; font: inherit; color: var(--gold); text-decoration: underline; cursor: pointer; }
+
 /* Sound on / off (sound.ts). */
 #nav-sound .mute, #nav-sound.off .on { display: none; }
 #nav-sound.off .mute { display: inline; }

@@ -1,7 +1,7 @@
 // Redaktion, stage 2 (server: editor_places.rs): zones and hotspot sites on a
 // map. Zones are circles (focus places in gold); hotspot sites are markers on
 // junctions. Click the map for a new place, a marker to edit; markers drag.
-import { ask, clean, COLL_NAME, errorOf, fmtDate, fmtTime, fromLocal, mayLeave, toast, toLocal, watchForm } from "./editor-ui";
+import { ask, clean, COLL_NAME, errorOf, fmtDate, fmtTime, fromLocal, LANGS, langName, mayLeave, toast, toLocal, watchForm } from "./editor-ui";
 import { t } from "./editor-i18n";
 import * as maplibregl from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
@@ -12,13 +12,28 @@ maplibregl.setWorkerUrl(workerUrl);
 
 type Zone = { id: string; name: string; lat: number; lon: number; radius_m: number | null; focus: boolean; by: string | null };
 type Site = { id: string; name: string; lat: number; lon: number; node: number; by: string | null; food: string[] | null };
-type Find = { id: string; collection: string; name: string; lat: number; lon: number; hidden: boolean; own: boolean; by: string | null; found: number };
+type Find = {
+  id: string;
+  collection: string;
+  name: string;
+  lat: number;
+  lon: number;
+  hidden: boolean;
+  own: boolean;
+  by: string | null;
+  found: number;
+  /** `{lang: text}`: a letter shown when found. */
+  text: Record<string, string> | null;
+  /** Plays only while this campaign runs; "": always. */
+  campaign: string;
+};
 type Plan = { id: string; name: string; starts: number; ends: number; by: string | null; lat: number; lon: number };
 type Places = {
   plans: Plan[];
   zones: Zone[];
   sites: Site[];
   finds: Find[];
+  campaigns: string[];
   collections: string[];
   food_checked: boolean;
   auto: { lat: number; lon: number; radius_m: number };
@@ -26,7 +41,19 @@ type Places = {
   limits: { radius: [number, number]; radius_default: number; zones: number; sites: number; food_m: number };
 };
 type Kind = "zone" | "site" | "find";
-type Edit = { kind: Kind; id?: string; name: string; lat: number; lon: number; radius_m: number | null; focus: boolean; collection: string; hidden: boolean };
+type Edit = {
+  kind: Kind;
+  id?: string;
+  name: string;
+  lat: number;
+  lon: number;
+  radius_m: number | null;
+  focus: boolean;
+  collection: string;
+  hidden: boolean;
+  text: Record<string, string>;
+  campaign: string;
+};
 
 const FOCUS = "#e8a400";
 const ZONE = "#5c7cfa";
@@ -39,6 +66,8 @@ type Api = (path: string, init?: RequestInit) => Promise<Response>;
 
 let api: Api;
 let region = "";
+/** The city's language: first row of a letter's texts. */
+let primary = "de";
 let data: Places | null = null;
 let map: maplibregl.Map | null = null;
 let mapRegion = "";
@@ -116,8 +145,9 @@ export function initPlaces(apiFn: Api) {
   input("show-finds").onchange = draw;
 }
 
-export async function loadPlaces(slug: string) {
+export async function loadPlaces(slug: string, lang = "de") {
   region = slug;
+  primary = lang;
   close();
   const res = await api(`/api/ops/places?region=${encodeURIComponent(region)}`).catch(() => null);
   if (!res?.ok) {
@@ -274,7 +304,7 @@ function offerNew(at: maplibregl.LngLat) {
   pick = new maplibregl.Popup({ closeButton: true, closeOnClick: false }).setLngLat(at).setDOMContent(box).addTo(map!);
 }
 
-const blank = { radius_m: null, focus: false, collection: "", hidden: false };
+const blank = { radius_m: null, focus: false, collection: "", hidden: false, text: {}, campaign: "" };
 
 function openZone(z: Zone | null, at?: maplibregl.LngLat) {
   clean("place-form");
@@ -295,9 +325,29 @@ function openSite(s: Site | null, at?: maplibregl.LngLat) {
 function openFind(f: Find | null, at?: maplibregl.LngLat) {
   clean("place-form");
   editing = f
-    ? { ...blank, kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden: f.hidden }
+    ? { ...blank, kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden: f.hidden, text: { ...(f.text ?? {}) }, campaign: f.campaign }
     : { ...blank, kind: "find", name: "", lat: at!.lat, lon: at!.lng, collection: "fountains" };
   fill();
+}
+
+/** A letter's texts: the city's language first, the others after it. */
+function drawLetter(text: Record<string, string>) {
+  const langs = [primary, ...LANGS.filter((l) => l !== primary)];
+  const host = $("place-letter-langs");
+  host.replaceChildren(
+    ...langs.flatMap((l) => {
+      const label = Object.assign(document.createElement("span"), { textContent: langName(l) + (l === primary ? " *" : "") });
+      const ta = Object.assign(document.createElement("textarea"), { id: `place-text-${l}`, maxLength: 1500, rows: 4, value: text[l] ?? "" });
+      ta.oninput = letterCount;
+      return [label, ta];
+    }),
+  );
+  letterCount();
+}
+
+function letterCount() {
+  const n = LANGS.filter((l) => $<HTMLTextAreaElement>(`place-text-${l}`)?.value.trim()).length;
+  $("place-letter-count").textContent = n ? t("mo.count", { n, m: LANGS.length }) : "";
 }
 
 function fill() {
@@ -310,6 +360,13 @@ function fill() {
   $<HTMLSelectElement>("place-collection").replaceChildren(...data.collections.map((c) => new Option(COLL_NAME[c] ?? c, c)));
   $<HTMLSelectElement>("place-collection").value = e.collection;
   input("place-hidden").checked = e.hidden;
+  const camp = $<HTMLSelectElement>("place-campaign");
+  camp.replaceChildren(new Option(t("pl.campaign.none"), ""), ...data.campaigns.map((c) => new Option(c, c)));
+  if (e.campaign && !data.campaigns.includes(e.campaign)) camp.append(new Option(e.campaign, e.campaign));
+  camp.value = e.campaign;
+  drawLetter(e.text);
+  ($("place-letter") as HTMLDetailsElement).open = Object.values(e.text).some(Boolean);
+  $("place-letter").hidden = !find;
   $("place-find-fields").hidden = !find;
   $("place-find-note").hidden = !find;
   $("place-find-note").textContent = !f
@@ -346,6 +403,8 @@ function formValues(): Edit {
     focus: e.kind === "zone" && input("place-focus").checked,
     collection: e.kind === "find" ? $<HTMLSelectElement>("place-collection").value : "",
     hidden: e.kind === "find" && input("place-hidden").checked,
+    text: e.kind === "find" ? Object.fromEntries(LANGS.map((l) => [l, $<HTMLTextAreaElement>(`place-text-${l}`)?.value.trim() ?? ""]).filter(([, v]) => v)) : {},
+    campaign: e.kind === "find" ? $<HTMLSelectElement>("place-campaign").value : "",
   };
 }
 
@@ -514,6 +573,9 @@ function finds() {
       map?.easeTo({ center: [f.lon, f.lat], zoom: Math.max(map.getZoom(), 15) });
     };
     name.append(a);
+    // A letter, a campaign: small marks.
+    const marks = [f.text && Object.keys(f.text).length ? "📖" : "", f.campaign].filter(Boolean).join(" ");
+    if (marks) name.append(" ", Object.assign(document.createElement("small"), { textContent: marks }));
     tr.insertCell().textContent = COLL_NAME[f.collection] ?? f.collection;
     tr.insertCell().textContent = f.own ? t("pl.origin.own", { by: f.by ?? "" }) : f.by ? t("pl.origin.osmed", { by: f.by }) : "OSM";
     tr.insertCell().textContent = String(f.found);
@@ -524,7 +586,7 @@ function finds() {
     const setHidden = async (hidden: boolean) => {
       const res = await api(`/api/ops/places?region=${encodeURIComponent(region)}`, {
         method: "POST",
-        body: JSON.stringify({ kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden }),
+        body: JSON.stringify({ kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden, text: f.text ?? {}, campaign: f.campaign }),
       }).catch(() => null);
       await loadPlaces(region);
       return res?.ok ? null : await errorOf(res, t("ui.failed"));

@@ -6,7 +6,7 @@ import { isLang, lang, setLang } from "./lang";
 import { withRegion } from "./region";
 import { $ } from "./page";
 
-const PAGES = /^\/(info|impressum|datenschutz)\.html$/;
+const PAGES = /^\/(info|impressum|datenschutz|chronik)\.html$/;
 
 export function setupPages() {
   const box = $("page");

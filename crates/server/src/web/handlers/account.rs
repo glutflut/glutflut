@@ -125,7 +125,8 @@ pub(super) fn collect(game: &mut Game, conn: u64, on: bool) {
     if let Some(slot) = slot_of(&game.clients, &game.players, conn) {
         game.scores.set_collect(slot, on);
         if let Some(f) = game.finds.as_deref() {
-            send_finds(out, f, &game.scores, slot);
+            let running = game.campaign.running(crate::analytics::now_s());
+            send_finds(out, f, &game.scores, slot, &running);
         }
     }
 }

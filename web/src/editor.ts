@@ -6,6 +6,7 @@ import { langSwitch } from "./lang";
 import { listRegions } from "./region";
 import { initPlaces, loadPlaces } from "./editor-places";
 import { initMottos, loadMottos } from "./editor-mottos";
+import { initNotices, loadNotices } from "./editor-notices";
 import { initMedia, loadMedia } from "./editor-media";
 import { resizePlacesMap } from "./editor-places";
 import { ask, clean, errorOf, fmtDate, fromLocal, LANGS, langName, mayLeave, setupTabs, syncTabs, toast, toLocal, watchForm } from "./editor-ui";
@@ -18,6 +19,11 @@ const goalName = (g: string) => ((GOALS as readonly string[]).includes(g) ? t(`g
 const num = (n: number) => n.toLocaleString(document.documentElement.lang || "de");
 
 type Names = Record<string, { title: string; text: string }>;
+/** The story of a chapter per language: the intro, an ending per outcome. */
+type Parts = { intro?: string; fire?: string; water?: string; tie?: string };
+type Story = Record<string, Parts>;
+const PARTS = ["intro", "fire", "water", "tie"] as const;
+const STORY_MAX = 1500;
 type Chapter = {
   key: string;
   campaign: string;
@@ -29,6 +35,7 @@ type Chapter = {
   status: "draft" | "published";
   by: string | null;
   progress: [number, number];
+  story: Story | null;
 };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -55,6 +62,7 @@ let region = "";
 let chapters: Chapter[] = [];
 let editing: Chapter | null = null;
 let names: Names = {};
+let story: Story = {};
 let lang: Lang = "de";
 /** The city's language: required, first tab, source of the translation aid. */
 let primary: Lang = "de";
@@ -99,7 +107,7 @@ async function regions() {
     sel.replaceChildren();
     $("list").textContent = t("access.login");
     $("new").hidden = true;
-    for (const id of ["mottos-card", "places-card", "media-card"]) $(id).hidden = true;
+    for (const id of ["mottos-card", "notices-card", "places-card", "media-card"]) $(id).hidden = true;
     syncTabs();
     return;
   }
@@ -128,13 +136,16 @@ async function load() {
   chapters = await res.json();
   drawList();
   await loadMottos(region, admin, primary);
-  await loadPlaces(region);
+  await loadNotices(region, primary);
+  await loadPlaces(region, primary);
   await loadMedia(region);
   syncTabs();
 }
 
 function state(c: Chapter): [string, string] {
   const now = Date.now() / 1000;
+  // A draft due within a week doesn't play: say so loudly.
+  if (c.status === "draft" && c.ends > now && c.starts - now < 7 * 86_400) return [t("ch.draft.soon"), "warn"];
   if (c.status === "draft") return [t("st.draft"), ""];
   if (now < c.starts) return [t("st.planned"), ""];
   if (now < c.ends) return [t("st.live"), "live"];
@@ -160,7 +171,7 @@ function drawList() {
       const td = tr.insertCell();
       if (pill) {
         const sp = document.createElement("span");
-        sp.className = `st ${pill === "live" ? "live" : ""}`;
+        sp.className = `st ${pill === "live" ? "live" : pill === "warn" ? "warn" : ""}`;
         sp.textContent = main;
         td.append(sp);
       } else td.append(main);
@@ -213,7 +224,8 @@ function drawLangs() {
       b.type = "button";
       b.className = l === lang ? "on" : "";
       const done = names[l]?.title && names[l]?.text;
-      b.innerHTML = `${langName(l)}${l === primary ? " *" : ""}<span class="lang-count">${done ? "✓" : ""}</span>`;
+      const told = PARTS.some((p) => story[l]?.[p]);
+      b.innerHTML = `${langName(l)}${l === primary ? " *" : ""}<span class="lang-count">${done ? "✓" : ""}${told ? "📖" : ""}</span>`;
       b.onclick = () => {
         lang = l;
         drawLangs();
@@ -239,15 +251,40 @@ function drawLangs() {
   const sync = () => {
     names[lang] = { title: ti.value, text: xi.value };
     preview();
-    tabs.querySelectorAll(".lang-count")[order().indexOf(lang)].textContent = ti.value && xi.value ? "✓" : "";
+    const told = PARTS.some((p) => story[lang]?.[p]);
+    tabs.querySelectorAll(".lang-count")[order().indexOf(lang)].textContent = (ti.value && xi.value ? "✓" : "") + (told ? "📖" : "");
   };
   ti.oninput = sync;
   xi.oninput = sync;
+  // The story (optional): the intro, an ending per outcome; paragraphs allowed.
+  const box = document.createElement("details");
+  box.className = "motto-langs story-box";
+  box.open = PARTS.some((p) => story[lang]?.[p]);
+  const sum = document.createElement("summary");
+  sum.textContent = t("ch.story.sum", { lang: langName(lang) });
+  const note = document.createElement("p");
+  note.className = "caption";
+  note.textContent = t("ch.story.note");
+  box.append(sum, note);
+  for (const p of PARTS) {
+    const l = document.createElement("label");
+    l.textContent = t(`ch.f.story.${p}`);
+    const ta = document.createElement("textarea");
+    ta.maxLength = STORY_MAX;
+    ta.rows = 5;
+    ta.value = story[lang]?.[p] ?? "";
+    ta.oninput = () => {
+      story[lang] = { ...story[lang], [p]: ta.value };
+      sync();
+    };
+    l.append(ta);
+    box.append(l);
+  }
   const tr = document.createElement("p");
   tr.className = "caption";
   if (lang === primary) {
     tr.textContent = t("ch.primary.note", { lang: langName(primary) });
-    f.append(tl, xl, tr);
+    f.append(tl, xl, tr, box);
     return;
   }
   // Translation aid: open a free web translator with the German text in a new
@@ -284,7 +321,7 @@ function drawLangs() {
     sync();
   };
   row.append(paste);
-  f.append(tl, xl, tr, row);
+  f.append(tl, xl, tr, row, box);
 }
 
 function preview() {
@@ -303,6 +340,7 @@ function open(c: Chapter | null) {
   clean("form");
   editing = c;
   names = c ? JSON.parse(JSON.stringify(c.names)) : {};
+  story = c?.story ? JSON.parse(JSON.stringify(c.story)) : {};
   lang = primary;
   $("form-title").textContent = c ? t("ch.edit.title", { name: c.names[primary]?.title ?? c.campaign }) : t("ch.new");
   input("campaign").value = c?.campaign ?? chapters[0]?.campaign ?? "";
@@ -331,6 +369,7 @@ async function save(publish: boolean) {
     goal: input("goal").value,
     target: Number(input("target").value),
     publish,
+    story,
   };
   const res = await api(`/api/ops/chapters?region=${encodeURIComponent(region)}`, { method: "POST", body: JSON.stringify(body) }).catch(() => null);
   if (!res?.ok) {
@@ -391,6 +430,7 @@ setupTabs({ orte: () => resizePlacesMap() });
 watchForm("form");
 initPlaces(api);
 initMottos(api);
+initNotices(api);
 initMedia(api);
 $("cancel").onclick = async () => {
   if (!(await mayLeave("form"))) return;

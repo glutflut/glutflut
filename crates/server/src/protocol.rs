@@ -137,7 +137,11 @@ pub enum ServerMsg<'a> {
         collect: bool,
         items: Vec<&'a finds::Find>,
         #[ts(type = "Record<string, number>")]
-        totals: &'a HashMap<String, u32>,
+        totals: HashMap<String, u32>,
+    },
+    /// The region's news flashes running now (all of them, each time).
+    Notices {
+        items: &'a [campaign::Notice],
     },
     /// Uncovered by a claim: `n` of `of` in its collection; `stored` only
     /// when collecting.
@@ -651,6 +655,7 @@ fn typescript() -> String {
         finds::Find,
         HotspotInfo,
         campaign::Goal,
+        campaign::Notice,
         weather::Shown,
         crate::tide::Shown,
         challenge::View,

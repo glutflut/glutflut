@@ -19,14 +19,15 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "hotspots", items: Array<HotspotInfo>, }
   | { "t": "score" } & Mine
   | { "t": "finds", collect: boolean, items: Array<FindItem>, totals: Record<string, number>, }
-  | { "t": "find", n: number, of: number, stored: boolean, id: number, c: string, name: string, lat: number, lon: number, }
+  | { "t": "notices", items: Array<Notice>, }
+  | { "t": "find", n: number, of: number, stored: boolean, id: number, c: string, name: string, lat: number, lon: number, text?: Record<string, string>, }
   | { "t": "near", c: string, }
   | { "t": "tunnel", node: number, lat: number, lon: number, kind: "peak" | "sink", m: number, secs: number, }
   | { "t": "badge", badge: string, }
   | { "t": "ringbroken", points: number, }
   | { "t": "areas", player: Array<number>, mine: Array<number>, }
   | { "t": "encircled", points: number, side: Faction, }
-  | { "t": "chapter", starts_in: number, ends_in: number, fire: number, water: number, winner?: Faction, key: string, campaign: string, names: Record<string, { title: string; text: string }>, goal: ChapterGoal, target: number, target_water: number, kind?: string, nodes?: number[], at?: Array<[number, number]>, }
+  | { "t": "chapter", starts_in: number, ends_in: number, fire: number, water: number, winner?: Faction, key: string, campaign: string, names: Record<string, { title: string; text: string }>, goal: ChapterGoal, target: number, target_water: number, kind?: string, nodes?: number[], at?: Array<[number, number]>, story?: Record<string, { intro?: string; fire?: string; water?: string; tie?: string }>, }
   | { "t": "forgotten" }
   | { "t": "weather" } & WeatherShown
   | { "t": "tide" } & TideShown
@@ -119,11 +120,16 @@ export type Mine = { name: string, xp: number, level: number, next: number | nul
  */
 export type StreakView = { weeks: number, days: number, need: number, spare: number, counts: boolean, };
 
-export type FindItem = { id: number, c: string, name: string, lat: number, lon: number, };
+export type FindItem = { id: number, c: string, name: string, lat: number, lon: number, text?: Record<string, string>, };
 
 export type HotspotInfo = { node: number, ends_in: number, manual: boolean, ll: [number, number], };
 
 export type ChapterGoal = "claims" | "fronts" | "finds" | "points" | "area" | "hold";
+
+/**
+ * A news flash of the region (`game.notices`), shown while it runs.
+ */
+export type Notice = { id: number, names: Record<string, { title: string; text: string }>, url?: string, };
 
 /**
  * What the app shows: today's main effect (`None`: calm) and the day.

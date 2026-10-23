@@ -3,7 +3,8 @@
 // the first find asks whether to collect them (opt-in, stored without times).
 import * as maplibregl from "maplibre-gl";
 import { badgeLabel } from "./badges";
-import { t, type Key } from "./i18n";
+import { lang, t, type Key } from "./i18n";
+import { pickLang, showStory } from "./story";
 import type { FindItem, Net } from "./net";
 import { confirmAdult, onAdult } from "./consent";
 import { $ } from "./page";
@@ -87,11 +88,21 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
           head.textContent = `${collName(c)} ${mine.length}/${of}`;
           head.style.color = COLOR[c] ?? "";
           li.append(head);
-          if (mine.length) {
-            const names = document.createElement("span");
-            names.textContent = ` – ${mine.map(findName).sort().join(", ")}`;
-            li.append(names);
-          }
+          // Names; a find with a text (a letter) opens it again.
+          mine
+            .sort((a, b) => findName(a).localeCompare(findName(b)))
+            .forEach((f, i) => {
+              li.append(i ? ", " : " – ");
+              if (!f.text) return li.append(findName(f));
+              const b = document.createElement("button");
+              b.className = "find-letter";
+              b.textContent = findName(f);
+              b.onclick = () => {
+                ($("board-close") as HTMLButtonElement).click();
+                letter(f, null);
+              };
+              li.append(b);
+            });
           return li;
         }),
     );
@@ -122,20 +133,41 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
   const queue: Card[] = [];
   let cardTimer = 0;
   let cardNo = 0;
+  /** A letter to read once the find card (with its question) is closed. */
+  let after: (() => void) | null = null;
   preloadMedia();
   function hideCard() {
     clearTimeout(cardTimer);
     $("find-card").hidden = true;
+    const read = after;
+    after = null;
+    if (read) return read();
     const next = queue.shift();
     if (next) setTimeout(() => show(next), 300);
   }
+  /** A find's text (a letter, a diary page) as a story card. */
+  function letter(f: FindItem, line: string | null) {
+    const text = pickLang(f.text, lang);
+    if (!text) return;
+    showStory(
+      { cls: ELEMENT[f.c] ?? "badge", kicker: t("finds.found"), title: findName(f), line: line ?? undefined, text, media: ["find", String(f.id)] },
+      () => {
+        const next = queue.shift();
+        if (next) setTimeout(() => show(next), 300);
+      },
+    );
+  }
   function card(f: FindItem, n: number, of: number, stored: boolean) {
     const ask = !stored && !collect && !asked();
+    const line = t("finds.progress", { coll: collName(f.c), n, of });
+    // A letter: read it right away; after the question to collect, if that is due.
+    if (f.text && !ask && $("find-card").hidden) return letter(f, line);
+    if (f.text) after = () => letter(f, line);
     show({
       cls: ELEMENT[f.c] ?? "other",
       kicker: t("finds.found"),
       name: findName(f),
-      line: t("finds.progress", { coll: collName(f.c), n, of }),
+      line,
       ask,
       note: !ask && !stored && !collect,
       media: ["find", String(f.id)],

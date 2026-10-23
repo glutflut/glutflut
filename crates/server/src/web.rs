@@ -220,7 +220,8 @@ fn uncover_near(
     out: &Outbox,
     now: f64,
 ) {
-    for find in f.near(at, uncover_m) {
+    let running = campaign.running(now);
+    for find in f.near(at, uncover_m, &running) {
         let Some(stored) = scores.uncover(s, find.id) else {
             continue;
         };
@@ -228,8 +229,12 @@ fn uncover_near(
             scores.grant(s, &format!("chapter:{key}"));
         }
         let known = scores.finds(s).map(|k| k.1).unwrap_or_default();
-        let n = f.count(&find.collection, known.iter().copied());
-        let of = f.totals.get(&find.collection).copied().unwrap_or(0);
+        let n = f.count(&find.collection, known.iter().copied(), &running);
+        let of = f
+            .totals(&running)
+            .get(&find.collection)
+            .copied()
+            .unwrap_or(0);
         send(
             out,
             &ServerMsg::Find {
@@ -379,6 +384,14 @@ pub fn campaign_tick(
             }
         }
     }
+    if std::mem::take(&mut campaign.notices_changed) {
+        to_all(
+            &clients,
+            &ServerMsg::Notices {
+                items: &campaign.notices,
+            },
+        );
+    }
 }
 
 /// The tide to every app when it changed (at most once a minute; off at once).
@@ -399,8 +412,9 @@ pub fn tide_tick(
     to_all(&clients, &ServerMsg::Tide(s));
 }
 
-/// The player's finds in this region and the collection sizes.
-fn send_finds(out: &Outbox, f: &Finds, scores: &Scores, slot: u32) {
+/// The player's finds in this region and the collection sizes (`running`:
+/// the campaigns running, `Campaign::running`).
+fn send_finds(out: &Outbox, f: &Finds, scores: &Scores, slot: u32, running: &[String]) {
     let Some((collect, known)) = scores.finds(slot) else {
         return;
     };
@@ -409,7 +423,7 @@ fn send_finds(out: &Outbox, f: &Finds, scores: &Scores, slot: u32) {
         &ServerMsg::Finds {
             collect,
             items: f.of(&known).collect(),
-            totals: &f.totals,
+            totals: f.totals(running),
         },
     );
 }

@@ -8,7 +8,9 @@ import type { ChapterMsg } from "./net";
 import { layoutTop } from "./top";
 import { $ } from "./page";
 import type { Media } from "./media";
+import { withRegion } from "./region";
 import { KEYS, load, loadJson, save, saveJson } from "./store";
+import { markStorySeen, pickLang, showStory, storySeen } from "./story";
 
 
 type Names = Record<string, Record<string, { title: string; text: string }>>;
@@ -33,6 +35,33 @@ export function chapterTitle(key: string): string {
   const n = stored()[key];
   return (n?.[lang] ?? n?.de ?? n?.en ?? (n ? Object.values(n)[0] : undefined))?.title ?? key;
 }
+
+/** A chapter's story parts in the app's language (or the city's). */
+type StoryParts = { intro?: string; fire?: string; water?: string; tie?: string };
+function storyOf(story: Record<string, StoryParts> | undefined): StoryParts {
+  return pickLang(story, lang) ?? {};
+}
+
+/** The intro once when the chapter runs; the ending for the outcome once it is over. */
+function tell(key: string, title: string, story: Record<string, StoryParts> | undefined, phase: "intro" | "end", winner: string | null | undefined) {
+  const s = storyOf(story);
+  const text = phase === "intro" ? s.intro : winner === "fire" ? s.fire : winner === "water" ? s.water : s.tie;
+  const mark = `${phase}:${key}`;
+  if (!text || storySeen(mark)) return;
+  markStorySeen(mark);
+  const kicker = phase === "intro" ? t("chapter.intro") : winner ? t(`campaign.won.${winner}` as Key) : t("chapter.end");
+  showStory({
+    cls: phase === "end" && winner ? winner : "badge",
+    kicker,
+    title,
+    text,
+    media: ["challenge", key],
+    ...(phase === "end" ? { url: withRegion("/chronik.html"), urlLabel: t("chapter.chronicle") } : {}),
+  });
+}
+
+/** A finished chapter of the chronicle (`/api/chronicle`). */
+type Chron = { key: string; names: ChapterMsg["names"]; story?: Record<string, StoryParts>; ends: number; state: string; winner: string | null };
 
 function duration(s: number): string {
   const m = Math.round(s / 60);
@@ -143,6 +172,29 @@ export function setupCampaign(
       if (m.winner && !before && announced !== m.key && m.starts_in <= 0) {
         announced = m.key;
         notice(m.winner, t(m.kind ? "campaign.weather" : "campaign.chapter"), t(`campaign.won.${m.winner}` as Key), texts(m).title);
+      }
+      // The story: its intro while it runs, its ending once it is over.
+      if (!m.kind && m.story) {
+        if (m.starts_in <= 0 && m.ends_in > 0) tell(m.key, texts(m).title, m.story, "intro", null);
+        if (m.ends_in <= 0) tell(m.key, texts(m).title, m.story, "end", m.winner ?? null);
+      }
+    },
+    /** Who wasn't there at the end: the newest ending of the last two weeks, once. */
+    async catchUp() {
+      try {
+        const res = await fetch(withRegion("/api/chronicle"));
+        if (!res.ok) return;
+        const data = (await res.json()) as { campaigns: { chapters: Chron[] }[] };
+        const now = Date.now() / 1000;
+        const over = data.campaigns
+          .flatMap((c) => c.chapters)
+          .filter((c) => c.state === "over" && c.story && now - c.ends < 14 * 86400)
+          .sort((a, b) => b.ends - a.ends)[0];
+        if (!over) return;
+        const name = pickLang(over.names, lang)?.title ?? over.key;
+        tell(over.key, name, over.story, "end", over.winner);
+      } catch {
+        // offline: next time
       }
     },
   };

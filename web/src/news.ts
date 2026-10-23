@@ -4,6 +4,8 @@
 import { lang } from "./i18n";
 import { $ } from "./page";
 import { KEYS, load, save } from "./store";
+import { activeNotices, text as noticeText } from "./notices";
+import { paragraphs } from "./story";
 
 type Text = { title: string; items: string[] };
 type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
@@ -511,14 +513,31 @@ function seen(id: string) {
 /** Played before: the intro was seen on an earlier visit (main.ts INTRO_KEY), read before this visit's intro. */
 const returning = load(KEYS.intro) !== null;
 
-export function setupNews(t: (k: "news.title" | "news.rules") => string) {
+export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more") => string) {
   const box = $("news");
   const latest = NEWS[0]?.id ?? "";
 
   function show(entries: Entry[]) {
-    if (!entries.length) return;
+    const notices = activeNotices();
+    if (!entries.length && !notices.length) return;
     const list = $("news-list");
     list.replaceChildren(
+      // The city's news flashes first (notices.ts).
+      ...notices.map((n) => {
+        const x = noticeText(n);
+        const sec = document.createElement("section");
+        sec.className = "news-notice";
+        const h = document.createElement("h3");
+        h.textContent = x.title;
+        sec.append(h, ...paragraphs(x.text));
+        if (n.url) {
+          const p = document.createElement("p");
+          const a = Object.assign(document.createElement("a"), { href: n.url, textContent: t("notice.more"), target: "_blank", rel: "noopener noreferrer" });
+          p.append(a);
+          sec.append(p);
+        }
+        return sec;
+      }),
       ...entries.map((e) => {
         const x = e.text[lang] ?? e.text.en ?? e.text.de;
         const sec = document.createElement("section");

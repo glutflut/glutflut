@@ -23,6 +23,7 @@ Common conventions:
 | `GET /api/overview[&peek]` | Territory per tile `{z, t}` for the zoomed-out map; `peek`: 204 unless the region is loaded already. |
 | `GET /api/leaderboard` | See below. `max-age=10`; 503 `no scores yet`. |
 | `GET /api/media`, `/api/media/{id}` | Approved images (finds, zones, chapters). |
+| `GET /api/chronicle` | The campaigns' chronicle: published chapters grouped by campaign (newest first) with titles, story, dates, goal, progress, `state` (`over`, `live`, `soon`) and `winner`. `max-age=120`. Page: `/chronik.html`. |
 | `GET /api/marble/manifest.json`, `shards.json`, `{slug}/{file}` | Globe files (`docs/data-files.md`). |
 | `POST /api/wish` `{lat, lon}` | "I want to play here"; counts the H3 res-6 cell. 204. |
 | `POST /api/feedback` | Feedback from the app. 204. |
@@ -56,7 +57,8 @@ Common conventions:
 | `GET /api/areas` | read | Held areas (`areas.rs`). |
 | `GET /api/feedback`, `GET /api/wishes` | ops token | Latest 500 feedback entries; wish cells. |
 | `GET/POST/DELETE /api/ops/chapters`, `GET /api/ops/chapters/suggest` | editor | Chapter editor (`editor.rs`). |
-| `GET/POST/DELETE /api/ops/mottos`, `GET/POST /api/ops/places` | editor | Campaign phrases, places. |
+| `GET/POST/DELETE /api/ops/mottos`, `GET/POST /api/ops/places` | editor | Campaign phrases, places (finds may carry a `text` per language and a `campaign`). |
+| `GET/POST/DELETE /api/ops/notices` | editor | News flashes (`editor_notices.rs`): `{id?, names: {lang: {title, text}}, url, starts, ends}`; the app shows running ones. |
 | `GET/POST/DELETE /api/ops/media`, `POST /api/ops/media/commons`, `/decide` | editor | Images. |
 | `POST /api/ops/hotspot` `{node, minutes}` | admin | Start a hotspot. 202. |
 | `GET /api/ops/nodes` | editor | `{t, fire, water, front}`: junction ids per side now. 503 + `Retry-After` until the region has built it (only on request). For pictures of the game state (posts, posters). |

@@ -13,6 +13,7 @@ import { FlowLayer } from "./flow";
 import { chooseRegion, knownRegions, openCities, setupCities } from "./outside";
 import { setupWeather } from "./weather";
 import { setupNews } from "./news";
+import { onNotices } from "./notices";
 import { checkInstall } from "./install";
 import { setupRadar } from "./radar";
 import { setupFinds } from "./finds";
@@ -202,7 +203,7 @@ async function main() {
     if (id === null) return card.close();
     card.open(id, nodePos.get(id)!);
   };
-  const update = setupUpdate(() => ["sheet", "tunnel", "find-card", "node-card"].some((id) => !$(id).hidden));
+  const update = setupUpdate(() => ["sheet", "tunnel", "find-card", "node-card", "story"].some((id) => !$(id).hidden));
   const finds = setupFinds(map, net, toast);
   void setupRadar(map, toast);
   setupTop((k) => t(k));
@@ -362,6 +363,7 @@ async function main() {
       if (!update.onServerVersion(m.version)) {
         news.check();
         checkInstall();
+        void campaign.catchUp();
       }
       const me = player.me();
       if (me) net.send({ t: "pos", lat: me[1], lon: me[0] });
@@ -414,6 +416,7 @@ async function main() {
       sound.rumble();
     },
     chapter: (m) => campaign.onChapter(m),
+    notices: (m) => onNotices(m.items),
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
     info: (m) => card.onInfo(m),
