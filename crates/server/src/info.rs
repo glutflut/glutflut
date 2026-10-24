@@ -75,9 +75,11 @@ pub fn weak_in(
     if !rules.takeover_stronger || s.kind == SourceKind::Spark {
         return Some(0);
     }
-    (0..=5760u32)
-        .map(|k| k * 30)
-        .find(|&t| strength_after(s, rules, affinity, wear, t as f32).is_none_or(|x| x < limit))
+    let weak = |t: u32| strength_after(s, rules, affinity, wear, t as f32).is_none_or(|x| x < limit);
+    // Coarse steps over two days, then the exact second within the last step
+    // (the card counts down between answers; a rounded value would jump).
+    let coarse = (0..=5760u32).map(|k| k * 30).find(|&t| weak(t))?;
+    Some((coarse.saturating_sub(29)..=coarse).find(|&t| weak(t)).unwrap_or(coarse))
 }
 
 pub fn source(
@@ -178,8 +180,9 @@ mod tests {
             takeover_below: 0.5,
             ..Default::default()
         };
-        // Below 0.4 after half the lifetime (270 s), in 30 s steps.
-        assert_eq!(weak_in(&claim(0.0), &r, 0.0, 0.0, 0.8), Some(300));
+        // Below 0.4 just after half the lifetime (270 s), exact to the second.
+        assert_eq!(weak_in(&claim(0.0), &r, 0.0, 0.0, 0.8), Some(271));
+        assert_eq!(weak_in(&claim(100.0), &r, 0.0, 0.0, 0.8), Some(171));
         assert_eq!(weak_in(&claim(400.0), &r, 0.0, 0.0, 0.8), Some(0));
         assert_eq!(source(&claim(0.0), false, &r, 0.0, Some(3)).left, Some(540));
         assert!(source(&claim(0.0), false, &r, 0.0, Some(3)).yours);

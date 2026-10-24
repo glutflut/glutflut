@@ -13,7 +13,8 @@ import { $ } from "./page";
 export type InfoMsg = Extract<ServerMsg, { t: "info" }>;
 
 function span(s: number): string {
-  if (s < 60) return t("node.t.s", { n: Math.max(1, Math.round(s)) });
+  // 59.5 s and up is a minute (never "60 s").
+  if (s < 59.5) return t("node.t.s", { n: Math.max(1, Math.round(s)) });
   if (s < 3600) return t("node.t.min", { n: Math.round(s / 60) });
   return t("node.t.h", { n: Math.round(s / 360) / 10 });
 }

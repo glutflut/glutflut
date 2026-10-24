@@ -8,6 +8,11 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Fixed
 
+- The junction card's "weak enough in about …" was rounded up to 30-second
+  steps on the server while the card asked again every second, so it sat at
+  "1 min" and flickered against the card's own countdown instead of falling.
+  The server now answers to the second.
+
 - Editor: a find added or deleted under Orte appears in the targets of the
   Medien tab at once, no reload needed.
 - A region that woke up between UTC midnight and its local midnight took the
