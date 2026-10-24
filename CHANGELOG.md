@@ -17,6 +17,9 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Added
 
+- Editor, finds: "Brief hier hinzulegen" on an existing find opens a new
+  find at the same spot, bound to the newest campaign, for a letter;
+  the fountain or gate itself stays as it is.
 - The chronicle is linked where people look: in the chapter bar, at the top
   of "Neuigkeiten" and in the footer, not only under Hilfe.
 - Live claims, anchors and sparks survive a restart or an idle unload

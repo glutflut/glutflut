@@ -139,6 +139,10 @@ export function initPlaces(apiFn: Api) {
   };
   $("place-save").onclick = () => void save(false);
   $("place-delete").onclick = () => void save(true);
+  $("place-letter-here").onclick = () => {
+    const f = editing?.kind === "find" && editing.id ? data?.finds.find((x) => x.id === editing!.id) : undefined;
+    if (f) openLetter(f);
+  };
   input("place-name").oninput = draw;
   input("place-radius").oninput = draw;
   input("place-focus").onchange = draw;
@@ -305,9 +309,12 @@ function offerNew(at: maplibregl.LngLat) {
 }
 
 const blank = { radius_m: null, focus: false, collection: "", hidden: false, text: {}, campaign: "" };
+/** The form holds a new letter laid at an existing find (openLetter). */
+let asLetter = false;
 
 function openZone(z: Zone | null, at?: maplibregl.LngLat) {
   clean("place-form");
+  asLetter = false;
   editing = z
     ? { ...blank, kind: "zone", id: z.id, name: z.name, lat: z.lat, lon: z.lon, radius_m: z.radius_m, focus: z.focus }
     : { ...blank, kind: "zone", name: "", lat: at!.lat, lon: at!.lng, radius_m: 150, focus: true };
@@ -316,6 +323,7 @@ function openZone(z: Zone | null, at?: maplibregl.LngLat) {
 
 function openSite(s: Site | null, at?: maplibregl.LngLat) {
   clean("place-form");
+  asLetter = false;
   editing = s
     ? { ...blank, kind: "site", id: s.id, name: s.name, lat: s.lat, lon: s.lon }
     : { ...blank, kind: "site", name: "", lat: at!.lat, lon: at!.lng };
@@ -324,10 +332,31 @@ function openSite(s: Site | null, at?: maplibregl.LngLat) {
 
 function openFind(f: Find | null, at?: maplibregl.LngLat) {
   clean("place-form");
+  asLetter = false;
   editing = f
     ? { ...blank, kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden: f.hidden, text: { ...(f.text ?? {}) }, campaign: f.campaign }
     : { ...blank, kind: "find", name: "", lat: at!.lat, lon: at!.lng, collection: "fountains" };
   fill();
+}
+
+/** A letter at an existing find: a new find at the same spot, bound to the
+ * newest campaign, so it is found only while that runs (like every find it
+ * stays unseen until a claim nearby uncovers it); the find itself (a fountain,
+ * a gate) stays as it is. */
+function openLetter(f: Find) {
+  clean("place-form");
+  asLetter = true;
+  editing = {
+    ...blank,
+    kind: "find",
+    name: t("pl.letter.name", { name: f.name }),
+    lat: f.lat,
+    lon: f.lon,
+    collection: f.collection,
+    campaign: data?.campaigns[0] ?? "",
+  };
+  fill();
+  $<HTMLTextAreaElement>(`place-text-${primary}`)?.focus();
 }
 
 /** A letter's texts: the city's language first, the others after it. */
@@ -365,12 +394,13 @@ function fill() {
   if (e.campaign && !data.campaigns.includes(e.campaign)) camp.append(new Option(e.campaign, e.campaign));
   camp.value = e.campaign;
   drawLetter(e.text);
-  ($("place-letter") as HTMLDetailsElement).open = Object.values(e.text).some(Boolean);
+  ($("place-letter") as HTMLDetailsElement).open = asLetter || Object.values(e.text).some(Boolean);
+  $("place-letter-here").hidden = !(find && e.id);
   $("place-letter").hidden = !find;
   $("place-find-fields").hidden = !find;
   $("place-find-note").hidden = !find;
   $("place-find-note").textContent = !f
-    ? t("pl.find.new.note")
+    ? t(asLetter ? "pl.letter.new.note" : "pl.find.new.note")
     : `${t("pl.find.found", { origin: t(f.own ? "pl.find.own" : "pl.find.osm"), n: f.found })} ${f.own && !f.found ? "" : t("pl.find.hide.note")}`;
   input("place-name").value = e.name;
   input("place-radius").value = e.radius_m == null ? "" : String(e.radius_m);
