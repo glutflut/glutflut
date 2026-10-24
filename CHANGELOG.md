@@ -24,6 +24,7 @@ All notable changes to Glut & Flut. Versions follow
   the ranking page to the profile.
 
 ### Fixed
+- Help page: the chapter bullet now says that the first chapter of a campaign resets levels and XP (points and badges stay) and later chapters do not.
 
 - The chapter bar's "ab Di 17:59": the relative seconds arrive a moment after
   the server computed them and the time formatter cuts the seconds, so a
