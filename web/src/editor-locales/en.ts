@@ -239,6 +239,8 @@ export const en: EDict = {
   "pl.hidden.toast": "“{name}” hidden.",
   "pl.count": "{shown} visible, {hidden} hidden",
   "pl.finds.none": "No finds.",
+  "pl.search.ph": "Zones, hotspot sites, finds …",
+  "pl.search.none": "Nothing found.",
   "coll.fountains": "Fountains",
   "coll.trees": "Special trees",
   "coll.gates": "Gates, towers, castles",

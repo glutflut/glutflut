@@ -68,6 +68,14 @@ let api: Api;
 let region = "";
 /** The city's language: first row of a letter's texts. */
 let primary = "de";
+
+/** Names sorted the way the city reads them (umlauts, case, numbers). */
+const byName = () => new Intl.Collator(primary, { sensitivity: "base", numeric: true });
+/** The search over zones, sites and finds: every word must occur in the name. */
+function matches(): (name: string) => boolean {
+  const words = input("places-search").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return (name) => words.every((w) => name.toLowerCase().includes(w));
+}
 let data: Places | null = null;
 let map: maplibregl.Map | null = null;
 let mapRegion = "";
@@ -133,7 +141,7 @@ export function initPlaces(apiFn: Api) {
     input("show-finds").dispatchEvent(new Event("change"));
     openFind(null, c);
   };
-  input("finds-search").oninput = () => finds();
+  input("places-search").oninput = lists;
   $("place-cancel").onclick = async () => {
     if (await mayLeave("place-form")) close();
   };
@@ -468,7 +476,10 @@ function lists() {
   const zt = document.createElement("table");
   zt.className = "ed-table";
   head(zt, [t("pl.th.zone"), t("pl.th.radius"), t("pl.th.focus"), t("pl.th.last")]);
-  for (const z of d.zones) {
+  const hit = matches();
+  const cmp = byName();
+  const zones = d.zones.filter((z) => hit(z.name)).sort((a, b) => Number(b.focus) - Number(a.focus) || cmp.compare(a.name, b.name));
+  for (const z of zones) {
     const tr = zt.insertRow();
     const name = tr.insertCell();
     const a = document.createElement("button");
@@ -484,12 +495,13 @@ function lists() {
     tr.insertCell().textContent = z.focus ? t("ui.yes") : "";
     tr.insertCell().textContent = z.by ?? t("pl.import");
   }
-  $("zones-list").replaceChildren(d.zones.length ? zt : document.createTextNode(t("pl.zones.none")));
+  $("zones-list").replaceChildren(zones.length ? zt : document.createTextNode(t(d.zones.length ? "pl.search.none" : "pl.zones.none")));
   // Hotspot sites.
   const st = document.createElement("table");
   st.className = "ed-table";
   head(st, [t("pl.th.site"), t("pl.th.food", { m: d.limits.food_m }), t("pl.th.last")]);
-  for (const s of d.sites) {
+  const sites = d.sites.filter((s) => hit(s.name)).sort((a, b) => cmp.compare(a.name, b.name));
+  for (const s of sites) {
     const tr = st.insertRow();
     const name = tr.insertCell();
     const a = document.createElement("button");
@@ -505,9 +517,9 @@ function lists() {
     tr.insertCell().textContent = s.by ?? "";
   }
   $("sites-list").replaceChildren(
-    d.sites.length
+    sites.length
       ? st
-      : document.createTextNode(t("pl.sites.none", { m: Math.round(d.auto.radius_m) })),
+      : document.createTextNode(d.sites.length ? t("pl.search.none") : t("pl.sites.none", { m: Math.round(d.auto.radius_m) })),
   );
   // Bias: hotspots mostly at restaurants and bars draw a narrow crowd.
   const withFood = d.sites.filter((s) => (s.food?.length ?? 0) > 0).length;
@@ -585,8 +597,9 @@ function finds() {
   if (!data) return;
   const d = data;
   const want = $<HTMLSelectElement>("finds-filter").value;
-  const words = input("finds-search").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const list = d.finds.filter((f) => (!want || f.collection === want) && words.every((w) => f.name.toLowerCase().includes(w)));
+  const hit = matches();
+  const cmp = byName();
+  const list = d.finds.filter((f) => (!want || f.collection === want) && hit(f.name)).sort((a, b) => cmp.compare(a.name, b.name));
   const tbl = document.createElement("table");
   tbl.className = "ed-table";
   head(tbl, [t("pl.th.find"), t("pl.th.coll"), t("pl.th.origin"), t("pl.th.found")], true);
@@ -630,5 +643,5 @@ function finds() {
   }
   const shown = d.finds.filter((f) => !f.hidden).length;
   $("finds-count").textContent = t("pl.count", { shown, hidden: d.finds.length - shown });
-  $("finds-list").replaceChildren(list.length ? tbl : document.createTextNode(t("pl.finds.none")));
+  $("finds-list").replaceChildren(list.length ? tbl : document.createTextNode(t(d.finds.length ? "pl.search.none" : "pl.finds.none")));
 }

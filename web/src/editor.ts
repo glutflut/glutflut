@@ -59,6 +59,18 @@ function storeToken(t: string) {
 
 let token = storedToken();
 let region = "";
+const REGION_KEY = "ed-region";
+/** The chosen city, kept across a reload: in the URL and on this device. */
+function remember(slug: string) {
+  try {
+    localStorage.setItem(REGION_KEY, slug);
+  } catch {
+    // private window: the URL still carries it
+  }
+  const url = new URL(location.href);
+  url.searchParams.set("region", slug);
+  history.replaceState(history.state, "", url);
+}
 let chapters: Chapter[] = [];
 let editing: Chapter | null = null;
 let names: Names = {};
@@ -115,9 +127,10 @@ async function regions() {
   const mine = a.all ? all : all.filter((r) => a.regions.includes(r.slug));
   sel.replaceChildren(...mine.map((r) => new Option(r.city, r.slug)));
   langOf = new Map(mine.map((r) => [r.slug, r.language]));
-  const want = new URLSearchParams(location.search).get("region");
+  const want = new URLSearchParams(location.search).get("region") ?? localStorage.getItem(REGION_KEY);
   if (want && mine.some((r) => r.slug === want)) sel.value = want;
   region = sel.value;
+  remember(region);
   admin = !!acc && roleIn(acc, region) === "admin";
   $("new").hidden = !region;
   document.querySelector(".city")!.textContent = mine.find((r) => r.slug === region)?.city ?? "";
@@ -418,6 +431,7 @@ $<HTMLSelectElement>("region").onchange = async () => {
     return;
   }
   region = sel.value;
+  remember(region);
   admin = !!acc && roleIn(acc, region) === "admin";
   document.querySelector(".city")!.textContent = sel.selectedOptions[0]?.text ?? "";
   $("form-card").hidden = true;

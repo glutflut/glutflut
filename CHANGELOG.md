@@ -17,6 +17,9 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Added
 
+- Editor: the chosen city survives a reload (URL and device); zones, hotspot
+  sites and finds are sorted by name as the city reads it, with one search
+  over all three.
 - Editor, finds: "Brief hier hinzulegen" on an existing find opens a new
   find at the same spot, bound to the newest campaign, for a letter;
   the fountain or gate itself stays as it is.

@@ -239,6 +239,8 @@ export const fr: EDict = {
   "pl.hidden.toast": "« {name} » masquée.",
   "pl.count": "{shown} visibles, {hidden} masquées",
   "pl.finds.none": "Aucune trouvaille.",
+  "pl.search.ph": "Zones, lieux hotspot, trouvailles…",
+  "pl.search.none": "Rien trouvé.",
   "coll.fountains": "Fontaines",
   "coll.trees": "Arbres remarquables",
   "coll.gates": "Portes, tours, châteaux",
