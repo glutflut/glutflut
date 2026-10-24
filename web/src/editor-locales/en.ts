@@ -224,6 +224,8 @@ export const en: EDict = {
   "pl.plan.fail": "Scheduling failed",
   "pl.planned": "Hotspot scheduled.",
   "pl.colls.all": "all collections",
+  "pl.th.campaign": "Campaign",
+  "pl.camp.all": "all",
   "pl.th.find": "Find",
   "pl.th.coll": "Collection",
   "pl.th.origin": "Source",

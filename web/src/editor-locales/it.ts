@@ -224,6 +224,8 @@ export const it: EDict = {
   "pl.plan.fail": "Programmazione non riuscita",
   "pl.planned": "Hotspot programmato.",
   "pl.colls.all": "tutte le collezioni",
+  "pl.th.campaign": "Campagna",
+  "pl.camp.all": "tutte",
   "pl.th.find": "Reperto",
   "pl.th.coll": "Collezione",
   "pl.th.origin": "Origine",

@@ -125,6 +125,7 @@ export function initPlaces(apiFn: Api) {
   const ff = $<HTMLSelectElement>("finds-filter");
   ff.replaceChildren(new Option(t("pl.colls.all"), ""), ...Object.entries(COLL_NAME).map(([k, v]) => new Option(v, k)));
   ff.onchange = finds;
+  $<HTMLSelectElement>("finds-campaign").onchange = finds;
   $("plan-add").onclick = () => void addPlan();
   watchForm("place-form");
   // New places at the map's centre (then drag the marker).
@@ -605,12 +606,23 @@ function finds() {
   if (!data) return;
   const d = data;
   const want = $<HTMLSelectElement>("finds-filter").value;
+  // The campaign filter: all, only the ones that always play ("-"), or one campaign.
+  const cf = $<HTMLSelectElement>("finds-campaign");
+  const before = cf.value;
+  cf.replaceChildren(
+    new Option(t("pl.camp.all"), ""),
+    new Option(t("pl.campaign.none"), "-"),
+    ...d.campaigns.map((c) => new Option(c, c)),
+  );
+  cf.value = [...cf.options].some((o) => o.value === before) ? before : "";
+  const camp = cf.value;
+  const inCamp = (f: Find) => !camp || (camp === "-" ? !f.campaign : f.campaign === camp);
   const hit = matches();
   const cmp = byName();
-  const list = d.finds.filter((f) => (!want || f.collection === want) && hit(f.name)).sort((a, b) => cmp.compare(a.name, b.name));
+  const list = d.finds.filter((f) => (!want || f.collection === want) && inCamp(f) && hit(f.name)).sort((a, b) => cmp.compare(a.name, b.name));
   const tbl = document.createElement("table");
   tbl.className = "ed-table";
-  head(tbl, [t("pl.th.find"), t("pl.th.coll"), t("pl.th.origin"), t("pl.th.found")], true);
+  head(tbl, [t("pl.th.find"), t("pl.th.coll"), t("pl.th.campaign"), t("pl.th.origin"), t("pl.th.found")], true);
   for (const f of list) {
     const tr = tbl.insertRow();
     if (f.hidden) tr.className = "muted";
@@ -624,10 +636,10 @@ function finds() {
       map?.easeTo({ center: [f.lon, f.lat], zoom: Math.max(map.getZoom(), 15) });
     };
     name.append(a);
-    // A letter, a campaign: small marks.
-    const marks = [f.text && Object.keys(f.text).length ? "📖" : "", f.campaign].filter(Boolean).join(" ");
-    if (marks) name.append(" ", Object.assign(document.createElement("small"), { textContent: marks }));
+    // A letter: a small mark; the campaign has its own column.
+    if (f.text && Object.keys(f.text).length) name.append(" ", Object.assign(document.createElement("small"), { textContent: "📖" }));
     tr.insertCell().textContent = COLL_NAME[f.collection] ?? f.collection;
+    tr.insertCell().textContent = f.campaign || "";
     tr.insertCell().textContent = f.own ? t("pl.origin.own", { by: f.by ?? "" }) : f.by ? t("pl.origin.osmed", { by: f.by }) : "OSM";
     tr.insertCell().textContent = String(f.found);
     const b = document.createElement("button");

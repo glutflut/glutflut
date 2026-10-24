@@ -223,6 +223,8 @@ export const de = {
   "pl.plan.fail": "Planen ging nicht",
   "pl.planned": "Hotspot geplant.",
   "pl.colls.all": "alle Sammlungen",
+  "pl.th.campaign": "Kampagne",
+  "pl.camp.all": "alle",
   "pl.th.find": "Fundstück",
   "pl.th.coll": "Sammlung",
   "pl.th.origin": "Herkunft",
