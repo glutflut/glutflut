@@ -314,7 +314,7 @@ pub fn challenge_tick(
 }
 
 /// The chapter and the race, for the apps.
-fn chapter_msg(c: &crate::campaign::Campaign, now: f64) -> Option<ServerMsg<'_>> {
+fn chapter_msg(c: &crate::campaign::Campaign, now: f64, levels: bool) -> Option<ServerMsg<'_>> {
     let ch = c.chapter.as_ref()?;
     Some(ServerMsg::Chapter {
         chapter: ch,
@@ -323,6 +323,7 @@ fn chapter_msg(c: &crate::campaign::Campaign, now: f64) -> Option<ServerMsg<'_>>
         fire: c.progress[0],
         water: c.progress[1],
         winner: c.winner(now).map(Faction::as_str),
+        resets: levels && c.resets(ch),
     })
 }
 
@@ -379,7 +380,7 @@ pub fn campaign_tick(
     if now >= *next || (campaign.changed && now >= *next - 8.0) {
         *next = now + 10.0;
         if std::mem::take(&mut campaign.changed) {
-            if let Some(m) = chapter_msg(&campaign, now) {
+            if let Some(m) = chapter_msg(&campaign, now, rules.0.progression.enabled) {
                 to_all(&clients, &m);
             }
         }

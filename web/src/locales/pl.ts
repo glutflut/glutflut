@@ -403,6 +403,7 @@ export const pl: Dict = {
   "time.hmin": "{h} h {m} min",
   "time.days": "dni: {d}",
   "campaign.weather": "Pogoda dziś",
+  "campaign.reset": "Nowa kampania: wszyscy zaczynają znów od poziomu 1. Punkty i odznaki zostają.",
   "story.ok": "Dalej",
   "chapter.intro": "Rozdział się zaczyna",
   "chapter.end": "Rozdział dobiegł końca",

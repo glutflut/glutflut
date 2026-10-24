@@ -198,6 +198,11 @@ pub enum ServerMsg<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(as = "Option<Faction>", optional)]
         winner: Option<&'static str>,
+        /// The first chapter of a campaign where levels are on: everyone
+        /// starts again at level 1 (`Scores::campaign_reset`).
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
+        #[ts(as = "Option<bool>", optional)]
+        resets: bool,
     },
     Forgotten,
     /// Today's weather as a rule (`[weather] enabled`).

@@ -25,6 +25,7 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Fixed
 - Help page: the chapter bullet now says that the first chapter of a campaign resets levels and XP (points and badges stay) and later chapters do not.
+- The first chapter of a campaign (where levels are on) says so in the app too: "Neue Kampagne: Alle beginnen wieder bei Stufe 1" in the chapter bar, the intro card and the chapter's card (`resets` on the chapter message).
 
 - The chapter bar's "ab Di 17:59": the relative seconds arrive a moment after
   the server computed them and the time formatter cuts the seconds, so a

@@ -402,6 +402,7 @@ export const de = {
   "time.hmin": "{h} h {m} min",
   "time.days": "{d} Tage",
   "campaign.weather": "Wetter heute",
+  "campaign.reset": "Neue Kampagne: Alle beginnen wieder bei Stufe 1. Punkte und Abzeichen bleiben.",
   "story.ok": "Weiter",
   "chapter.intro": "Das Kapitel beginnt",
   "chapter.end": "Das Kapitel ist zu Ende",

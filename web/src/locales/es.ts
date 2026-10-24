@@ -404,6 +404,7 @@ export const es: Dict = {
   "time.hmin": "{h} h {m} min",
   "time.days": "{d} días",
   "campaign.weather": "El tiempo de hoy",
+  "campaign.reset": "Nueva campaña: todos vuelven al nivel 1. Los puntos y las insignias se quedan.",
   "story.ok": "Continuar",
   "chapter.intro": "Empieza el capítulo",
   "chapter.end": "El capítulo ha terminado",

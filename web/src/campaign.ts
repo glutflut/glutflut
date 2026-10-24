@@ -33,6 +33,9 @@ function texts(m: ChapterMsg): { title: string; text: string } {
   return m.names[lang] ?? m.names.de ?? m.names.en ?? Object.values(m.names)[0] ?? { title: m.key, text: "" };
 }
 
+/** The first chapter of a campaign starts the levels again: say so wherever the chapter is announced. */
+const hint = (m: ChapterMsg) => (m.resets ? t("campaign.reset") : "");
+
 /** Title of chapter `key` in the current language (known on this device). */
 export function chapterTitle(key: string): string {
   const n = stored()[key];
@@ -46,9 +49,10 @@ function storyOf(story: Record<string, StoryParts> | undefined): StoryParts {
 }
 
 /** The intro once when the chapter runs; the ending for the outcome once it is over. */
-function tell(key: string, title: string, story: Record<string, StoryParts> | undefined, phase: "intro" | "end", winner: string | null | undefined) {
+function tell(key: string, title: string, story: Record<string, StoryParts> | undefined, phase: "intro" | "end", winner: string | null | undefined, extra = "") {
   const s = storyOf(story);
-  const text = phase === "intro" ? s.intro : winner === "fire" ? s.fire : winner === "water" ? s.water : s.tie;
+  let text = phase === "intro" ? s.intro : winner === "fire" ? s.fire : winner === "water" ? s.water : s.tie;
+  if (text && extra) text += `\n\n${extra}`;
   const mark = `${phase}:${key}`;
   if (!text || storySeen(mark)) return;
   markStorySeen(mark);
@@ -124,19 +128,20 @@ export function setupCampaign(
       bar.classList.add("soon");
       const when = new Date(minute(Date.now() + startsIn * 1000)).toLocaleString(lang, { weekday: "short", hour: "2-digit", minute: "2-digit" });
       $("chapter-time").textContent = t("campaign.starts", { when });
-      $("chapter-goal").textContent = name?.text ?? "";
+      $("chapter-goal").textContent = [name?.text, hint(m)].filter(Boolean).join(" ");
       return;
     }
     bar.classList.remove("soon");
     $("chapter-time").textContent = m.winner ? t(`campaign.won.${m.winner}` as Key) : t("campaign.ends", { time: duration(endsIn) });
     const goal = t(`campaign.goal.${m.goal}` as Key);
     const end = new Date(minute(Date.now() + endsIn * 1000)).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
-    $("chapter-goal").textContent =
+    const race =
       m.goal === "hold"
         ? t("campaign.hold", { n: m.target, time: end })
         : m.target === m.target_water
         ? t("campaign.goal", { target: m.target.toLocaleString(lang), goal })
         : t("campaign.goal.sides", { fire: m.target.toLocaleString(lang), water: m.target_water.toLocaleString(lang), goal });
+    $("chapter-goal").textContent = [race, hint(m)].filter(Boolean).join(" ");
     const fill = (id: string, v: number, target: number) => (($(id) as HTMLElement).style.width = `${Math.min(100, (100 * v) / target)}%`);
     fill("chapter-fire", m.fire, m.target);
     fill("chapter-water", m.water, m.target_water);
@@ -159,7 +164,7 @@ export function setupCampaign(
     // Folded: a tap unfolds it; unfolded: the chapter's text as a card.
     if ($("chapter").classList.contains("folded")) return fold(null);
     const name = texts(last);
-    notice("badge", t(last.kind ? "campaign.weather" : "campaign.chapter"), name.title, name.text, last.kind ? undefined : ["challenge", last.key]);
+    notice("badge", t(last.kind ? "campaign.weather" : "campaign.chapter"), name.title, [name.text, hint(last)].filter(Boolean).join(" "), last.kind ? undefined : ["challenge", last.key]);
   };
   // The link in the bar: not a tap on the bar.
   $("chapter-chron").onclick = (e) => e.stopPropagation();
@@ -185,7 +190,7 @@ export function setupCampaign(
       }
       // The story: its intro while it runs, its ending once it is over.
       if (!m.kind && m.story) {
-        if (m.starts_in <= 0 && m.ends_in > 0) tell(m.key, texts(m).title, m.story, "intro", null);
+        if (m.starts_in <= 0 && m.ends_in > 0) tell(m.key, texts(m).title, m.story, "intro", null, hint(m));
         if (m.ends_in <= 0) tell(m.key, texts(m).title, m.story, "end", m.winner ?? null);
       }
     },

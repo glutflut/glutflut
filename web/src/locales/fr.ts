@@ -403,6 +403,7 @@ export const fr: Dict = {
   "time.hmin": "{h} h {m} min",
   "time.days": "{d} jours",
   "campaign.weather": "La météo du jour",
+  "campaign.reset": "Nouvelle campagne\u00a0: tout le monde repart du niveau 1. Les points et les badges restent.",
   "story.ok": "Continuer",
   "chapter.intro": "Le chapitre commence",
   "chapter.end": "Le chapitre est terminé",

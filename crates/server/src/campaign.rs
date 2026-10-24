@@ -263,6 +263,16 @@ impl Campaign {
             .collect()
     }
 
+    /// Is `ch` the first chapter of its campaign? Levels start again there
+    /// (`Scores::campaign_reset`), so the apps say so.
+    pub fn resets(&self, ch: &Chapter) -> bool {
+        ch.kind.is_none()
+            && self
+                .campaigns
+                .iter()
+                .any(|(c, s, _)| *c == ch.campaign && (s - ch.starts).abs() < 1.0)
+    }
+
     /// Count `n` for `faction` if the running chapter's goal is `goal`.
     /// Returns the chapter key when it counted and gives badges.
     pub fn add(&mut self, faction: Faction, goal: Goal, n: i64, now: f64) -> Option<String> {
@@ -714,6 +724,23 @@ fn save(c: &mut postgres::Client, region: &str, s: &Save) -> Result<(), postgres
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_first_chapter_of_a_campaign_resets_levels() {
+        let mut c = with_chapter(Goal::Claims, 10);
+        let ch = c.chapter.clone().unwrap();
+        assert!(!c.resets(&ch), "unknown campaign: no");
+        c.campaigns = vec![("c".into(), 100.0, 900.0)];
+        assert!(c.resets(&ch), "starts with the campaign");
+        c.campaigns = vec![("c".into(), 50.0, 900.0)];
+        assert!(!c.resets(&ch), "a later chapter");
+        c.campaigns = vec![("c".into(), 100.0, 900.0)];
+        let wx = Chapter {
+            kind: Some("weather:rain".into()),
+            ..ch
+        };
+        assert!(!c.resets(&wx), "weather days never");
+    }
 
     fn with_chapter(goal: Goal, target: i64) -> Campaign {
         let mut c = Campaign::spawn(None, "test".into());

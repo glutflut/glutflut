@@ -187,7 +187,7 @@ pub(super) fn hello(
     if let Some(s) = slot {
         game.scores.catch_up(s, &game.campaign.past);
     }
-    if let Some(m) = chapter_msg(&game.campaign, now) {
+    if let Some(m) = chapter_msg(&game.campaign, now, rules.progression.enabled) {
         send(&out, &m);
     }
     if !game.campaign.notices.is_empty() {
