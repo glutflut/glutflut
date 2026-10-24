@@ -75,11 +75,16 @@ pub fn weak_in(
     if !rules.takeover_stronger || s.kind == SourceKind::Spark {
         return Some(0);
     }
-    let weak = |t: u32| strength_after(s, rules, affinity, wear, t as f32).is_none_or(|x| x < limit);
+    let weak =
+        |t: u32| strength_after(s, rules, affinity, wear, t as f32).is_none_or(|x| x < limit);
     // Coarse steps over two days, then the exact second within the last step
     // (the card counts down between answers; a rounded value would jump).
     let coarse = (0..=5760u32).map(|k| k * 30).find(|&t| weak(t))?;
-    Some((coarse.saturating_sub(29)..=coarse).find(|&t| weak(t)).unwrap_or(coarse))
+    Some(
+        (coarse.saturating_sub(29)..=coarse)
+            .find(|&t| weak(t))
+            .unwrap_or(coarse),
+    )
 }
 
 pub fn source(
