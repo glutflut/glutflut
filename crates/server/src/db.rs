@@ -326,12 +326,16 @@ pub struct FindRow {
     pub text: Option<serde_json::Value>,
     /// Plays only while this campaign runs.
     pub campaign: Option<String>,
+    /// Plays only from / until (unix seconds); `None`: no bound.
+    pub starts: Option<f64>,
+    pub ends: Option<f64>,
 }
 
 /// The region's visible finds.
 pub fn find_rows(c: &mut Client, slug: &str) -> Result<Vec<FindRow>, postgres::Error> {
     Ok(c.query(
-        "SELECT id, collection, name, lat, lon, text::text, campaign \
+        "SELECT id, collection, name, lat, lon, text::text, campaign, \
+         extract(epoch FROM starts)::float8, extract(epoch FROM ends)::float8 \
          FROM geo.finds WHERE region = $1 AND NOT hidden",
         &[&slug],
     )?
@@ -346,6 +350,8 @@ pub fn find_rows(c: &mut Client, slug: &str) -> Result<Vec<FindRow>, postgres::E
             .get::<_, Option<String>>(5)
             .and_then(|s| serde_json::from_str(&s).ok()),
         campaign: r.get(6),
+        starts: r.get(7),
+        ends: r.get(8),
     })
     .collect())
 }

@@ -182,7 +182,7 @@ pub(super) fn hello(
     }
     if let (Some(f), Some(s)) = (game.finds.as_deref(), slot) {
         let running = game.campaign.running(now);
-        send_finds(&out, f, &game.scores, s, &running);
+        send_finds(&out, f, &game.scores, s, &running, now);
     }
     if let Some(s) = slot {
         game.scores.catch_up(s, &game.campaign.past);
@@ -375,7 +375,7 @@ pub(super) fn pos(
         let p = Vec2::new(pos.0.x, pos.0.z);
         let running = game.campaign.running(now);
         if let Some(near) = f
-            .near(p, c.rules.finds.hint_m, &running)
+            .near(p, c.rules.finds.hint_m, &running, now)
             .into_iter()
             .find(|x| !known.contains(&x.id))
         {
@@ -395,7 +395,7 @@ pub(super) fn pos(
         // Being there uncovers too, also where all is one's own:
         // `dwell_s` near a find not known yet (not when flagged).
         let here = f
-            .near(p, c.rules.finds.uncover_m, &running)
+            .near(p, c.rules.finds.uncover_m, &running, now)
             .into_iter()
             .find(|x| !known.contains(&x.id))
             .map(|x| x.id)

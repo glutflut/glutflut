@@ -221,7 +221,7 @@ fn uncover_near(
     now: f64,
 ) {
     let running = campaign.running(now);
-    for find in f.near(at, uncover_m, &running) {
+    for find in f.near(at, uncover_m, &running, now) {
         let Some(stored) = scores.uncover(s, find.id) else {
             continue;
         };
@@ -229,9 +229,9 @@ fn uncover_near(
             scores.grant(s, &format!("chapter:{key}"));
         }
         let known = scores.finds(s).map(|k| k.1).unwrap_or_default();
-        let n = f.count(&find.collection, known.iter().copied(), &running);
+        let n = f.count(&find.collection, known.iter().copied(), &running, now);
         let of = f
-            .totals(&running)
+            .totals(&running, now)
             .get(&find.collection)
             .copied()
             .unwrap_or(0);
@@ -413,8 +413,8 @@ pub fn tide_tick(
 }
 
 /// The player's finds in this region and the collection sizes (`running`:
-/// the campaigns running, `Campaign::running`).
-fn send_finds(out: &Outbox, f: &Finds, scores: &Scores, slot: u32, running: &[String]) {
+/// the campaigns running at `now`, `Campaign::running`).
+fn send_finds(out: &Outbox, f: &Finds, scores: &Scores, slot: u32, running: &[String], now: f64) {
     let Some((collect, known)) = scores.finds(slot) else {
         return;
     };
@@ -423,7 +423,7 @@ fn send_finds(out: &Outbox, f: &Finds, scores: &Scores, slot: u32, running: &[St
         &ServerMsg::Finds {
             collect,
             items: f.of(&known).collect(),
-            totals: f.totals(running),
+            totals: f.totals(running, now),
         },
     );
 }

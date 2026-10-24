@@ -6,6 +6,14 @@ All notable changes to Glut & Flut. Versions follow
 
 ## Unreleased
 
+### Added
+
+- Finds can have a period (migration V4, `starts`/`ends`, either end open):
+  they play only within it. A find of a campaign needs both, the campaign
+  running and the period fitting, so a letter can wait for its reveal in the
+  story and a seasonal find can come and go. Editor: "Spielbar ab / bis" at
+  the find, the period in the list.
+
 ### Fixed
 
 - The junction card's "weak enough in about …" was rounded up to 30-second

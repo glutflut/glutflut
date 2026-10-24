@@ -27,6 +27,9 @@ type Find = {
   text: Record<string, string> | null;
   /** Plays only while this campaign runs; "": always. */
   campaign: string;
+  /** Plays only from / until (unix seconds); null: no bound. */
+  starts: number | null;
+  ends: number | null;
 };
 type Plan = { id: string; name: string; starts: number; ends: number; by: string | null; lat: number; lon: number };
 type Places = {
@@ -54,6 +57,8 @@ type Edit = {
   hidden: boolean;
   text: Record<string, string>;
   campaign: string;
+  starts: number | null;
+  ends: number | null;
 };
 
 const FOCUS = "#e8a400";
@@ -324,7 +329,7 @@ function offerNew(at: maplibregl.LngLat) {
   pick = new maplibregl.Popup({ closeButton: true, closeOnClick: false }).setLngLat(at).setDOMContent(box).addTo(map!);
 }
 
-const blank = { radius_m: null, focus: false, collection: "", hidden: false, text: {}, campaign: "" };
+const blank = { radius_m: null, focus: false, collection: "", hidden: false, text: {}, campaign: "", starts: null, ends: null };
 /** The form holds a new letter laid at an existing find (openLetter). */
 let asLetter = false;
 
@@ -350,7 +355,7 @@ function openFind(f: Find | null, at?: maplibregl.LngLat) {
   clean("place-form");
   asLetter = false;
   editing = f
-    ? { ...blank, kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden: f.hidden, text: { ...(f.text ?? {}) }, campaign: f.campaign }
+    ? { ...blank, kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden: f.hidden, text: { ...(f.text ?? {}) }, campaign: f.campaign, starts: f.starts, ends: f.ends }
     : { ...blank, kind: "find", name: "", lat: at!.lat, lon: at!.lng, collection: "fountains" };
   fill();
 }
@@ -409,11 +414,14 @@ function fill() {
   camp.replaceChildren(new Option(t("pl.campaign.none"), ""), ...data.campaigns.map((c) => new Option(c, c)));
   if (e.campaign && !data.campaigns.includes(e.campaign)) camp.append(new Option(e.campaign, e.campaign));
   camp.value = e.campaign;
+  input("place-starts").value = e.starts == null ? "" : toLocal(e.starts);
+  input("place-ends").value = e.ends == null ? "" : toLocal(e.ends);
   drawLetter(e.text);
   ($("place-letter") as HTMLDetailsElement).open = asLetter || Object.values(e.text).some(Boolean);
   $("place-letter-here").hidden = !(find && e.id);
   $("place-letter").hidden = !find;
   $("place-find-fields").hidden = !find;
+  $("place-period-fields").hidden = !find;
   $("place-find-note").hidden = !find;
   $("place-find-note").textContent = !f
     ? t(asLetter ? "pl.letter.new.note" : "pl.find.new.note")
@@ -451,7 +459,18 @@ function formValues(): Edit {
     hidden: e.kind === "find" && input("place-hidden").checked,
     text: e.kind === "find" ? Object.fromEntries(LANGS.map((l) => [l, $<HTMLTextAreaElement>(`place-text-${l}`)?.value.trim() ?? ""]).filter(([, v]) => v)) : {},
     campaign: e.kind === "find" ? $<HTMLSelectElement>("place-campaign").value : "",
+    starts: e.kind === "find" && input("place-starts").value ? fromLocal(input("place-starts").value) : null,
+    ends: e.kind === "find" && input("place-ends").value ? fromLocal(input("place-ends").value) : null,
   };
+}
+
+/** A find's period for the list: "from 29 Oct", "until 24 Dec" or both. */
+function periodText(f: Find): string {
+  const d = (s: number) => fmtDate(s, false);
+  if (f.starts != null && f.ends != null) return t("pl.period.span", { a: d(f.starts), b: d(f.ends) });
+  if (f.starts != null) return t("pl.period.from", { d: d(f.starts) });
+  if (f.ends != null) return t("pl.period.until", { d: d(f.ends) });
+  return "";
 }
 
 function close() {
@@ -639,7 +658,11 @@ function finds() {
     // A letter: a small mark; the campaign has its own column.
     if (f.text && Object.keys(f.text).length) name.append(" ", Object.assign(document.createElement("small"), { textContent: "📖" }));
     tr.insertCell().textContent = COLL_NAME[f.collection] ?? f.collection;
-    tr.insertCell().textContent = f.campaign || "";
+    // Campaign, and the period under it when there is one.
+    const when = tr.insertCell();
+    when.textContent = f.campaign || "";
+    const period = periodText(f);
+    if (period) when.append(f.campaign ? document.createElement("br") : "", Object.assign(document.createElement("small"), { textContent: period }));
     tr.insertCell().textContent = f.own ? t("pl.origin.own", { by: f.by ?? "" }) : f.by ? t("pl.origin.osmed", { by: f.by }) : "OSM";
     tr.insertCell().textContent = String(f.found);
     const b = document.createElement("button");
@@ -649,7 +672,7 @@ function finds() {
     const setHidden = async (hidden: boolean) => {
       const res = await api(`/api/ops/places?region=${encodeURIComponent(region)}`, {
         method: "POST",
-        body: JSON.stringify({ kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden, text: f.text ?? {}, campaign: f.campaign }),
+        body: JSON.stringify({ kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden, text: f.text ?? {}, campaign: f.campaign, starts: f.starts, ends: f.ends }),
       }).catch(() => null);
       await loadPlaces(region);
       return res?.ok ? null : await errorOf(res, t("ui.failed"));

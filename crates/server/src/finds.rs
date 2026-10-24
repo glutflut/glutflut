@@ -4,8 +4,9 @@
 //! per player only for those who opted in to collecting (`Rec::collect`), and
 //! then without times; everyone else sees them for the session only.
 //! A find may carry a text (a letter, a diary page: shown when found, kept in
-//! the album) and belong to a campaign: then it only plays while that
-//! campaign runs (`Campaign::running`), but stays known once found.
+//! the album), belong to a campaign (then it only plays while that campaign
+//! runs, `Campaign::running`) and have a period (plays only from/until; a
+//! campaign find needs both). Once found it stays known either way.
 
 use std::collections::HashMap;
 
@@ -30,14 +31,22 @@ pub struct Find {
     /// Plays only while this campaign runs.
     #[serde(skip)]
     pub campaign: Option<String>,
+    /// Plays only from / until (unix seconds).
+    #[serde(skip)]
+    pub starts: Option<f64>,
+    #[serde(skip)]
+    pub ends: Option<f64>,
     #[serde(skip)]
     pub p: Vec2,
 }
 
 impl Find {
-    /// Does it play now (no campaign, or one of `running`)?
-    fn on(&self, running: &[String]) -> bool {
+    /// Does it play at `now`: its campaign (if any) among `running`, and
+    /// `now` within its period (if any)?
+    fn on(&self, running: &[String], now: f64) -> bool {
         self.campaign.as_ref().is_none_or(|c| running.contains(c))
+            && self.starts.is_none_or(|s| s <= now)
+            && self.ends.is_none_or(|e| now < e)
     }
 }
 
@@ -71,6 +80,8 @@ impl Finds {
                     lon: r.lon,
                     text: r.text,
                     campaign: r.campaign,
+                    starts: r.starts,
+                    ends: r.ends,
                     p: Vec2::new(p.x, p.z),
                 }
             })
@@ -83,21 +94,21 @@ impl Finds {
         self.items.len()
     }
 
-    /// Finds per collection that play now (`running`: campaigns running).
-    pub fn totals(&self, running: &[String]) -> HashMap<String, u32> {
+    /// Finds per collection that play at `now` (`running`: campaigns running).
+    pub fn totals(&self, running: &[String], now: f64) -> HashMap<String, u32> {
         let mut t = HashMap::new();
-        for f in self.items.iter().filter(|f| f.on(running)) {
+        for f in self.items.iter().filter(|f| f.on(running, now)) {
             *t.entry(f.collection.clone()).or_default() += 1;
         }
         t
     }
 
-    /// Finds playing now within `r` m of `p` (ENU x/z), nearest first.
-    pub fn near(&self, p: Vec2, r: f32, running: &[String]) -> Vec<&Find> {
+    /// Finds playing at `now` within `r` m of `p` (ENU x/z), nearest first.
+    pub fn near(&self, p: Vec2, r: f32, running: &[String], now: f64) -> Vec<&Find> {
         let mut v: Vec<(f32, &Find)> = self
             .items
             .iter()
-            .filter(|f| f.on(running))
+            .filter(|f| f.on(running, now))
             .map(|f| (f.p.distance(p), f))
             .filter(|(d, _)| *d <= r)
             .collect();
@@ -105,16 +116,17 @@ impl Finds {
         v.into_iter().map(|(_, f)| f).collect()
     }
 
-    /// How many of `collection` playing now are in `ids` (ids of any region).
+    /// How many of `collection` playing at `now` are in `ids` (ids of any region).
     pub fn count(
         &self,
         collection: &str,
         ids: impl Iterator<Item = i64> + Clone,
         running: &[String],
+        now: f64,
     ) -> u32 {
         self.items
             .iter()
-            .filter(|f| f.collection == collection && f.on(running))
+            .filter(|f| f.collection == collection && f.on(running, now))
             .filter(|f| ids.clone().any(|i| i == f.id))
             .count() as u32
     }
@@ -142,6 +154,8 @@ mod tests {
             lon: 9.17,
             text: None,
             campaign: campaign.map(String::from),
+            starts: None,
+            ends: None,
         }
     }
 
@@ -150,13 +164,44 @@ mod tests {
         let region = crate::testkit::region();
         let f = Finds::from_rows(vec![row(1, None), row(2, Some("advent"))], &region);
         let p = f.items[0].p;
-        assert_eq!(f.near(p, 10.0, &[]).len(), 1, "the letter waits");
+        assert_eq!(f.near(p, 10.0, &[], 0.0).len(), 1, "the letter waits");
         let adv = ["advent".to_string()];
-        assert_eq!(f.near(p, 10.0, &adv).len(), 2);
-        assert_eq!(f.totals(&[])["fountains"], 1);
-        assert_eq!(f.totals(&adv)["fountains"], 2);
+        assert_eq!(f.near(p, 10.0, &adv, 0.0).len(), 2);
+        assert_eq!(f.totals(&[], 0.0)["fountains"], 1);
+        assert_eq!(f.totals(&adv, 0.0)["fountains"], 2);
         let ids: std::collections::HashSet<i64> = [1, 2].into();
-        assert_eq!(f.count("fountains", ids.iter().copied(), &[]), 1);
+        assert_eq!(f.count("fountains", ids.iter().copied(), &[], 0.0), 1);
         assert_eq!(f.of(&ids).count(), 2, "found ones stay known");
+    }
+
+    #[test]
+    fn period_bounds_play_also_within_a_campaign() {
+        let region = crate::testkit::region();
+        let mut rows = vec![row(1, None), row(2, Some("advent")), row(3, None)];
+        rows[0].starts = Some(100.0);
+        rows[1].starts = Some(100.0);
+        rows[1].ends = Some(200.0);
+        rows[2].ends = Some(50.0);
+        let f = Finds::from_rows(rows, &region);
+        let p = f.items[0].p;
+        let adv = ["advent".to_string()];
+        let ids = |v: Vec<&Find>| v.iter().map(|f| f.id).collect::<Vec<_>>();
+        assert_eq!(
+            ids(f.near(p, 10.0, &adv, 0.0)),
+            [3],
+            "before: only the seasonal one"
+        );
+        assert_eq!(
+            ids(f.near(p, 10.0, &adv, 150.0)),
+            [1, 2],
+            "within the period"
+        );
+        assert_eq!(
+            ids(f.near(p, 10.0, &[], 150.0)),
+            [1],
+            "campaign over: the letter is gone"
+        );
+        assert_eq!(ids(f.near(p, 10.0, &adv, 200.0)), [1], "period over");
+        assert_eq!(f.totals(&adv, 150.0)["fountains"], 2);
     }
 }

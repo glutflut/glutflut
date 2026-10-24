@@ -75,8 +75,9 @@ pub struct PlaceIn {
     /// Finds: plays only while this campaign runs; empty: always.
     #[serde(default)]
     pub campaign: String,
-    /// Plans: the hotspot site (its number) and the window (unix seconds).
+    /// Plans: the hotspot site (its number).
     pub site: Option<String>,
+    /// Plans: the window; finds: the period, either end optional (unix seconds).
     pub starts: Option<f64>,
     pub ends: Option<f64>,
 }
@@ -286,7 +287,8 @@ pub(super) async fn list(
                 .query(
                     "SELECT f.id, f.collection, f.name, f.lat, f.lon, f.hidden, f.osm LIKE 'city/%', \
                      f.created_by, (SELECT count(*) FROM game.player_finds p WHERE p.find = f.id), \
-                     f.text::text, f.campaign \
+                     f.text::text, f.campaign, \
+                     extract(epoch FROM f.starts)::float8, extract(epoch FROM f.ends)::float8 \
                      FROM geo.finds f WHERE f.region = $1 ORDER BY f.collection, f.name",
                     &[&slug],
                 )?
@@ -304,6 +306,8 @@ pub(super) async fn list(
                         "found": r.get::<_, i64>(8),
                         "text": r.get::<_, Option<String>>(9).and_then(|s| serde_json::from_str::<Value>(&s).ok()).unwrap_or(Value::Null),
                         "campaign": r.get::<_, Option<String>>(10).unwrap_or_default(),
+                        "starts": r.get::<_, Option<f64>>(11),
+                        "ends": r.get::<_, Option<f64>>(12),
                     })
                 })
                 .collect();
@@ -700,13 +704,19 @@ fn write_find(
             return Ok(Err("no chapter of this campaign yet"));
         }
     }
+    if let (Some(s), Some(e)) = (p.starts, p.ends) {
+        if e <= s {
+            return Ok(Err("the period ends before it starts"));
+        }
+    }
     let out = match id {
         Some(id) => {
             let n = t.execute(
                 "UPDATE geo.finds SET name = $3, collection = $4, lat = $5, lon = $6, hidden = $7, \
-                 created_by = $8, updated_at = now(), text = $9::text::jsonb, campaign = $10 \
+                 created_by = $8, updated_at = now(), text = $9::text::jsonb, campaign = $10, \
+                 starts = to_timestamp($11), ends = to_timestamp($12) \
                  WHERE region = $1 AND id = $2",
-                &[&region, &id, &name, &coll, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign],
+                &[&region, &id, &name, &coll, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign, &p.starts, &p.ends],
             )?;
             if n == 0 {
                 return Ok(Err("no such find"));
@@ -724,9 +734,9 @@ fn write_find(
                 return Ok(Err("too many finds (400)"));
             }
             t.query_one(
-                "INSERT INTO geo.finds (region, collection, name, osm, lat, lon, hidden, created_by, updated_at, text, campaign) \
-                 VALUES ($1, $2, $3, 'city/' || gen_random_uuid(), $4, $5, $6, $7, now(), $8::text::jsonb, $9) RETURNING id",
-                &[&region, &coll, &name, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign],
+                "INSERT INTO geo.finds (region, collection, name, osm, lat, lon, hidden, created_by, updated_at, text, campaign, starts, ends) \
+                 VALUES ($1, $2, $3, 'city/' || gen_random_uuid(), $4, $5, $6, $7, now(), $8::text::jsonb, $9, to_timestamp($10), to_timestamp($11)) RETURNING id",
+                &[&region, &coll, &name, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign, &p.starts, &p.ends],
             )?
             .get(0)
         }
@@ -737,7 +747,7 @@ fn write_find(
         if id.is_some() { "change" } else { "add" },
         by,
         json!({ "name": name, "collection": coll, "lat": p.lat, "lon": p.lon, "hidden": p.hidden,
-                "letter": text.is_some(), "campaign": campaign }),
+                "letter": text.is_some(), "campaign": campaign, "starts": p.starts, "ends": p.ends }),
     )?;
     t.commit()?;
     Ok(Ok(out.to_string()))
