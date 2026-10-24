@@ -418,6 +418,7 @@ export const fr: Dict = {
   "chron.tie": "Égalité",
   "chron.live": "En cours",
   "chron.soon": "Commence {when}",
+  "chron.upcoming": "À venir ({n})",
   "campaign.goal.sides": "Qui d’abord ? Feu {fire}, Eau {water} {goal}",
   "wx.rain.title": "Jour de pluie",
   "wx.rain.text": "L’Eau a le vent en poupe. Feu, apporte de la chaleur à la ville !",

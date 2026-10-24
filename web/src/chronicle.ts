@@ -115,12 +115,31 @@ function render(data: Data) {
     host.append(p);
     return;
   }
-  for (const c of campaigns) {
+  // The record first: campaigns with a finished or running chapter; ones
+  // that haven't started yet go last, folded to their dates.
+  const told = (c: Data["campaigns"][number]) => c.chapters.some((ch) => ch.state !== "soon");
+  for (const c of [...campaigns.filter(told), ...campaigns.filter((x) => !told(x))]) {
     const sec = document.createElement("section");
     sec.className = "chron-campaign";
     const h = document.createElement("h2");
     h.textContent = campaignName(c.campaign);
-    sec.append(h, ...[...c.chapters].reverse().map(chapter));
+    const done = c.chapters.filter((ch) => ch.state !== "soon");
+    const soon = c.chapters.filter((ch) => ch.state === "soon");
+    sec.append(h, ...[...done].reverse().map(chapter));
+    if (soon.length) {
+      const det = document.createElement("details");
+      det.className = "chron-soon";
+      const sum = document.createElement("summary");
+      sum.textContent = t("chron.upcoming", { n: soon.length });
+      det.append(sum);
+      for (const ch of soon) {
+        const p = document.createElement("p");
+        const names = pickLang(ch.names, lang);
+        p.textContent = `${names?.title ?? ch.key}: ${day(ch.starts)}, ${time(ch.starts)}`;
+        det.append(p);
+      }
+      sec.append(det);
+    }
     host.append(sec);
   }
 }

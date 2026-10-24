@@ -19,3 +19,7 @@
 .chap figure.media { margin: 8px 0; }
 .chap figure.media img { display: block; width: 100%; max-width: 480px; height: auto; border-radius: 8px; }
 .chap figure.media figcaption { font-size: 11px; color: var(--muted); }
+/* Chapters still to come: folded to their dates. */
+.chron-soon { margin: 6px 0 0 14px; }
+.chron-soon summary { cursor: pointer; font-size: 14px; color: var(--muted); }
+.chron-soon p { margin: 6px 0 0 14px; font-size: 14px; }

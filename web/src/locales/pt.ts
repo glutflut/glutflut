@@ -418,6 +418,7 @@ export const pt: Dict = {
   "chron.tie": "Empate",
   "chron.live": "Em andamento",
   "chron.soon": "Começa {when}",
+  "chron.upcoming": "Em breve ({n})",
   "campaign.goal.sides": "Quem chega primeiro? Fogo {fire}, Água {water} {goal}",
   "wx.rain.title": "Dia de chuva",
   "wx.rain.text": "A água está com o vento a favor. Fogo, leve calor para a cidade!",

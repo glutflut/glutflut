@@ -417,6 +417,7 @@ export const de = {
   "chron.tie": "Unentschieden",
   "chron.live": "Läuft gerade",
   "chron.soon": "Beginnt {when}",
+  "chron.upcoming": "Demnächst ({n})",
   "campaign.goal.sides": "Wer zuerst? Feuer {fire}, Wasser {water} {goal}",
   "wx.rain.title": "Regentag",
   "wx.rain.text": "Wasser hat Rückenwind. Feuer, bring Wärme in die Stadt!",
