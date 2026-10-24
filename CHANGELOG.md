@@ -8,6 +8,8 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Fixed
 
+- Editor: a find added or deleted under Orte appears in the targets of the
+  Medien tab at once, no reload needed.
 - A region that woke up between UTC midnight and its local midnight took the
   day's side totals from the wrong day: Europe carried yesterday's into the
   new day, the Americas started at zero under tomorrow's date. Scores now load

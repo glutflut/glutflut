@@ -1,6 +1,7 @@
 // Redaktion, stage 2 (server: editor_places.rs): zones and hotspot sites on a
 // map. Zones are circles (focus places in gold); hotspot sites are markers on
 // junctions. Click the map for a new place, a marker to edit; markers drag.
+import { loadMedia } from "./editor-media";
 import { ask, clean, COLL_NAME, errorOf, fmtDate, fmtTime, fromLocal, LANGS, langName, mayLeave, toast, toLocal, watchForm } from "./editor-ui";
 import { t } from "./editor-i18n";
 import * as maplibregl from "maplibre-gl";
@@ -467,6 +468,7 @@ async function save(del: boolean) {
   clean("place-form");
   toast(t(del ? "pl.deleted" : "pl.saved", { name: v.name }));
   await loadPlaces(region);
+  await loadMedia(region);
 }
 
 function lists() {
