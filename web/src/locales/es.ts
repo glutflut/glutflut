@@ -341,6 +341,7 @@ export const es: Dict = {
   "finds.progress": "{coll}: {n} de {of}",
   "finds.collect": "Coleccionar hallazgos",
   "finds.collect.note": "Solo guardamos cuáles encontraste, sin horas. Al desactivarlo se borran.",
+  "finds.album.off": "Coleccionar está desactivado: los hallazgos no se guardan.",
   "finds.session": "Solo para esta visita. Puedes activar la colección en los ajustes.",
   "finds.ask": "¿Quieres coleccionar hallazgos? Entonces recordamos cuáles encontraste, sin horas. Puedes desactivarlo cuando quieras.",
   "finds.ask.yes": "Coleccionar",

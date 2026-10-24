@@ -13,6 +13,9 @@ import { KEYS, load, loadJson, save, saveJson } from "./store";
 import { markStorySeen, pickLang, showStory, storySeen } from "./story";
 
 
+/** To the nearest minute: the relative seconds arrive a little late, and 17:59:58 must not read "17:59". */
+const minute = (ms: number) => Math.round(ms / 60_000) * 60_000;
+
 type Names = Record<string, Record<string, { title: string; text: string }>>;
 
 function stored(): Names {
@@ -119,7 +122,7 @@ export function setupCampaign(
     $("chapter-title").textContent = name?.title ?? m.key;
     if (startsIn > 0) {
       bar.classList.add("soon");
-      const when = new Date(Date.now() + startsIn * 1000).toLocaleString(lang, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+      const when = new Date(minute(Date.now() + startsIn * 1000)).toLocaleString(lang, { weekday: "short", hour: "2-digit", minute: "2-digit" });
       $("chapter-time").textContent = t("campaign.starts", { when });
       $("chapter-goal").textContent = name?.text ?? "";
       return;
@@ -127,7 +130,7 @@ export function setupCampaign(
     bar.classList.remove("soon");
     $("chapter-time").textContent = m.winner ? t(`campaign.won.${m.winner}` as Key) : t("campaign.ends", { time: duration(endsIn) });
     const goal = t(`campaign.goal.${m.goal}` as Key);
-    const end = new Date(Date.now() + endsIn * 1000).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
+    const end = new Date(minute(Date.now() + endsIn * 1000)).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
     $("chapter-goal").textContent =
       m.goal === "hold"
         ? t("campaign.hold", { n: m.target, time: end })

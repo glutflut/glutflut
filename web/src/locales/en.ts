@@ -340,6 +340,7 @@ export const en: Dict = {
   "finds.progress": "{coll}: {n} of {of}",
   "finds.collect": "Collect finds",
   "finds.collect.note": "We only store which ones you found, no times. Switching it off deletes them.",
+  "finds.album.off": "Collecting is off: finds are not remembered.",
   "finds.session": "For this visit only. You can switch on collecting in the settings.",
   "finds.ask": "Do you want to collect finds? Then we remember which ones you found, without times. You can switch it off at any time.",
   "finds.ask.yes": "Collect",

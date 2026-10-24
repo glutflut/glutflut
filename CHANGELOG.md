@@ -14,7 +14,21 @@ All notable changes to Glut & Flut. Versions follow
   story and a seasonal find can come and go. Editor: "Spielbar ab / bis" at
   the find, the period in the list.
 
+### Changed
+
+- The album of finds moved from a folded box in the profile to the ranking
+  page: one row per collection with a progress bar, the count and the names,
+  letters still open on tap. When collecting is off, the row says so with a
+  button to switch it on. The collect switch itself stays in the profile under
+  privacy; the player's permanent sources with their inscriptions moved from
+  the ranking page to the profile.
+
 ### Fixed
+
+- The chapter bar's "ab Di 17:59": the relative seconds arrive a moment after
+  the server computed them and the time formatter cuts the seconds, so a
+  chapter set for 18:00 read 17:59. Start and end times now round to the
+  minute.
 
 - The junction card's "weak enough in about …" was rounded up to 30-second
   steps on the server while the card asked again every second, so it sat at

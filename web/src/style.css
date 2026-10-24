@@ -647,7 +647,7 @@ button, a { touch-action: manipulation; }
 #my-streak[hidden] { display: none; }
 #ranks .streak { font-size: 12px; opacity: 0.85; }
 /* Own permanent sources (perm.ts): list in the sheet, picker for a move. */
-#my-keeps h3 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; color: var(--soft); }
+#my-keeps h3 { font-size: 13px; font-weight: 700; margin: 4px 0 4px; padding: 0; border: none; color: var(--soft); text-transform: none; letter-spacing: 0; }
 #my-keeps ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 #my-keeps .motto-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--soft); margin: 4px 0 4px 10px; }
 #my-keeps select.motto { flex: 1; min-width: 0; padding: 4px 6px; font-size: 13px; border-radius: 6px; border: 1px solid var(--line); background: var(--raised); color: var(--fg); }
@@ -1025,9 +1025,18 @@ body.outside #actions { display: none; }
   100% { transform: scale(2.2); opacity: 0; }
 }
 
-#finds-list { list-style: none; padding: 0; margin: 8px 0 0; font-size: 14px; line-height: 1.5; }
-#finds-list li { margin-bottom: 4px; }
-#finds-box label { display: block; margin: 8px 0 0; }
+/* Album on the ranking page: one row per collection. */
+#album h3 { font-size: 13px; font-weight: 700; margin: 0 0 6px; color: var(--soft); }
+#album-off { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+#album-off button { margin-left: 4px; padding: 3px 10px; font-size: 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--raised); color: var(--fg); }
+#finds-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4; }
+.coll-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.coll-n { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--soft); }
+.coll-n.full { color: var(--gold); font-weight: 700; }
+.coll-bar { height: 6px; margin-top: 3px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+.coll-bar span { display: block; height: 100%; border-radius: 3px; transition: width 0.4s; }
+.coll-names { margin-top: 3px; font-size: 13px; color: var(--soft); }
+#collect-row { display: block; }
 #find-card.badge { border-color: var(--gold); background: linear-gradient(160deg, rgba(60, 48, 10, 0.97), var(--panel)); }
 #my-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
 #my-badges:empty { display: none; }

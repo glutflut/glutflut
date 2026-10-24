@@ -339,6 +339,7 @@ export const de = {
   "finds.progress": "{coll}: {n} von {of}",
   "finds.collect": "Fundstücke sammeln",
   "finds.collect.note": "Gespeichert wird nur, welche du gefunden hast, ohne Zeitpunkt. Ausschalten löscht sie.",
+  "finds.album.off": "Sammeln ist aus: Funde werden nicht gemerkt.",
   "finds.session": "Nur für diesen Besuch. Sammeln kannst du in den Einstellungen einschalten.",
   "finds.ask": "Willst du Fundstücke sammeln? Dann merken wir uns, welche du gefunden hast, ohne Zeitpunkt. Du kannst es jederzeit wieder ausschalten.",
   "finds.ask.yes": "Sammeln",

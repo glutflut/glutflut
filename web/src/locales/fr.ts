@@ -340,6 +340,7 @@ export const fr: Dict = {
   "finds.progress": "{coll} : {n} sur {of}",
   "finds.collect": "Collectionner les trouvailles",
   "finds.collect.note": "Nous n’enregistrons que celles que tu as trouvées, sans heure. Désactiver les efface.",
+  "finds.album.off": "La collection est désactivée : les trouvailles ne sont pas mémorisées.",
   "finds.session": "Pour cette visite seulement. Tu peux activer la collection dans les réglages.",
   "finds.ask": "Veux-tu collectionner les trouvailles ? Nous retenons alors celles que tu as trouvées, sans heure. Tu peux désactiver à tout moment.",
   "finds.ask.yes": "Collectionner",

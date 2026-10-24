@@ -340,6 +340,7 @@ export const it: Dict = {
   "finds.progress": "{coll}: {n} su {of}",
   "finds.collect": "Raccogli reperti",
   "finds.collect.note": "Salviamo solo quali hai trovato, senza orario. Se lo disattivi vengono cancellati.",
+  "finds.album.off": "La raccolta è disattivata: i ritrovamenti non vengono ricordati.",
   "finds.session": "Solo per questa visita. Puoi attivare la raccolta nelle impostazioni.",
   "finds.ask": "Vuoi raccogliere reperti? Allora ci ricordiamo quali hai trovato, senza orario. Puoi disattivarlo quando vuoi.",
   "finds.ask.yes": "Raccogli",

@@ -340,6 +340,7 @@ export const pl: Dict = {
   "finds.progress": "{coll}: {n} z {of}",
   "finds.collect": "Zbieraj znaleziska",
   "finds.collect.note": "Zapisujemy tylko, które znaleziska odkryto, bez godzin. Wyłączenie je usuwa.",
+  "finds.album.off": "Zbieranie jest wyłączone: znaleziska nie są zapamiętywane.",
   "finds.session": "Tylko na tę wizytę. Zbieranie możesz włączyć w ustawieniach.",
   "finds.ask": "Chcesz zbierać znaleziska? Wtedy zapamiętamy, które odkryto, bez godzin. W każdej chwili możesz to wyłączyć.",
   "finds.ask.yes": "Zbieraj",

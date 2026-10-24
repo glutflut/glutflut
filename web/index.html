@@ -183,17 +183,24 @@
           <div id="my-badges"></div>
           <div id="my-level"></div>
           <div id="my-streak" hidden></div>
-          <div id="my-keeps" hidden><h3></h3><ul></ul></div>
+        </div>
+        <div id="album" class="you" hidden>
+          <h3 data-i18n="finds.title">Fundstücke</h3>
+          <p id="album-off" class="keep-note" hidden><span data-i18n="finds.album.off">Sammeln ist aus: Funde werden nicht gemerkt.</span> <button id="album-on" data-i18n="finds.ask.yes">Sammeln</button></p>
+          <ul id="finds-list"></ul>
         </div>
       </section>
       <section id="pane-me" class="me-box" role="tabpanel" hidden>
         <div class="name-row"><span id="my-name"></span> <button id="rename" data-i18n="board.rename">Neuer Name</button></div>
+        <div id="my-keeps" hidden><h3></h3><ul></ul></div>
         <h3 data-i18n="board.h.privacy">Privatsphäre</h3>
         <label><input type="checkbox" id="listed" checked /> <span data-i18n="board.listed">In der Rangliste zeigen</span></label>
         <label><input type="checkbox" id="stats-on" checked /> <span data-i18n="board.stats">In der Auswertung für die Stadt mitzählen</span></label>
         <p class="keep-note" data-i18n="board.stats.note">Anonym, nur Summen über mindestens fünf Personen. Ausgeschaltet spielst du weiter, wirst aber nicht gezählt.</p>
         <label><input type="checkbox" id="adult" /> <span data-i18n="board.adult">Ich bin 16 oder älter</span></label>
         <p class="keep-note" data-i18n="board.adult.note">Nötig für Fundstücke und die freiwilligen Angaben.</p>
+        <label id="collect-row" hidden><input type="checkbox" id="collect" /> <span data-i18n="finds.collect">Fundstücke sammeln</span></label>
+        <p id="collect-note" class="keep-note" data-i18n="finds.collect.note" hidden>Gespeichert wird nur, welche du gefunden hast, ohne Zeitpunkt. Ausschalten löscht sie.</p>
         <div class="profile"></div>
         <h3 data-i18n="board.h.app">App</h3>
         <div class="lang-row"><span data-i18n="board.city">Stadt</span> <button id="city-pick" class="city-pick"></button></div>
@@ -212,12 +219,6 @@
         <button id="side-switch" hidden></button>
         <label id="level-test" hidden><span data-i18n="level.test">Stufe (Test)</span>
           <select id="level-test-pick"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
-        <details id="finds-box" class="keep" hidden>
-          <summary data-i18n="finds.title">Fundstücke</summary>
-          <label><input type="checkbox" id="collect" /> <span data-i18n="finds.collect">Fundstücke sammeln</span></label>
-          <p class="keep-note" data-i18n="finds.collect.note">Gespeichert wird nur, welche du gefunden hast, ohne Zeitpunkt. Ausschalten löscht sie.</p>
-          <ul id="finds-list"></ul>
-        </details>
         <details id="keep" class="keep">
           <summary data-i18n="keep.title">Spielstand sichern</summary>
           <p data-i18n="keep.intro"></p>

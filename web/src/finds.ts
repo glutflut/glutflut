@@ -1,6 +1,7 @@
 // Finds (server: crates/server/src/finds.rs): named places a claim nearby
-// uncovers. Found ones show on the map and in the album (settings panel);
-// the first find asks whether to collect them (opt-in, stored without times).
+// uncovers. Found ones show on the map and in the album (ranking page); the
+// collect switch is in the profile. The first find asks whether to collect
+// them (opt-in, stored without times).
 import * as maplibregl from "maplibre-gl";
 import { badgeLabel } from "./badges";
 import { lang, t, type Key } from "./i18n";
@@ -77,23 +78,41 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
 
   function album() {
     ($("collect") as HTMLInputElement).checked = collect;
+    const any = Object.keys(totals).length > 0;
+    $("album").hidden = !any;
+    $("collect-row").hidden = $("collect-note").hidden = !any;
+    $("album-off").hidden = collect;
     const list = $("finds-list");
     list.replaceChildren(
       ...Object.entries(totals)
         .sort((a, b) => collName(a[0]).localeCompare(collName(b[0])))
         .map(([c, of]) => {
           const mine = [...known.values()].filter((f) => f.c === c);
+          const color = COLOR[c] ?? "#fff";
           const li = document.createElement("li");
-          const head = document.createElement("b");
-          head.textContent = `${collName(c)} ${mine.length}/${of}`;
-          head.style.color = COLOR[c] ?? "";
-          li.append(head);
+          li.className = "coll";
+          // Name, bar and count in the collection's colour.
+          const head = document.createElement("div");
+          head.className = "coll-head";
+          const name = Object.assign(document.createElement("b"), { textContent: collName(c) });
+          name.style.color = color;
+          const count = Object.assign(document.createElement("span"), { className: "coll-n", textContent: `${mine.length}/${of}` });
+          if (mine.length === of) count.classList.add("full");
+          head.append(name, count);
+          const bar = Object.assign(document.createElement("div"), { className: "coll-bar" });
+          const fill = document.createElement("span");
+          fill.style.width = `${of ? (100 * mine.length) / of : 0}%`;
+          fill.style.background = color;
+          bar.append(fill);
+          li.append(head, bar);
+          if (!mine.length) return li;
           // Names; a find with a text (a letter) opens it again.
+          const names = Object.assign(document.createElement("div"), { className: "coll-names" });
           mine
             .sort((a, b) => findName(a).localeCompare(findName(b)))
             .forEach((f, i) => {
-              li.append(i ? ", " : " – ");
-              if (!f.text) return li.append(findName(f));
+              if (i) names.append(", ");
+              if (!f.text) return names.append(findName(f));
               const b = document.createElement("button");
               b.className = "find-letter";
               b.textContent = findName(f);
@@ -101,8 +120,9 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
                 ($("board-close") as HTMLButtonElement).click();
                 letter(f, null);
               };
-              li.append(b);
+              names.append(b);
             });
+          li.append(names);
           return li;
         }),
     );
@@ -217,6 +237,11 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
     // Credit links open; a tap elsewhere closes.
     if (!(e.target as HTMLElement).closest("button, a") && $("find-ask").hidden) hideCard();
   };
+  // The album's button switches collecting on (same consent as the switch).
+  $("album-on").onclick = async () => {
+    if (collect || !(await confirmAdult())) return;
+    net.send({ t: "collect", on: true });
+  };
   ($("collect") as HTMLInputElement).onchange = async (e) => {
     const box = e.target as HTMLInputElement;
     const on = box.checked;
@@ -247,7 +272,6 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
       for (const f of m.items) known.set(f.id, f);
       redraw();
       album();
-      $("finds-box").hidden = Object.keys(totals).length === 0;
     },
     onFind(m: FindItem & { n: number; of: number; stored: boolean }) {
       known.set(m.id, m);
