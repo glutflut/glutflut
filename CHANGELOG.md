@@ -17,6 +17,8 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Added
 
+- The chronicle is linked where people look: in the chapter bar, at the top
+  of "Neuigkeiten" and in the footer, not only under Hilfe.
 - Live claims, anchors and sparks survive a restart or an idle unload
   (`game.live_sources`, migration V2): saved anonymously when the region
   stops, put back aged by the pause.

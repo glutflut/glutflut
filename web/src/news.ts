@@ -6,6 +6,7 @@ import { $ } from "./page";
 import { KEYS, load, save } from "./store";
 import { activeNotices, text as noticeText } from "./notices";
 import { paragraphs } from "./story";
+import { withRegion } from "./region";
 
 type Text = { title: string; items: string[] };
 type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
@@ -513,7 +514,7 @@ function seen(id: string) {
 /** Played before: the intro was seen on an earlier visit (main.ts INTRO_KEY), read before this visit's intro. */
 const returning = load(KEYS.intro) !== null;
 
-export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more") => string) {
+export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "news.chron") => string) {
   const box = $("news");
   const latest = NEWS[0]?.id ?? "";
 
@@ -521,7 +522,12 @@ export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more") =>
     const notices = activeNotices();
     if (!entries.length && !notices.length) return;
     const list = $("news-list");
+    // The chronicle first: what happened in the campaigns.
+    const chron = document.createElement("p");
+    chron.className = "news-chron";
+    chron.append(Object.assign(document.createElement("a"), { href: withRegion("/chronik.html"), textContent: t("news.chron") }));
     list.replaceChildren(
+      chron,
       // The city's news flashes first (notices.ts).
       ...notices.map((n) => {
         const x = noticeText(n);

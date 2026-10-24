@@ -1082,6 +1082,11 @@ body.outside #actions { display: none; }
 #chapter-fire { background: var(--fire); }
 #chapter-water { background: var(--water); }
 #chapter-goal { color: var(--muted); font-size: 12px; margin-top: 2px; }
+/* The chronicle, from the bar (campaign chapters only). */
+#chapter-chron { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--gold); text-decoration: none; }
+#chapter-chron[hidden], #chapter.folded #chapter-chron { display: none; }
+.news-chron { margin: 0 0 10px; font-size: 14px; }
+.news-chron a { color: var(--gold); text-decoration: none; font-weight: 600; }
 #chapter.soon .chapter-race { display: none; }
 
 /* Tunnel (tunnel.ts): a far enemy hilltop or sink, claimable for a minute. */

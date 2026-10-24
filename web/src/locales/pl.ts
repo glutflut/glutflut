@@ -74,6 +74,7 @@ export const pl: Dict = {
   "news.title": "Nowości w Glut & Flut",
   "news.rules": "Zasady gry",
   "news.open": "Nowości",
+  "news.chron": "Kronika: co wydarzyło się w rozdziałach ›",
   "feedback.title": "Jak ci się podoba Glut & Flut?",
   "feedback.sad": "słabo",
   "feedback.neutral": "tak sobie",

@@ -74,6 +74,7 @@ export const en: Dict = {
   "news.title": "New in Glut & Flut",
   "news.rules": "Game rules",
   "news.open": "What's new",
+  "news.chron": "Chronicle: what happened in the chapters ›",
   "feedback.title": "How do you like Glut & Flut?",
   "feedback.sad": "not good",
   "feedback.neutral": "so-so",

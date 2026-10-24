@@ -111,6 +111,10 @@ export function setupCampaign(
     if (!shown) return hide();
     bar.hidden = false;
     bar.classList.toggle("folded", folded() === m.key);
+    // The chronicle: campaign chapters only (weather days are not in it).
+    const chron = $("chapter-chron") as HTMLAnchorElement;
+    chron.hidden = !!m.kind;
+    chron.href = withRegion("/chronik.html");
     layoutTop();
     $("chapter-title").textContent = name?.title ?? m.key;
     if (startsIn > 0) {
@@ -154,6 +158,9 @@ export function setupCampaign(
     const name = texts(last);
     notice("badge", t(last.kind ? "campaign.weather" : "campaign.chapter"), name.title, name.text, last.kind ? undefined : ["challenge", last.key]);
   };
+  // The link in the bar: not a tap on the bar.
+  $("chapter-chron").onclick = (e) => e.stopPropagation();
+  for (const a of document.querySelectorAll<HTMLAnchorElement>(".foot-chron")) a.href = withRegion("/chronik.html");
   $("chapter").onkeydown = (e) => {
     if (e.key === "Enter" || e.key === " ") $("chapter").click();
   };
