@@ -6,13 +6,45 @@ All notable changes to Glut & Flut. Versions follow
 
 ## Unreleased
 
+## 0.2.0 – 2026-10-24: story campaigns and the chronicle
+
 ### Added
 
+- Story-driven campaigns (migration V3): a chapter may carry a story (an
+  intro shown once when it starts, an ending per outcome shown when it is
+  over), finds may carry a text per language (a letter, a diary page, shown
+  when found and kept in the album) and belong to a campaign (found only
+  while it runs). A public chronicle (`/chronik.html`, `GET /api/chronicle`)
+  tells what happened; whoever missed a chapter's end sees it on the next
+  visit. All of it is written in the editor.
+- The chronicle tells the past first: finished and running chapters; chapters
+  still to come are folded to their dates, and a campaign that hasn't
+  started goes last. It is linked where people look: in the chapter bar, at
+  the top of "Neuigkeiten" and in the footer, not only under Hilfe.
+- News flashes per region (`game.notices`, editor tab "Aktuelles"): a title,
+  a text, a link and a period; the app shows a running one once as a card
+  and keeps it under "what's new".
 - Finds can have a period (migration V4, `starts`/`ends`, either end open):
   they play only within it. A find of a campaign needs both, the campaign
   running and the period fitting, so a letter can wait for its reveal in the
   story and a seasonal find can come and go. Editor: "Spielbar ab / bis" at
   the find, the period in the list.
+- Live claims, anchors and sparks survive a restart or an idle unload
+  (`game.live_sources`, migration V2): saved anonymously when the region
+  stops, put back aged by the pause.
+- The first chapter of a campaign (where levels are on) says that everyone
+  starts again at level 1: in the chapter bar, the intro card and the
+  chapter's card (`resets` on the chapter message). The help page says so
+  in its chapter bullet too.
+- Editor: the chosen city survives a reload (URL and device); zones, hotspot
+  sites and finds are sorted by name as the city reads it, with a search
+  field at each list (one search, kept in step). Finds can be filtered by
+  campaign (all, the ones that always play, or one campaign). "Brief hier
+  hinzulegen" on an existing find opens a new find at the same spot, bound
+  to the newest campaign, for a letter. A draft chapter due within a week is
+  marked in red: drafts don't play.
+- The city list has a search field; from the globe, "Zu mir" takes a player
+  straight back to where they stand (watchers still go back to the city).
 
 ### Changed
 
@@ -24,59 +56,22 @@ All notable changes to Glut & Flut. Versions follow
   the ranking page to the profile.
 
 ### Fixed
-- Help page: the chapter bullet now says that the first chapter of a campaign resets levels and XP (points and badges stay) and later chapters do not.
-- The first chapter of a campaign (where levels are on) says so in the app too: "Neue Kampagne: Alle beginnen wieder bei Stufe 1" in the chapter bar, the intro card and the chapter's card (`resets` on the chapter message).
 
 - The chapter bar's "ab Di 17:59": the relative seconds arrive a moment after
   the server computed them and the time formatter cuts the seconds, so a
   chapter set for 18:00 read 17:59. Start and end times now round to the
   minute.
-
 - The junction card's "weak enough in about …" was rounded up to 30-second
   steps on the server while the card asked again every second, so it sat at
   "1 min" and flickered against the card's own countdown instead of falling.
   The server now answers to the second.
-
-- Editor: a find added or deleted under Orte appears in the targets of the
-  Medien tab at once, no reload needed.
 - A region that woke up between UTC midnight and its local midnight took the
   day's side totals from the wrong day: Europe carried yesterday's into the
   new day, the Americas started at zero under tomorrow's date. Scores now load
   by the region's local day from the start.
-
 - A moved permanent source lost its tag line; it takes it along now.
-
-### Added
-
-- Editor: the chosen city survives a reload (URL and device); zones, hotspot
-  sites and finds are sorted by name as the city reads it, with a search
-  field at each list (one search, kept in step). Finds can be filtered by
-  campaign (all, the ones that always play, or one campaign).
-- Editor, finds: "Brief hier hinzulegen" on an existing find opens a new
-  find at the same spot, bound to the newest campaign, for a letter;
-  the fountain or gate itself stays as it is.
-- The chronicle tells the past first: finished and running chapters; chapters
-  still to come are folded to their dates, and a campaign that hasn't
-  started goes last.
-- The chronicle is linked where people look: in the chapter bar, at the top
-  of "Neuigkeiten" and in the footer, not only under Hilfe.
-- Live claims, anchors and sparks survive a restart or an idle unload
-  (`game.live_sources`, migration V2): saved anonymously when the region
-  stops, put back aged by the pause.
-- Story-driven campaigns (migration V3): a chapter may carry a story (an
-  intro shown once when it starts, an ending per outcome shown when it is
-  over), finds may carry a text per language (a letter, a diary page, shown
-  when found and kept in the album) and belong to a campaign (found only
-  while it runs). A public chronicle (`/chronik.html`, `GET /api/chronicle`)
-  tells what happened; whoever missed a chapter's end sees it on the next
-  visit. All of it is written in the editor.
-- News flashes per region (`game.notices`, editor tab "Aktuelles"): a title,
-  a text, a link and a period; the app shows a running one once as a card
-  and keeps it under "what's new".
-- The editor marks a draft chapter that is due within a week in red: drafts
-  don't play.
-- The city list has a search field; from the globe, "Zu mir" takes a player
-  straight back to where they stand (watchers still go back to the city).
+- Editor: a find added or deleted under Orte appears in the targets of the
+  Medien tab at once, no reload needed.
 
 ## 0.1.0 – first public version
 
