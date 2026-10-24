@@ -238,7 +238,6 @@ export const de = {
   "pl.hidden.toast": "„{name}“ ausgeblendet.",
   "pl.count": "{shown} sichtbar, {hidden} ausgeblendet",
   "pl.finds.none": "Keine Fundstücke.",
-  "pl.search.ph": "Zonen, Hotspot-Orte, Fundstücke …",
   "pl.search.none": "Nichts gefunden.",
   "coll.fountains": "Brunnen",
   "coll.trees": "Besondere Bäume",

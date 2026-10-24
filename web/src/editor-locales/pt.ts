@@ -239,7 +239,6 @@ export const pt: EDict = {
   "pl.hidden.toast": "“{name}” oculto.",
   "pl.count": "{shown} visíveis, {hidden} ocultos",
   "pl.finds.none": "Nenhum achado.",
-  "pl.search.ph": "Zonas, locais hotspot, achados…",
   "pl.search.none": "Nada encontrado.",
   "coll.fountains": "Chafarizes",
   "coll.trees": "Árvores especiais",

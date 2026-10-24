@@ -72,9 +72,11 @@ let primary = "de";
 
 /** Names sorted the way the city reads them (umlauts, case, numbers). */
 const byName = () => new Intl.Collator(primary, { sensitivity: "base", numeric: true });
-/** The search over zones, sites and finds: every word must occur in the name. */
+/** The search over zones, sites and finds (one field at each list, kept in
+ * step): every word must occur in the name. */
+const searches = () => [...document.querySelectorAll<HTMLInputElement>(".places-search")];
 function matches(): (name: string) => boolean {
-  const words = input("places-search").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const words = (searches()[0]?.value ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean);
   return (name) => words.every((w) => name.toLowerCase().includes(w));
 }
 let data: Places | null = null;
@@ -142,7 +144,11 @@ export function initPlaces(apiFn: Api) {
     input("show-finds").dispatchEvent(new Event("change"));
     openFind(null, c);
   };
-  input("places-search").oninput = lists;
+  for (const s of searches())
+    s.oninput = () => {
+      for (const o of searches()) if (o !== s) o.value = s.value;
+      lists();
+    };
   $("place-cancel").onclick = async () => {
     if (await mayLeave("place-form")) close();
   };

@@ -115,3 +115,7 @@ button.danger { background: #c92a2a; color: #fff; border-color: #c92a2a; font-we
 .ed-table .st.warn { border-color: #e03131; color: #e03131; font-weight: 700; }
 .story-box { margin: 6px 0 10px; }
 .story-box label { margin-top: 8px; }
+
+/* Places: a search field in the heading of each list (all three in step). */
+h3.with-search { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+h3.with-search input { flex: 0 1 240px; font-size: 14px; font-weight: 400; }
