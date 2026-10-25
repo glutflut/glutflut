@@ -6,6 +6,16 @@ All notable changes to Glut & Flut. Versions follow
 
 ## Unreleased
 
+### Added
+
+- Side reveal card: the first time a browser plays, a card says which side
+  it got, what to do first ("Erobern", "Nächste Front") and that the side
+  stays. Once per device; the side is only a bias towards the weaker one, so
+  the card does not claim that.
+- Time to the first claim (migration V5): `analytics.daily` counts per day
+  how many new identities joined and how many of them claimed within five
+  minutes; the dashboard shows the share as "Erste fünf Minuten".
+
 ## 0.2.0 – 2026-10-24: story campaigns and the chronicle
 
 ### Added

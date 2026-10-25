@@ -670,6 +670,8 @@ export const de = {
   "dash.gr.tip": "{n} Spielende, davon {fresh} neu",
   "dash.tile.flagged": "Unplausible Spuren",
   "dash.tile.flagged.note": "Spielende im Zeitraum, die wegen gefälschter Positionen nicht zählen",
+  "dash.tile.first": "Erste fünf Minuten",
+  "dash.tile.first.note": "{n} von {total} neuen Spielenden erobern innerhalb von fünf Minuten nach dem Beitritt",
   "dash.tile.noise": "Zufallsrauschen",
   "dash.tile.noise.note": "je veröffentlichter Personenzahl, fest je Zelle; Summen bleiben nahezu genau",
   "dash.players": "{n} Spielende",

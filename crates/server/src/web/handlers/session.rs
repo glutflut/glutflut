@@ -110,6 +110,10 @@ pub(super) fn hello(
     if (returning || slot.is_some_and(|s| game.scores.presence(s) > 0)) && !bot {
         game.agg.standing.establish(tracked.pseudo, now);
     }
+    // A brand-new identity: time to its first claim (analytics `joined`/`quick`).
+    if known.is_none() && slot.is_some() {
+        game.agg.joined(tracked.pseudo, now);
+    }
     // Full strength at once for returning players, those confirmed
     // on site, and on test servers.
     let trusted =

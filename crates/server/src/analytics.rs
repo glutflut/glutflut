@@ -25,6 +25,10 @@ pub fn window_s() -> i64 {
             .unwrap_or(900)
     })
 }
+/// A new player's first claim within this many seconds of joining counts as
+/// "quick" (the first five minutes; `analytics.daily.quick`).
+pub const QUICK_S: f64 = 300.0;
+
 /// Playing time after which a new player counts (`ELEMENTS_ESTABLISH_S`,
 /// default 600; 0 = everyone at once).
 pub fn establish_s() -> f64 {
@@ -111,6 +115,10 @@ pub enum Row {
         newcomers: i32,
         /// Flagged by the plausibility check (shadow ban).
         flagged: i32,
+        /// New identities that joined today.
+        joined: i32,
+        /// Of those, claimed within [`QUICK_S`] of joining.
+        quick: i32,
     },
     /// Players per day by self-reported profile.
     DailyProfile {
@@ -516,14 +524,16 @@ fn write_rows(
     }
     for r in small {
         match r {
-            Row::Daily { day, synthetic, players, newcomers, flagged } => tx.execute(
-                "INSERT INTO analytics.daily (region, day, synthetic, players, newcomers, flagged) \
-                 VALUES ($1, DATE '1970-01-01' + $2::int, $3, $4, $5, $6) \
+            Row::Daily { day, synthetic, players, newcomers, flagged, joined, quick } => tx.execute(
+                "INSERT INTO analytics.daily (region, day, synthetic, players, newcomers, flagged, joined, quick) \
+                 VALUES ($1, DATE '1970-01-01' + $2::int, $3, $4, $5, $6, $7, $8) \
                  ON CONFLICT (region, day, synthetic) \
                  DO UPDATE SET players = GREATEST(analytics.daily.players, EXCLUDED.players), \
                  newcomers = GREATEST(analytics.daily.newcomers, EXCLUDED.newcomers), \
-                 flagged = GREATEST(analytics.daily.flagged, EXCLUDED.flagged)",
-                &[&region, &(day as i32), &synthetic, &players, &newcomers, &flagged],
+                 flagged = GREATEST(analytics.daily.flagged, EXCLUDED.flagged), \
+                 joined = GREATEST(analytics.daily.joined, EXCLUDED.joined), \
+                 quick = GREATEST(analytics.daily.quick, EXCLUDED.quick)",
+                &[&region, &(day as i32), &synthetic, &players, &newcomers, &flagged, &joined, &quick],
             )?,
             Row::DailyProfile { day, synthetic, age, local, players } => tx.execute(
                 "INSERT INTO analytics.daily_profile (region, day, synthetic, age, local, players) \
@@ -891,6 +901,9 @@ pub struct Aggregator {
     pub standing: Standing,
     /// Day -> pseudonyms flagged by the plausibility check.
     flagged: HashMap<i64, HashSet<u64>>,
+    /// Day -> new identity -> (joined at, first claim at): time to the first
+    /// claim, written as two counts per day (memory only).
+    starts: HashMap<i64, HashMap<u64, (f64, Option<f64>)>>,
     tx: AnalyticsTx,
     /// Local days of the region (`clock.rs`): pooling, people per day, the daily salt.
     pub clock: crate::clock::Clock,
@@ -922,6 +935,7 @@ impl Aggregator {
             place_rest: HashMap::new(),
             standing: Standing::default(),
             flagged: HashMap::new(),
+            starts: HashMap::new(),
             tx,
         }
     }
@@ -1099,9 +1113,32 @@ impl Aggregator {
         self.daily.entry((day, false)).or_default();
     }
 
+    /// A new identity (first `hello` ever) joined as a player.
+    pub fn joined(&mut self, pseudo: u64, now: f64) {
+        let day = self.day0(now);
+        self.starts
+            .entry(day)
+            .or_default()
+            .entry(pseudo)
+            .or_insert((now, None));
+        self.daily.entry((day, false)).or_default();
+    }
+
+    /// A claim went through: the first one of a new identity is noted.
+    pub fn claimed(&mut self, pseudo: u64, now: f64) {
+        for s in self.starts.values_mut() {
+            if let Some(e) = s.get_mut(&pseudo) {
+                e.1.get_or_insert(now);
+            }
+        }
+    }
+
     /// Take a person out of everything not written yet (they objected).
     pub fn withdraw(&mut self, pseudo: u64) {
         self.forget(pseudo);
+        for s in self.starts.values_mut() {
+            s.remove(&pseudo);
+        }
         for b in self
             .dwell
             .values_mut()
@@ -1402,12 +1439,23 @@ impl Aggregator {
             } else {
                 self.flagged.get(&day).map_or(0, HashSet::len) as i32
             };
+            let (joined, quick) = match (synthetic, self.starts.get(&day)) {
+                (false, Some(s)) => (
+                    s.len() as i32,
+                    s.values()
+                        .filter(|(at, first)| first.is_some_and(|f| f - at <= QUICK_S))
+                        .count() as i32,
+                ),
+                _ => (0, 0),
+            };
             rows.push(Row::Daily {
                 day: clock.day(day as f64),
                 synthetic,
                 players,
                 newcomers: newcomers as i32,
                 flagged,
+                joined,
+                quick,
             });
             for ((age, local), players) in by {
                 rows.push(Row::DailyProfile {
@@ -1421,6 +1469,7 @@ impl Aggregator {
         }
         self.daily.retain(|&(day, _), _| day >= today);
         self.flagged.retain(|&day, _| day >= today);
+        self.starts.retain(|&day, _| day >= today);
         for ((node, day, hour, category, synthetic), add) in self.perception.drain() {
             rows.push(Row::Perception {
                 node,
@@ -1518,6 +1567,42 @@ mod tests {
                 _ => None,
             })
             .collect()
+    }
+
+    fn start_rows(rx: &Receiver<Msg>) -> Vec<(i32, i32)> {
+        rx.try_iter()
+            .flat_map(|m| match m {
+                Msg::Rows(r) => r,
+                Msg::Barrier(_) => vec![],
+            })
+            .filter_map(|r| match r {
+                Row::Daily { joined, quick, .. } => Some((joined, quick)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn first_claim_within_five_minutes_is_quick() {
+        let (mut a, rx) = agg(3);
+        let t0 = 900_000.0;
+        // Three new identities: one claims after 2 min, one after 8, one never.
+        for p in 0..3 {
+            a.joined(p, t0);
+            walk(&mut a, p, t0, 60);
+        }
+        a.claimed(0, t0 + 120.0);
+        a.claimed(0, t0 + 130.0); // later claims change nothing
+        a.claimed(1, t0 + 480.0);
+        a.claimed(9, t0 + 10.0); // not new: ignored
+        a.flush(t0 + 2000.0, true);
+        assert_eq!(start_rows(&rx).last(), Some(&(3, 1)), "joined 3, quick 1");
+        // Withdrawn: out of the counts.
+        a.joined(5, t0);
+        a.claimed(5, t0 + 10.0);
+        a.withdraw(5);
+        a.flush(t0 + 3000.0, true);
+        assert_eq!(start_rows(&rx).last(), Some(&(3, 1)));
     }
 
     #[test]

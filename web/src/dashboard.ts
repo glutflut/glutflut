@@ -35,8 +35,8 @@ interface Summary {
   hourly_edges: [number, number, number][];
   zones: { id: string; name: string; lat: number; lon: number; focus?: boolean; radius_m?: number }[];
   flows: [string, string, number][];
-  /** day, players who count, newcomers who left before counting, flagged (implausible tracks) */
-  daily: [string, number, number, number][];
+  /** day, players who count, newcomers who left before counting, flagged (implausible tracks), new identities, of those claimed within five minutes */
+  daily: [string, number, number, number, number?, number?][];
   /** Person-days per answer, one marginal each; null = hidden (below k). */
   profiles: { age: [string, number | null][]; local: [string, number | null][] };
   /** Places need this many ratings to be published. */
@@ -1581,6 +1581,12 @@ async function main() {
         t("dash.tile.flagged.note"),
       ),
       tile(t("dash.tile.noise"), "± 2", t("dash.tile.noise.note")),
+    );
+    // The first five minutes: new players who claim within five minutes of joining.
+    const joined = d.daily.reduce((a, x) => a + (x[4] ?? 0), 0);
+    const quick = d.daily.reduce((a, x) => a + (x[5] ?? 0), 0);
+    $("transparency").append(
+      tile(t("dash.tile.first"), joined ? pct.format(quick / joined) : "–", t("dash.tile.first.note", { n: fmt.format(quick), total: fmt.format(joined) })),
     );
     columns(
       $("daily"),

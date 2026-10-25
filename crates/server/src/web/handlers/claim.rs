@@ -118,9 +118,10 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
     let Some((e, out)) = game.clients.0.get(&conn) else {
         return;
     };
-    let Ok((&faction, pos, mut cd, _, slot, motion)) = game.players.get_mut(*e) else {
+    let Ok((&faction, pos, mut cd, tracked, slot, motion)) = game.players.get_mut(*e) else {
         return;
     };
+    let pseudo = tracked.as_ref().map(|t| t.pseudo);
     if motion.locked(now) {
         send(
             out,
@@ -393,6 +394,9 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
                 );
             }
         }
+    }
+    if let (true, Some(p)) = (res.is_ok(), pseudo) {
+        game.agg.claimed(p, now);
     }
     // Armed abilities take effect with a successful claim.
     if res.is_ok() && !tunnel {

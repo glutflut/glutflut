@@ -671,6 +671,8 @@ export const en: Dict = {
   "dash.gr.tip": "{n} players, {fresh} of them new",
   "dash.tile.flagged": "Implausible tracks",
   "dash.tile.flagged.note": "players in the period left out for faked positions",
+  "dash.tile.first": "First five minutes",
+  "dash.tile.first.note": "{n} of {total} new players claim within five minutes of joining",
   "dash.tile.noise": "Random noise",
   "dash.tile.noise.note": "per published person count, fixed per cell; totals stay almost exact",
   "dash.players": "{n} players",

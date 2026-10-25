@@ -671,6 +671,8 @@ export const pl: Dict = {
   "dash.gr.tip": "{n} graczy, w tym {fresh} nowych",
   "dash.tile.flagged": "Niewiarygodne ślady",
   "dash.tile.flagged.note": "gracze w okresie pominięci z powodu sfałszowanych pozycji",
+  "dash.tile.first": "Pierwsze pięć minut",
+  "dash.tile.first.note": "{n} z {total} nowych graczy zdobywa w ciągu pięciu minut od dołączenia",
   "dash.tile.noise": "Losowy szum",
   "dash.tile.noise.note": "na każdą publikowaną liczbę osób, stały dla komórki; sumy pozostają niemal dokładne",
   "dash.players": "[one]{n} gracz[other]{n} graczy",

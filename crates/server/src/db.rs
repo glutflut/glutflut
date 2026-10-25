@@ -855,7 +855,7 @@ pub fn analytics_summary(
     let daily: Vec<_> = c
         .query(
             &format!(
-                "SELECT day::text, sum(players)::bigint, sum(newcomers)::bigint, sum(flagged)::bigint FROM analytics.daily \
+                "SELECT day::text, sum(players)::bigint, sum(newcomers)::bigint, sum(flagged)::bigint, sum(joined)::bigint, sum(quick)::bigint FROM analytics.daily \
                  WHERE region = $1 AND {} AND synthetic = ANY($3) \
                  GROUP BY 1 ORDER BY 1",
                 period.date("day", rel)
@@ -863,7 +863,7 @@ pub fn analytics_summary(
             &[&region, &p, &synthetic],
         )?
         .iter()
-        .map(|r| json!([r.get::<_, String>(0), r.get::<_, i64>(1), r.get::<_, i64>(2), r.get::<_, i64>(3)]))
+        .map(|r| json!([r.get::<_, String>(0), r.get::<_, i64>(1), r.get::<_, i64>(2), r.get::<_, i64>(3), r.get::<_, i64>(4), r.get::<_, i64>(5)]))
         .collect();
     // Player mix: person-days per answer, one marginal at a time (never the
     // cross table), cells below k suppressed.
