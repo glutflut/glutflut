@@ -51,11 +51,17 @@ export function setupClaim(d: {
     } else {
       // Nothing to take nearby, but an anchor spot or the front to reinforce: the button says so.
       const tg = me ? target(me) : null;
-      claimBtn.textContent = tg?.anchor
+      let label = tg?.anchor
         ? t(faction === "fire" ? "claim.anchor.go.fire" : "claim.anchor.go.water")
         : tg?.reinforce
           ? t("claim.reinforce.go")
           : t("claim.button");
+      // Nothing at all in range: the button points the way (the first tip).
+      if (!tg && me && faction) {
+        const f = nearestFront(me, faction === "fire" ? 1 : 2);
+        if (f && f[1] > d.claimRadius() && f[1] <= FRONT_HINT_M) label = t("claim.front", { d: `${Math.round(f[1] / 10) * 10} m ${arrow(me, f[0])}` });
+      }
+      claimBtn.textContent = label;
     }
     claimBtn.disabled = !(faction && me) || !!wait;
   };
@@ -138,22 +144,36 @@ export function setupClaim(d: {
     return best ? { id: best[0], anchor: false, reinforce: true } : null;
   }
 
-  // Why the button has nothing to take: an anchor too close (supply), or
-  // really all ours; plus the way to the nearest junction that isn't ours.
+  /** The nearest junction that isn't ours, at any distance, and how far. */
+  function nearestFront(p: [number, number], mine: number): [[number, number], number] | null {
+    let front: [[number, number], number] | null = null;
+    for (const [id, c] of nodePos) {
+      const dist = distM(p, c);
+      const [f, w] = state.get(id) ?? [0, 0];
+      if (owner(f, w) !== mine && (!front || dist < front[1])) front = [c, dist];
+    }
+    return front;
+  }
+
+  // Why the button has nothing to take: no junction in range at all, an
+  // anchor too close (supply), or really all ours; plus the way to the
+  // nearest junction that isn't ours.
   function nothing(p: [number, number]): string {
     const faction = d.faction();
     const mine = faction === "fire" ? 1 : 2;
     const src = new Set(d.sources().map((s) => s.node));
     const anchors = d.sources().filter((s) => s.kind === "anchor" && s.faction === faction);
     let free = false;
-    let front: [[number, number], number] | null = null;
+    let any = false;
     for (const [id, c] of nodePos) {
       const dist = distM(p, c);
-      if (dist <= d.claimRadius() && !src.has(id)) free = true;
-      const [f, w] = state.get(id) ?? [0, 0];
-      if (owner(f, w) !== mine && (!front || dist < front[1])) front = [c, dist];
+      if (dist <= d.claimRadius()) {
+        any = true;
+        if (!src.has(id)) free = true;
+      }
     }
-    let msg = t("claim.allmine");
+    const front = nearestFront(p, mine);
+    let msg = t(any ? "claim.allmine" : "claim.nonear");
     if (free && anchors.length) {
       const m = Math.min(...anchors.map((a) => distM(p, a.ll)));
       msg = t(faction === "water" ? "claim.anchornear.water" : "claim.anchornear.fire", { m: Math.round(m / 10) * 10 });

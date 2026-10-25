@@ -281,8 +281,8 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
       card(m, m.n, m.of, m.stored);
       navigator.vibrate?.([80, 60, 80, 60, 160]);
     },
-    onNear(c: string) {
-      toast(t(`finds.near.${c}` as Key));
+    onNear(c: string, m: number) {
+      toast(`${t(`finds.near.${c}` as Key)} ${t("finds.near.dist", { m })}`);
     },
     onBadge(badge: string) {
       show({ cls: "badge", kicker: t("badge.new"), name: badgeLabel(badge), line: "", ask: false, note: false });

@@ -415,7 +415,7 @@ async function main() {
       finds.onFind(m);
       sound.chime();
     },
-    near: (m) => finds.onNear(m.c),
+    near: (m) => finds.onNear(m.c, m.m),
     badge(m) {
       finds.onBadge(m.badge);
       sound.motif();

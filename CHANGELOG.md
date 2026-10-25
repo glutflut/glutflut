@@ -15,6 +15,12 @@ All notable changes to Glut & Flut. Versions follow
 - Time to the first claim (migration V5): `analytics.daily` counts per day
   how many new identities joined and how many of them claimed within five
   minutes; the dashboard shows the share as "Erste fünf Minuten".
+- The first tip: with nothing to take in range, the claim button itself
+  points to the nearest front ("Nächste Front: 40 m ↗"); a tap with no
+  junction in reach says so instead of "alles deins".
+- The day's first challenge at level 1 is always "claim 3 junctions".
+- Before the first find, the hint reaches `[finds] first_hint_m` (400 m)
+  instead of 150 m, and every hint says how far ("noch etwa 120 m").
 
 ## 0.2.0 – 2026-10-24: story campaigns and the chronicle
 

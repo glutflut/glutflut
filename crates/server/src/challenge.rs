@@ -149,6 +149,15 @@ impl Challenges {
         now: f64,
         p: &Progression,
     ) -> View {
+        let day = self.clock.day(now);
+        let g = self.given.entry(slot).or_insert((day, 0));
+        if g.0 != day {
+            *g = (day, 0);
+        }
+        g.1 += 1;
+        // The day's first challenge at level 1 is always "claim 3": a
+        // newcomer must not start with "a zone you haven't been in".
+        let first = level <= 1 && g.1 == 1;
         let visited = *self.visited(slot, now);
         let open: Vec<Challenge> = Challenge::ALL
             .into_iter()
@@ -160,7 +169,11 @@ impl Challenges {
             })
             .filter(|c| *c != Challenge::Discover || self.zones.len() as u32 > visited.count_ones())
             .collect();
-        let kind = *open.choose(&mut rand::rng()).unwrap_or(&Challenge::Claim3);
+        let kind = if first {
+            Challenge::Claim3
+        } else {
+            *open.choose(&mut rand::rng()).unwrap_or(&Challenge::Claim3)
+        };
         // Entdecken: name the nearest zone not claimed in today.
         let hint = (kind == Challenge::Discover)
             .then(|| {
@@ -173,12 +186,6 @@ impl Challenges {
                     .map(|(_, (name, _, _))| name.clone())
             })
             .flatten();
-        let day = self.clock.day(now);
-        let g = self.given.entry(slot).or_insert((day, 0));
-        if g.0 != day {
-            *g = (day, 0);
-        }
-        g.1 += 1;
         let run = Run {
             slot,
             kind,
@@ -399,8 +406,8 @@ mod tests {
         let t0 = 1_000_000.0;
         let ev = ch.on_claim(1, slot, claim(false), t0, &p, &mut scores);
         assert!(
-            matches!(ev.first(), Some(Event::Update(_))),
-            "a challenge starts"
+            matches!(ev.first(), Some(Event::Update(v)) if v.kind == Challenge::Claim3),
+            "the first challenge is always \"claim 3\""
         );
         // Claim (2) + new zone (15), two kinds of goal? Zone only: no bonus.
         assert_eq!(scores.xp(slot).0, 17.0);

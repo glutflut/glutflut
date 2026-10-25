@@ -21,7 +21,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "finds", collect: boolean, items: Array<FindItem>, totals: Record<string, number>, }
   | { "t": "notices", items: Array<Notice>, }
   | { "t": "find", n: number, of: number, stored: boolean, id: number, c: string, name: string, lat: number, lon: number, text?: Record<string, string>, }
-  | { "t": "near", c: string, }
+  | { "t": "near", c: string, m: number, }
   | { "t": "tunnel", node: number, lat: number, lon: number, kind: "peak" | "sink", m: number, secs: number, }
   | { "t": "badge", badge: string, }
   | { "t": "ringbroken", points: number, }

@@ -388,6 +388,7 @@ Gauge level → phase −1 (mean low water) … +1 (mean high water); `k` = phas
 | `uncover_m` | 40 | A claim within this uncovers a find (m) … |
 | `dwell_s` | 10 | … or staying this long within it (s). |
 | `hint_m` | 150 | A hint from this distance (m). |
+| `first_hint_m` | 400 | … from this distance while the player has found nothing yet (m). |
 | `hint_every_s` | 300 | Again for the same find after this (s). |
 
 #### `[area]` (blocks, `rules.rs`; server `area.rs`)

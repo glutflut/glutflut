@@ -378,8 +378,14 @@ pub(super) fn pos(
         let known = game.scores.finds(slot).map(|k| k.1).unwrap_or_default();
         let p = Vec2::new(pos.0.x, pos.0.z);
         let running = game.campaign.running(now);
+        // Nothing found yet: a wider hint, so the first find is in reach.
+        let r = if known.is_empty() {
+            c.rules.finds.first_hint_m.max(c.rules.finds.hint_m)
+        } else {
+            c.rules.finds.hint_m
+        };
         if let Some(near) = f
-            .near(p, c.rules.finds.hint_m, &running, now)
+            .near(p, r, &running, now)
             .into_iter()
             .find(|x| !known.contains(&x.id))
         {
@@ -392,6 +398,7 @@ pub(super) fn pos(
                     out,
                     &ServerMsg::Near {
                         c: &near.collection,
+                        m: ((near.p.distance(p) / 10.0).round() as u32) * 10,
                     },
                 );
             }

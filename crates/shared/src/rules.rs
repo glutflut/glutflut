@@ -265,14 +265,16 @@ impl Default for Tunnel {
 }
 
 /// Finds: hidden places uncovered by a claim within `uncover_m`, or by
-/// `dwell_s` within `uncover_m`; a hint from `hint_m`, again for the same
-/// find after `hint_every_s`.
+/// `dwell_s` within `uncover_m`; a hint from `hint_m` (from `first_hint_m`
+/// for a player who has found nothing yet), again for the same find after
+/// `hint_every_s`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Finds {
     pub uncover_m: f32,
     pub dwell_s: f32,
     pub hint_m: f32,
+    pub first_hint_m: f32,
     pub hint_every_s: f32,
 }
 
@@ -282,6 +284,7 @@ impl Default for Finds {
             uncover_m: 40.0,
             dwell_s: 10.0,
             hint_m: 150.0,
+            first_hint_m: 400.0,
             hint_every_s: 300.0,
         }
     }

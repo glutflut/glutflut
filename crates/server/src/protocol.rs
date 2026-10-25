@@ -152,9 +152,11 @@ pub enum ServerMsg<'a> {
         of: u32,
         stored: bool,
     },
-    /// Something of collection `c` within `[finds] hint_m`.
+    /// Something of collection `c` within `[finds] hint_m` (`first_hint_m`
+    /// before the first find): `m` metres away, rounded to 10.
     Near {
         c: &'a str,
+        m: u32,
     },
     /// A tunnel opened: claim `node` from afar within `secs` (see `Tunnels`).
     Tunnel {
