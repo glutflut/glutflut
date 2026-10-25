@@ -171,8 +171,11 @@ pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: &str) {
     let Ok((&faction, pos, ..)) = game.players.get(*e) else {
         return;
     };
-    let target = Some(())
-        .filter(|_| c.rules.keep.link)
+    let target = c
+        .rules
+        .keep
+        .link
+        .then_some(())
         .and_then(|_| {
             link_partner(
                 &game.keep_info,
