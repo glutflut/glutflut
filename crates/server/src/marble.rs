@@ -476,7 +476,7 @@ pub struct S3 {
     bucket: rusty_s3::Bucket,
     creds: rusty_s3::Credentials,
     prefix: String,
-    manifest_key: String,
+    cell: String,
     agent: ureq::Agent,
 }
 
@@ -507,11 +507,7 @@ impl S3 {
             bucket,
             creds: rusty_s3::Credentials::new(var("KEY_ID")?, var("SECRET")?),
             prefix: format!("glutflut/{shard}/"),
-            manifest_key: if cell == "main" {
-                "manifest.json".into()
-            } else {
-                format!("cells/{cell}/manifest.json")
-            },
+            cell: cell.to_string(),
             agent: ureq::AgentBuilder::new()
                 .tls_connector(Arc::new(tls))
                 .timeout(std::time::Duration::from_secs(30))
@@ -707,7 +703,8 @@ pub fn publish(host: &crate::regions::Host, s3: Option<&S3>, now: f64) {
         }
     }
     // Main: the shard's manifest with the other cells' regions in it.
-    let manifest = match s3.filter(|_| host.is_main()) {
+    let main = host.is_main();
+    let manifest = match s3.filter(|_| main) {
         Some(s3) => {
             let others: Vec<(String, serde_json::Value)> = host
                 .other_cells()
@@ -723,7 +720,11 @@ pub fn publish(host: &crate::regions::Host, s3: Option<&S3>, now: f64) {
     };
     if let Some(s3) = s3 {
         if let Err(e) = s3.put(
-            &s3.manifest_key,
+            &if main {
+                "manifest.json".to_string()
+            } else {
+                format!("cells/{}/manifest.json", s3.cell)
+            },
             &gzip(manifest.as_bytes()),
             "application/json",
             MANIFEST_CACHE,
@@ -734,7 +735,7 @@ pub fn publish(host: &crate::regions::Host, s3: Option<&S3>, now: f64) {
     }
     // The shard index, written by eu only: the globe reads it instead of
     // a fixed list of shards. Uploaded when it changes.
-    if host.shard() == "eu" && host.is_main() {
+    if host.shard() == "eu" && main {
         let idx = index(host.shard(), &crate::shards::get().urls);
         let same = host.marble.published.lock().unwrap().index.as_deref() == Some(idx.as_str());
         let ok = same

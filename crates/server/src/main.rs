@@ -404,8 +404,9 @@ fn main() {
         shard_urls.clone(),
         args.shard_key.clone(),
     );
-    // Shard-wide: once per shard, in the main cell.
-    if let Some(db) = args.db.clone().filter(|_| args.cell == "main") {
+    // In every cell: rows are locked while sent (`SKIP LOCKED`), so a
+    // standby or a second main can't deliver an event twice.
+    if let Some(db) = args.db.clone() {
         shards::spawn_outbox(db);
     }
     let max_junctions = args

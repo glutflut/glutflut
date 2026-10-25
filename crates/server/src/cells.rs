@@ -3,10 +3,11 @@
 //! cells too, or their next flush writes an old player back. Rows in
 //! `ops.cell_events`, polled twice a second; only while the shard has
 //! other cells (a single server only checks `ops.cells` every 5 s). Also the
-//! region leases: a region runs in one cell at a time, also while it moves.
+//! region leases: a region runs in one cell at a time, also while it moves;
+//! and the main lease: the shard-wide jobs run in one cell at a time.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::{Receiver, Sender};
@@ -38,7 +39,9 @@ struct Bus {
     /// The shard has other cells (set by the bus thread).
     active: AtomicBool,
     /// Their names: in the region list or registered in `ops.cells`.
-    others: std::sync::Mutex<Vec<String>>,
+    others: Mutex<Vec<String>>,
+    /// Holding the main lease until about then (renewed with the region leases).
+    main_until: Mutex<Option<Instant>>,
 }
 
 static BUS: OnceLock<Bus> = OnceLock::new();
@@ -53,6 +56,7 @@ pub fn spawn(host: Arc<Host>, db: String) {
             tx,
             active: AtomicBool::new(false),
             others: Default::default(),
+            main_until: Mutex::new(None),
         })
         .is_err()
     {
@@ -79,6 +83,14 @@ pub fn rekey(old: [u8; 32], new: [u8; 32]) {
     if let Some(b) = active() {
         let _ = b.tx.send(Out::Rekey(old, new));
     }
+}
+
+/// This cell runs the shard-wide jobs: with other cells, while it holds the
+/// main lease; alone (or before the bus knows): `None`, the caller decides.
+pub fn main_here() -> Option<bool> {
+    let b = active()?;
+    let until = *b.main_until.lock().unwrap();
+    Some(until.is_some_and(|t| Instant::now() < t))
 }
 
 /// Lease `slug` for this cell before loading it: false while another cell
@@ -114,6 +126,17 @@ fn lease(c: &mut postgres::Client, slug: &str, cell: &str) -> Result<bool, postg
          ON CONFLICT (slug) DO UPDATE SET cell = EXCLUDED.cell, until = EXCLUDED.until \
          WHERE ops.region_lease.cell = EXCLUDED.cell OR ops.region_lease.until < now()",
         &[&slug, &cell, &LEASE_S],
+    )?;
+    Ok(n == 1)
+}
+
+/// Take or renew the shard's main lease: free, expired or already ours.
+fn lease_main(c: &mut postgres::Client, shard: &str, cell: &str) -> Result<bool, postgres::Error> {
+    let n = c.execute(
+        "INSERT INTO ops.main_lease (shard, cell, until) VALUES ($1, $2, now() + make_interval(secs => $3)) \
+         ON CONFLICT (shard) DO UPDATE SET cell = EXCLUDED.cell, until = EXCLUDED.until \
+         WHERE ops.main_lease.cell = EXCLUDED.cell OR ops.main_lease.until < now()",
+        &[&shard, &cell, &LEASE_S],
     )?;
     Ok(n == 1)
 }
@@ -209,6 +232,7 @@ fn run(host: &Arc<Host>, db: &str, rx: &Receiver<Out>) {
         if !on {
             last = None;
             renewed = None;
+            *bus.main_until.lock().unwrap() = None;
             // Nothing to tell anyone: drop what came while switching off.
             while rx.try_recv().is_ok() {}
             outgoing.clear();
@@ -332,6 +356,22 @@ fn step(
                 warn!(slug, "cells: lease held by another cell; unloading here");
                 host.unload(&slug, "lease lost");
             }
+        }
+        // Main: any cell once it is free (failover moves it, docs/deploy.md).
+        // Counted from before the query, a minute short of the lease.
+        let asked = Instant::now();
+        let main = lease_main(c, shard, me)?;
+        let until = main.then(|| asked + Duration::from_secs_f64(LEASE_S - 60.0));
+        let was = std::mem::replace(
+            &mut *BUS.get().expect("bus").main_until.lock().unwrap(),
+            until,
+        );
+        if was.is_some() != until.is_some() {
+            info!(
+                main,
+                "cells: main lease {}",
+                if main { "taken" } else { "lost" }
+            );
         }
         *renewed = Some(Instant::now());
     }

@@ -342,9 +342,10 @@ impl Host {
         &self.cfg.cell
     }
 
-    /// Runs the shard-wide jobs (globe, outbox): the `main` cell.
+    /// Runs the shard-wide jobs (globe manifest, shard index, cleanup): with
+    /// other cells the holder of the main lease, alone the `main` cell.
     pub fn is_main(&self) -> bool {
-        self.cfg.cell == "main"
+        crate::cells::main_here().unwrap_or(self.cfg.cell == "main")
     }
 
     /// The shard's other cells (from the region list).
