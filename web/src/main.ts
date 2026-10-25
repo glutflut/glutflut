@@ -14,6 +14,7 @@ import { chooseRegion, knownRegions, openCities, setupCities } from "./outside";
 import { setupWeather } from "./weather";
 import { setupNews } from "./news";
 import { onNotices } from "./notices";
+import { markStorySeen, showStory, storySeen } from "./story";
 import { checkInstall } from "./install";
 import { setupRadar } from "./radar";
 import { setupFinds } from "./finds";
@@ -53,6 +54,10 @@ import { setupLive, startKiosk } from "./live";
 import { setupTimelapse } from "./timelapse";
 import { lookFromHash, setupGlobe } from "./globe";
 import { openRegion } from "./region";
+
+// No token yet when the page loaded: the first `welcome` as a player makes
+// this browser a new player (the side reveal card below).
+const newcomer = !load(KEYS.token);
 
 // Graphics level per browser (see gfx.ts): game view unless "map"; tilt,
 // 3D buildings and moving elements only at "full".
@@ -375,6 +380,14 @@ async function main() {
       card.refresh();
       progress.show();
       perm.drawList();
+      // First time as a player: the side this browser got and what to do
+      // first. Only a bias picks the side (server `join_side`), so the card
+      // says nothing about weaker or stronger.
+      if (newcomer && !storySeen("side") && !(m.sim && want && want !== m.faction)) {
+        markStorySeen("side");
+        const fire = m.faction === "fire";
+        showStory({ cls: m.faction, kicker: t("side.card.kicker"), title: t(fire ? "you.fire" : "you.water"), text: t(fire ? "side.card.fire" : "side.card.water") });
+      }
     },
     side(m) {
       applyFaction(m.faction);
