@@ -143,6 +143,12 @@ pub struct Keep {
     /// Gone after this long without a top-up (lost tickets, players who
     /// don't come back).
     pub expire_s: f32,
+    /// Linked permanent sources: a player connects two of their own; at one
+    /// of them, claims reach the junctions around the other (both ways, any
+    /// distance), at `link_factor` of their strength. The other itself can't
+    /// be topped up that way. Others see only that a source is linked.
+    pub link: bool,
+    pub link_factor: f32,
 }
 
 impl Default for Keep {
@@ -158,6 +164,8 @@ impl Default for Keep {
             hit: 0.1,
             points_per_h: 10.0,
             expire_s: 3.0 * 86_400.0,
+            link: false,
+            link_factor: 0.7,
         }
     }
 }

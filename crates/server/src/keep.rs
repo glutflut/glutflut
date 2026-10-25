@@ -45,6 +45,8 @@ pub struct KeepInfo {
     pub ticket: Hash,
     pub wear: f32,
     pub points: f32,
+    /// Linked partner's ticket hash (`[keep] link`).
+    pub link: Option<Hash>,
 }
 
 fn hash(prefix: &str, ticket: &str) -> Hash {
@@ -83,6 +85,7 @@ struct Row {
     ticket: Hash,
     /// Tag line (`mottos`, 0 none).
     motto: u16,
+    link: Option<Hash>,
 }
 
 struct Snapshot {
@@ -331,11 +334,13 @@ pub fn restore(
                 supply: 1.0,
                 motto: r.motto,
                 sieged: false,
+                linked: r.link.is_some(),
             },
             KeepInfo {
                 ticket: r.ticket,
                 wear: r.wear,
                 points: r.points,
+                link: r.link,
             },
         ));
     }
@@ -351,7 +356,7 @@ pub fn tick(
     mut keeps: ResMut<Keeps>,
     rules: Res<GameRules>,
     stop: Res<crate::Stop>,
-    mut q: Query<(Entity, &GeoNode, &mut KeepInfo, Option<&ElementSource>)>,
+    mut q: Query<(Entity, &GeoNode, &mut KeepInfo, Option<&mut ElementSource>)>,
     mut done: Local<bool>,
 ) {
     if !keeps.enabled || keeps.pending.is_some() || *done {
@@ -359,10 +364,24 @@ pub fn tick(
     }
     let now = now_s();
     // Taken over, given up or expired: the source is no longer a Keep.
+    let mut fallen = Vec::new();
     for (e, _, k, s) in &q {
         if s.is_none_or(|s| s.kind != SourceKind::Keep) {
             keeps.pot_add(k.ticket, k.points);
             commands.entity(e).remove::<KeepInfo>();
+            fallen.push(k.ticket);
+        }
+    }
+    // Their partners lose the link.
+    if !fallen.is_empty() {
+        for (_, _, mut k, s) in &mut q {
+            if k.link.is_some_and(|l| fallen.contains(&l)) {
+                k.link = None;
+                if let Some(mut s) = s {
+                    s.linked = false;
+                }
+                keeps.dirty = true;
+            }
         }
     }
     if now >= keeps.points_at {
@@ -396,7 +415,7 @@ pub fn tick(
         keeps.dirty = true;
         info!(n, "campaign boundary: permanent sources reset");
     }
-    let rows = |q: &Query<(Entity, &GeoNode, &mut KeepInfo, Option<&ElementSource>)>,
+    let rows = |q: &Query<(Entity, &GeoNode, &mut KeepInfo, Option<&mut ElementSource>)>,
                 reset: bool| {
         q.iter()
             .filter(|_| !reset)
@@ -413,6 +432,7 @@ pub fn tick(
                     points: k.points,
                     ticket: k.ticket,
                     motto: s.motto,
+                    link: k.link,
                 })
             })
             .collect::<Vec<_>>()
@@ -446,7 +466,7 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
     let h = |v: Vec<u8>| <Hash>::try_from(v).ok();
     let rows = c
         .query(
-            "SELECT node_id, faction, age_s, built_s, ramp_s, wear, mult, points, ticket, motto \
+            "SELECT node_id, faction, age_s, built_s, ramp_s, wear, mult, points, ticket, motto, link \
              FROM game.keeps WHERE region = $1",
             &[&region],
         )?
@@ -466,6 +486,7 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
                     .get::<_, Option<&str>>(9)
                     .and_then(elements_shared::mottos::parse)
                     .unwrap_or(0),
+                link: r.get::<_, Option<Vec<u8>>>(10).and_then(h),
             })
         })
         .collect();
@@ -525,10 +546,11 @@ fn write(c: &mut postgres::Client, region: &str, s: &Snapshot) -> Result<(), pos
         .iter()
         .map(|r| elements_shared::mottos::key_of(r.motto).map(String::from))
         .collect();
+    let links: Vec<Option<&[u8]>> = k.iter().map(|r| r.link.as_ref().map(|l| &l[..])).collect();
     t.execute(
-        "INSERT INTO game.keeps (region, node_id, faction, age_s, built_s, ramp_s, wear, mult, points, ticket, motto) \
-         SELECT $1, n, f, a, b, r, w, m, p, tk, mo FROM unnest($2::int8[], $3::text[], $4::real[], $5::real[], \
-           $6::real[], $7::real[], $8::real[], $9::real[], $10::bytea[], $11::text[]) AS x(n, f, a, b, r, w, m, p, tk, mo)",
+        "INSERT INTO game.keeps (region, node_id, faction, age_s, built_s, ramp_s, wear, mult, points, ticket, motto, link) \
+         SELECT $1, n, f, a, b, r, w, m, p, tk, mo, li FROM unnest($2::int8[], $3::text[], $4::real[], $5::real[], \
+           $6::real[], $7::real[], $8::real[], $9::real[], $10::bytea[], $11::text[], $12::bytea[]) AS x(n, f, a, b, r, w, m, p, tk, mo, li)",
         &[
             &region,
             &nodes,
@@ -541,6 +563,7 @@ fn write(c: &mut postgres::Client, region: &str, s: &Snapshot) -> Result<(), pos
             &col(|r| r.points),
             &tickets,
             &mottos,
+            &links,
         ],
     )?;
     t.execute("DELETE FROM game.keep_pot WHERE region = $1", &[&region])?;
@@ -673,6 +696,7 @@ mod tests {
             points,
             ticket: [node as u8; 32],
             motto: 0,
+            link: None,
         }
     }
 

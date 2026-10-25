@@ -105,6 +105,7 @@ pub enum FromWeb {
     Claim {
         conn: u64,
         node: i64,
+        via: Option<String>,
     },
     Rename {
         conn: u64,
@@ -167,6 +168,14 @@ pub enum FromWeb {
         node: i64,
         ticket: String,
         motto: Option<String>,
+    },
+    /// Link two own permanent sources, or unlink one.
+    Link {
+        conn: u64,
+        node: i64,
+        ticket: String,
+        to: Option<i64>,
+        to_ticket: Option<String>,
     },
     /// Opt in to (or out of) collecting finds.
     Collect {
@@ -1362,7 +1371,7 @@ async fn handle_socket(
                 speed: spd,
                 acc,
             },
-            ClientMsg::Claim { node } => FromWeb::Claim { conn, node },
+            ClientMsg::Claim { node, via } => FromWeb::Claim { conn, node, via },
             ClientMsg::Keep { node, ticket } => FromWeb::Keep { conn, node, ticket },
             ClientMsg::Redeem { ticket } => FromWeb::Redeem { conn, ticket },
             ClientMsg::Release { mut tickets } => {
@@ -1444,6 +1453,18 @@ async fn handle_socket(
                 node,
                 ticket,
                 motto,
+            },
+            ClientMsg::Link {
+                node,
+                ticket,
+                to,
+                to_ticket,
+            } => FromWeb::Link {
+                conn,
+                node,
+                ticket,
+                to,
+                to_ticket,
             },
             ClientMsg::Collect { on } => FromWeb::Collect { conn, on },
             ClientMsg::Stats { on } => FromWeb::Stats { conn, on },

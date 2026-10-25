@@ -24,12 +24,14 @@ export type Src = {
   motto: string | null;
   /** Inside a ring of the other side's players: ages faster (`siege.rs`). */
   sieged: boolean;
+  /** A permanent source linked with another of its owner's (`keep.rs`). */
+  linked: boolean;
 };
 export type SourceItems = Extract<ServerMsg, { t: "sources" }>["items"];
 
 /** A row of `sources`/`sourcesdiff`; `own`: the node of this device's permanent source. */
 function toSrc(
-  [node, faction, left, full, mine, lon, lat, build = 0, ramp = 0, kind = "", nokeep = false, motto = null, sieged = false]: SourceItems[number],
+  [node, faction, left, full, mine, lon, lat, build = 0, ramp = 0, kind = "", nokeep = false, motto = null, sieged = false, linked = false]: SourceItems[number],
   own: ReadonlySet<number>,
   now: number,
 ): Src {
@@ -47,11 +49,12 @@ function toSrc(
     nokeep,
     motto: kind === "keep" ? motto : null,
     sieged,
+    linked,
   };
 }
 
 export const building = (s: Src, now: number) => s.ready > now && s.ramp > 0;
-const srcKey = (s: Src, now: number) => `${s.faction}${s.mine}${building(s, now)}${s.kind}${s.sieged}`;
+const srcKey = (s: Src, now: number) => `${s.faction}${s.mine}${building(s, now)}${s.kind}${s.sieged}${s.linked}`;
 const ARC_R = 14;
 const ARC_C = 2 * Math.PI * ARC_R;
 
@@ -131,6 +134,8 @@ export function setupSources(map: maplibregl.Map) {
     el.innerHTML =
       `<svg viewBox="0 0 40 40" width="40" height="40">` +
       (s.mine ? `<circle cx="20" cy="20" r="18.5" fill="none" stroke="#fff" stroke-width="3"/>` : "") +
+      // Linked permanent source: a dotted ring (not with which one).
+      (s.linked ? `<circle cx="20" cy="20" r="14" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="2 2.5"/>` : "") +
       (s.kind === "spark" ? `<circle class="pulse" cx="20" cy="20" r="17" fill="none" stroke="${color}" stroke-width="2.5"/>` : "") +
       `<circle cx="20" cy="20" r="${ARC_R}" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-opacity="0.3" stroke-width="5"` +
       (s.kind === "cut" ? ` stroke-dasharray="3 3"` : "") +

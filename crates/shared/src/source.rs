@@ -54,6 +54,8 @@ pub struct Source {
     pub motto: u16,
     /// Inside a ring of the other side's players (`Rules::siege`, server).
     pub sieged: bool,
+    /// Permanent sources: linked with another of the owner's (`Keep::link`, server).
+    pub linked: bool,
 }
 
 impl Source {
@@ -72,6 +74,7 @@ impl Source {
             supply: 1.0,
             motto: 0,
             sieged: false,
+            linked: false,
         }
     }
 
@@ -102,6 +105,7 @@ impl Source {
             supply: 1.0,
             motto: 0,
             sieged: false,
+            linked: false,
         }
     }
 
@@ -121,6 +125,7 @@ impl Source {
             supply: 1.0,
             motto: 0,
             sieged: false,
+            linked: false,
         }
     }
 

@@ -136,6 +136,9 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         let pts = match old {
             Some((oe, k)) => {
                 motto = game.sources.get(oe).map_or(0, |(_, s)| s.motto);
+                if let Some(p) = k.link {
+                    unlink(&mut game.keep_info, &mut game.sources, &mut game.keeps, &p);
+                }
                 game.commands
                     .entity(oe)
                     .remove::<crate::keep::KeepInfo>()
@@ -169,11 +172,99 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         ticket: h1,
         wear: 0.0,
         points: 0.0,
+        link: None,
     });
     game.keeps.add_slot(player, h2);
     // Debug only: a permanent source is a place (log privacy).
     debug!(node, ?faction, "permanent source placed");
     reply(true, None, Some(t), false, cd.0);
+}
+
+/// Clear the link of the source with ticket hash `h` (its partner went).
+fn unlink(
+    keep_info: &mut Query<(Entity, &mut crate::keep::KeepInfo)>,
+    sources: &mut Query<(&GeoNode, &mut ElementSource)>,
+    keeps: &mut crate::keep::Keeps,
+    h: &crate::keep::Hash,
+) {
+    if let Some((e, mut k)) = keep_info.iter_mut().find(|(_, k)| k.ticket == *h) {
+        k.link = None;
+        if let Ok((_, mut s)) = sources.get_mut(e) {
+            s.linked = false;
+        }
+        keeps.dirty = true;
+    }
+}
+
+/// Link two own permanent sources (`[keep] link`), or unlink one (`to`
+/// none). Both tickets prove ownership; a source has one partner at most.
+pub(super) fn link(
+    game: &mut Game,
+    c: &Ctx,
+    conn: u64,
+    node: i64,
+    ticket: &str,
+    to: Option<i64>,
+    to_ticket: Option<&str>,
+) {
+    let Some((_, out)) = game.clients.0.get(&conn) else {
+        return;
+    };
+    let out = out.clone();
+    let reply = |ok: bool, reason: Option<&'static str>| {
+        send(&out, &ServerMsg::Link { node, ok, reason });
+    };
+    if !game.keeps.enabled() || !c.rules.keep.link {
+        return reply(false, Some("off"));
+    }
+    // An own permanent source: its ticket's hash on the node's KeepInfo.
+    let own = |game: &Game, node: i64, ticket: &str| -> Option<(Entity, crate::keep::Hash)> {
+        let h = crate::keep::hashes(ticket)?.0;
+        let &e = game.node_by_id.get(&node)?;
+        let (_, k) = game.keep_info.get(e).ok()?;
+        (k.ticket == h
+            && game
+                .sources
+                .get(e)
+                .is_ok_and(|(_, s)| s.kind == SourceKind::Keep))
+        .then_some((e, h))
+    };
+    let Some((a, ha)) = own(game, node, ticket) else {
+        return reply(false, Some("notyours"));
+    };
+    let Some(to) = to else {
+        // Unlink: both ends.
+        let partner = game.keep_info.get(a).ok().and_then(|(_, k)| k.link);
+        if let Some(p) = partner {
+            unlink(&mut game.keep_info, &mut game.sources, &mut game.keeps, &p);
+        }
+        unlink(&mut game.keep_info, &mut game.sources, &mut game.keeps, &ha);
+        return reply(true, None);
+    };
+    if to == node {
+        return reply(false, Some("same"));
+    }
+    let Some((b, hb)) = to_ticket.and_then(|t| own(game, to, t)) else {
+        return reply(false, Some("notyours"));
+    };
+    // Earlier partners of either end lose their link.
+    for e in [a, b] {
+        if let Some(p) = game.keep_info.get(e).ok().and_then(|(_, k)| k.link) {
+            if p != ha && p != hb {
+                unlink(&mut game.keep_info, &mut game.sources, &mut game.keeps, &p);
+            }
+        }
+    }
+    for (e, other) in [(a, hb), (b, ha)] {
+        if let Ok((_, mut k)) = game.keep_info.get_mut(e) {
+            k.link = Some(other);
+        }
+        if let Ok((_, mut s)) = game.sources.get_mut(e) {
+            s.linked = true;
+        }
+    }
+    game.keeps.dirty = true;
+    reply(true, None);
 }
 
 pub(super) fn redeem(game: &mut Game, c: &Ctx, conn: u64, ticket: &str) {

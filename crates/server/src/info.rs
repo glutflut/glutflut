@@ -172,6 +172,7 @@ mod tests {
             supply: 1.0,
             motto: 0,
             sieged: false,
+            linked: false,
         }
     }
 

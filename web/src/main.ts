@@ -243,6 +243,7 @@ async function main() {
     supply: progress.supply,
     reinforce: progress.reinforce,
     perm,
+    links: perm.links,
     tunnel,
     card,
   });
@@ -438,6 +439,7 @@ async function main() {
     kept: onKeep,
     released: onKeep,
     motto: onKeep,
+    link: onKeep,
     sources(m) {
       live?.rows(m.items);
       const now = Date.now();

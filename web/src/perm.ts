@@ -19,7 +19,8 @@ const REDEEM_EVERY_MS = 10 * 60_000;
 /** The server takes one redeem per player every 20 s. */
 const REDEEM_GAP_MS = 25_000;
 
-type Stored = { ticket: string; node: number; ll?: [number, number] };
+/** `link`: the partner's ticket (linked permanent sources, server `[keep] link`). */
+type Stored = { ticket: string; node: number; ll?: [number, number]; link?: string };
 
 const valid = (v: Stored) => typeof v?.ticket === "string" && typeof v?.node === "number";
 
@@ -46,9 +47,13 @@ export type PermSrc = {
   nokeep?: boolean;
   motto?: string | null;
   sieged?: boolean;
+  linked?: boolean;
 };
 
-export type PermMsg = Extract<ServerMsg, { t: "keep" | "kept" | "released" | "motto" }>;
+export type PermMsg = Extract<ServerMsg, { t: "keep" | "kept" | "released" | "motto" | "link" }>;
+
+/** An own linked permanent source in this city, with where its partner is. */
+export type Link = { ticket: string; node: number; ll: [number, number]; partnerNode: number; partner: [number, number] };
 
 export function setupPerm(
   net: Net,
@@ -82,6 +87,10 @@ export function setupPerm(
   /** Nodes whose source was in a ring at the last update. */
   let sieged = new Set<number>();
   let levels = false;
+  /** Linked permanent sources are on (`[keep] link`). */
+  let linkOn = false;
+  /** A link (or unlink, `b` null) sent, until the server answers. */
+  let pendingLink: { a: Stored; b: Stored | null } | null = null;
   /** Tag lines just chosen, until the source list shows them. */
   const chosen = new Map<number, string>();
   /** Own sources' tag lines as last seen on the map (kept when out of view). */
@@ -134,6 +143,28 @@ export function setupPerm(
           box.hidden = true;
           moving = r.m.ticket;
           net.send({ t: "keep", node: spot, ticket: r.m.ticket });
+        };
+        return b;
+      }),
+    );
+    $("perm-pick-no").onclick = () => (box.hidden = true);
+    box.hidden = false;
+  }
+
+  // Which one to link with: a card listing the others.
+  function pickLink(a: Stored) {
+    const box = $("perm-pick");
+    $("perm-pick-title").textContent = name("link.pick");
+    const list = $("perm-pick-list");
+    const others = ranked().filter((r) => r.m.ticket !== a.ticket);
+    list.replaceChildren(
+      ...others.map((r) => {
+        const b = document.createElement("button");
+        b.textContent = `${name("one")} ${mine.indexOf(r.m) + 1}` + (line(r) ? ` · ${line(r)}` : "") + (r.m.link ? ` · ${t("perm.linked")}` : "");
+        b.onclick = () => {
+          box.hidden = true;
+          pendingLink = { a, b: r.m };
+          net.send({ t: "link", node: a.node, ticket: a.ticket, to: r.m.node, to_ticket: r.m.ticket });
         };
         return b;
       }),
@@ -209,6 +240,19 @@ export function setupPerm(
           focus(r.m.node);
         };
         li.append(b);
+        // Linked permanent sources: link with another own one, or unlink.
+        if (linkOn && mine.length >= 2) {
+          const lb = document.createElement("button");
+          lb.className = "ghost link";
+          lb.textContent = r.m.link ? t("perm.unlink") : t("perm.link");
+          lb.onclick = () => {
+            if (r.m.link) {
+              pendingLink = { a: r.m, b: null };
+              net.send({ t: "link", node: r.m.node, ticket: r.m.ticket, to: null });
+            } else pickLink(r.m);
+          };
+          li.append(" ", lb);
+        }
         // A tag line from level 2 (without levels: always); the city's for everyone.
         if (mottoOpen()) {
           const lab = document.createElement("label");
@@ -232,15 +276,29 @@ export function setupPerm(
     const gone = mine.find((m) => m.ticket === ticket);
     if (gone) shownMotto.delete(gone.node);
     mine = mine.filter((m) => m.ticket !== ticket);
+    // Its partner is on its own again.
+    for (const m of mine) if (m.link === ticket) delete m.link;
     save(mine);
   }
 
   return {
     /** The nodes of this device's permanent sources here. */
     nodes,
+    /** Own linked sources with a known position for both ends (claim.ts). */
+    links(): Link[] {
+      if (!linkOn) return [];
+      const out: Link[] = [];
+      for (const m of mine) {
+        const p = m.link ? mine.find((x) => x.ticket === m.link) : undefined;
+        const a = where(m);
+        const b = p && where(p);
+        if (p && a && b) out.push({ ticket: m.ticket, node: m.node, ll: a, partnerNode: p.node, partner: b });
+      }
+      return out;
+    },
     drawList,
     onWelcome(
-      m: { keep?: boolean; keep_used?: number; keep_base?: number; keep_per_level?: number; keep_gap_m?: number; mottos?: MottoItem[]; levels?: boolean },
+      m: { keep?: boolean; keep_used?: number; keep_base?: number; keep_per_level?: number; keep_gap_m?: number; keep_link?: boolean; mottos?: MottoItem[]; levels?: boolean },
       f: Faction,
     ) {
       mottos = m.mottos ?? [];
@@ -251,6 +309,7 @@ export function setupPerm(
       base = m.keep_base ?? 1;
       perLevel = m.keep_per_level ?? 0;
       gap = m.keep_gap_m ?? 60;
+      linkOn = !!m.keep_link;
       faction = f;
       redeemTimers.forEach(clearTimeout);
       clearInterval(redeemEvery);
@@ -313,6 +372,22 @@ export function setupPerm(
       } else if (m.t === "motto") {
         if (!m.ok) chosen.delete(m.node);
         toast(t(m.ok ? "perm.motto.set" : m.reason === "locked" ? "perm.motto.locked" : "perm.failed"));
+      } else if (m.t === "link") {
+        const p = pendingLink;
+        pendingLink = null;
+        if (m.ok && p) {
+          if (p.b) {
+            // Old partners of either end are on their own again.
+            for (const x of mine) if (x.link === p.a.ticket || x.link === p.b.ticket) delete x.link;
+            p.a.link = p.b.ticket;
+            p.b.link = p.a.ticket;
+          } else {
+            for (const x of mine) if (x.link === p.a.ticket) delete x.link;
+            delete p.a.link;
+          }
+          save(mine);
+          toast(t(p.b ? "perm.link.set" : "perm.link.off"), 6000);
+        } else toast(t("perm.failed"));
       } else if (m.t === "released") {
         if (m.ok) {
           used = mine.length;

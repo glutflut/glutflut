@@ -4,12 +4,14 @@ import { t, type Key } from "./i18n";
 import type { Faction, Net, ServerMsg } from "./net";
 import type { Sound } from "./sound";
 import type { Src } from "./sources";
+import type { Link } from "./perm";
 import { arrow, CLAIM_RADIUS_M, distM, owner } from "./geo";
 import { $, plus, toast } from "./page";
 
 const TOO_FAST = t("too.fast");
 
-type Target = { id: number; anchor: boolean; reinforce?: boolean };
+/** `via`: the ticket of an own linked permanent source in reach (the claim goes around its partner). */
+type Target = { id: number; anchor: boolean; reinforce?: boolean; via?: string };
 /** Farther than this the front hint is no help on foot. */
 const FRONT_HINT_M = 2000;
 
@@ -25,6 +27,8 @@ export function setupClaim(d: {
   supply: () => number | null;
   reinforce: () => boolean;
   perm: { update(me: [number, number] | null, sources: Src[], faction: Faction | null): void };
+  /** Own linked permanent sources (perm.ts). */
+  links: () => Link[];
   /** The tunnel's say on a claim: true if it went through one. */
   tunnel: { onClaim(node: number, ok: boolean): boolean };
   card: { onClaim(node: number): void };
@@ -55,7 +59,9 @@ export function setupClaim(d: {
         ? t(faction === "fire" ? "claim.anchor.go.fire" : "claim.anchor.go.water")
         : tg?.reinforce
           ? t("claim.reinforce.go")
-          : t("claim.button");
+          : tg?.via
+            ? t("claim.link")
+            : t("claim.button");
       // Nothing at all in range: the button points the way (the first tip).
       if (!tg && me && faction) {
         const f = nearestFront(me, faction === "fire" ? 1 : 2);
@@ -80,8 +86,8 @@ export function setupClaim(d: {
   // A claim always gets an answer; without one the connection is renewed and
   // the player is told to tap again (it used to fail silently after sleep).
   let claimWait = 0;
-  function send(node: number) {
-    if (!net.send({ t: "claim", node })) return toast(t("connection.retry"));
+  function send(node: number, via?: string) {
+    if (!net.send({ t: "claim", node, ...(via ? { via } : {}) })) return toast(t("connection.retry"));
     net.check();
     clearTimeout(claimWait);
     claimWait = window.setTimeout(() => toast(t("connection.retry")), 5_000);
@@ -103,23 +109,34 @@ export function setupClaim(d: {
     const sources = d.sources();
     const supply = d.supply();
     const mine = faction === "fire" ? 1 : 2;
-    const nearest = (ok: (id: number) => boolean): number | null => {
+    const nearestAt = (at: [number, number], ok: (id: number) => boolean): number | null => {
       let best: [number, number] | null = null;
       for (const [id, c] of nodePos) {
-        const dist = distM(p, c);
+        const dist = distM(at, c);
         if (dist > d.claimRadius() || (best && dist >= best[1]) || !ok(id)) continue;
         best = [id, dist];
       }
       return best?.[0] ?? null;
     };
+    const nearest = (ok: (id: number) => boolean) => nearestAt(p, ok);
     const src = new Map(sources.map((s) => [s.node, s]));
     const spark = nearest((id) => src.get(id)?.kind === "spark" && src.get(id)?.faction !== faction);
     if (spark !== null) return { id: spark, anchor: false };
-    const open = nearest((id) => {
+    const takeable = (id: number) => {
       const [f, w] = state.get(id) ?? [0, 0];
       return owner(f, w) !== mine && !(src.get(id)?.faction === faction);
-    });
+    };
+    const open = nearest(takeable);
     if (open !== null) return { id: open, anchor: false };
+    // Through a link: at an own linked permanent source, the nearest
+    // takeable junction around its partner (never the partner itself).
+    // Junctions around the partner may be out of view (unknown here): then
+    // the partner's node is sent and the server picks the nearest one there.
+    for (const l of d.links()) {
+      if (distM(p, l.ll) > d.claimRadius()) continue;
+      const far = nearestAt(l.partner, (id) => id !== l.partnerNode && takeable(id));
+      return { id: far ?? l.partnerNode, anchor: false, via: l.ticket };
+    }
     if (supply === null) return null;
     const anchors = sources.filter((s) => s.kind === "anchor" && s.faction === faction).map((s) => s.ll);
     const spot = nearest((id) => {
@@ -207,7 +224,7 @@ export function setupClaim(d: {
     const tg = target(me);
     if (tg === null) return toast(nothing(me));
     reinforcing = !!tg.reinforce;
-    send(tg.id);
+    send(tg.id, tg.via);
   };
 
   return {
@@ -237,6 +254,7 @@ export function setupClaim(d: {
         strong: "claim.strong",
         supplied: "claim.supplied",
         worn: "claim.worn",
+        linked: "claim.linked",
       };
       // On enemy ground a claim builds up first (rule `claim_ramp_s`).
       const via = d.tunnel.onClaim(m.node, m.ok);

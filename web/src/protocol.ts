@@ -9,12 +9,12 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "busy" }
   | { "t": "recover", ok: boolean, reason: "unknown" | "wait", }
   | { "t": "pow", c: string, bits: number, }
-  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, mottos: Array<MottoItem>, hotspot_m: number, version: string, watch: boolean, }
+  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, watch: boolean, }
   | { "t": "state", nodes: Array<[number, number, number]>, }
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
   | { "t": "cheers", fire: number, water: number, burst: [number, number], }
-  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, }
+  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, }
   | { "t": "rate", ok: boolean, reason?: string, points: number, }
   | { "t": "hotspots", items: Array<HotspotInfo>, }
   | { "t": "score" } & Mine
@@ -44,6 +44,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "kept", ticket: string, state: "standing" | "fallen" | "gone", node?: number, points: number, }
   | { "t": "released", ok: boolean, }
   | { "t": "motto", node: number, ok: boolean, reason?: string, }
+  | { "t": "link", node: number, ok: boolean, reason?: string, }
   | { "t": "info", node: number, fire: number, water: number, source?: NodeSource, take: "ok" | "own" | "mine" | "anchor" | "strong" | "range" | "watch", wait?: number, dist: number, reach: number, elev: number, terrain: "peak" | "sink" | "slope" | "flat", dh: number, lean: "" | Faction, rain?: number, rain_at?: string, }
   | { "t": "spark", node: number, lat: number, lon: number, m: number, };
 
@@ -54,7 +55,7 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "view", tiles: Array<[number, number]>, }
   | { "t": "overview", on: boolean, }
   | { "t": "pos", lat: number, lon: number, spd?: number | null, acc?: number | null, }
-  | { "t": "claim", node: number, }
+  | { "t": "claim", node: number, via?: string | null, }
   | { "t": "keep", node: number, ticket?: string | null, }
   | { "t": "redeem", ticket: string, }
   | { "t": "release", tickets: Array<string>, }
@@ -72,6 +73,7 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "cheer", side: Faction, }
   | { "t": "level", level: number, }
   | { "t": "motto", node: number, ticket: string, motto?: string | null, }
+  | { "t": "link", node: number, ticket: string, to?: number | null, to_ticket?: string | null, }
   | { "t": "collect", on: boolean, }
   | { "t": "stats", on: boolean, }
   | { "t": "presence", code: string, };
@@ -94,7 +96,7 @@ export type SourceKind = "" | "spark" | "anchor" | "cut" | "keep";
 /**
  * What `SourceItem` serializes to (TS only).
  */
-export type SourceRow = [number, Faction, number, number, boolean, number, number, number, number, SourceKind, boolean, string | null, boolean];
+export type SourceRow = [number, Faction, number, number, boolean, number, number, number, number, SourceKind, boolean, string | null, boolean, boolean];
 
 /**
  * A tag line (`elements_shared::mottos`): its key, side, the level it

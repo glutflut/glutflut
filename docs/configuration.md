@@ -343,6 +343,8 @@ Permanent player sources. They fade from `strength` to `floor` over `fade_s`; ea
 | `hit` | 0.1 | 0.0 | server | Wear per enemy claim that can't take it. |
 | `points_per_h` | 10 | – | server | Persistence points per hour standing (paid via the bearer ticket). |
 | `expire_s` | 259200 (3 days) | – | server | Gone after this long without a top-up. |
+| `link` | false | – | server | Linked permanent sources: a player connects two of their own (app: list in the player sheet); at one of them, claims reach the junctions around the other, both ways, any distance (ticket of the near one as `via` in `claim`). The partner itself can't be topped up that way. Others see only that a source is linked. |
+| `link_factor` | 0.7 | – | server | Strength of a claim through a link, as a factor. |
 
 #### `[weather]` (`weather.rs`)
 

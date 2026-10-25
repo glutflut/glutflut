@@ -99,6 +99,7 @@ pub fn source(r: &Row, gap_s: f32) -> Option<ElementSource> {
         supply: r.supply,
         motto: 0,
         sieged: false,
+        linked: false,
     })
 }
 

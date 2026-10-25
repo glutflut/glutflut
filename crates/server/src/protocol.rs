@@ -67,6 +67,8 @@ pub enum ServerMsg<'a> {
         keep_base: u32,
         keep_per_level: u32,
         keep_gap_m: f32,
+        /// Permanent sources can be linked (`[keep] link`).
+        keep_link: bool,
         /// Tag lines for permanent sources: all, with what unlocks them.
         mottos: Vec<MottoItem>,
         /// Hotspot bonus radius (`hotspot_radius_m`), for the "you're here" hint.
@@ -102,7 +104,7 @@ pub enum ServerMsg<'a> {
         ok: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(
-            type = "\"range\" | \"cooldown\" | \"unknown\" | \"moving\" | \"own\" | \"strong\" | \"supplied\" | \"worn\"",
+            type = "\"range\" | \"cooldown\" | \"unknown\" | \"moving\" | \"own\" | \"strong\" | \"supplied\" | \"worn\" | \"linked\"",
             optional
         )]
         reason: Option<&'static str>,
@@ -299,6 +301,14 @@ pub enum ServerMsg<'a> {
         #[ts(optional)]
         reason: Option<&'static str>,
     },
+    /// Answer to `link`: linked or unlinked, or why not (`off`, `notyours`, `same`).
+    Link {
+        node: i64,
+        ok: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        reason: Option<&'static str>,
+    },
     /// Card of a tapped junction (`info.rs`). `take`: ok, own (your side's
     /// source), mine (your ground), anchor (your ground, places one), strong
     /// (`wait` s until weak enough, if within two days), range (`dist` m),
@@ -370,6 +380,8 @@ pub struct SourceItem {
     pub motto: Option<std::borrow::Cow<'static, str>>,
     /// Inside a ring of the other side's players (`siege.rs`): ages faster.
     pub sieged: bool,
+    /// A permanent source linked with another of its owner's (not which).
+    pub linked: bool,
 }
 
 impl Serialize for SourceItem {
@@ -377,7 +389,7 @@ impl Serialize for SourceItem {
         let i = self;
         (
             i.node, i.faction, i.left, i.life, i.mine, i.lon, i.lat, i.build, i.ramp, i.kind,
-            i.no_keep, &i.motto, i.sieged,
+            i.no_keep, &i.motto, i.sieged, i.linked,
         )
             .serialize(s)
     }
@@ -444,6 +456,7 @@ struct SourceRow(
     SourceKind,
     bool,
     Option<String>,
+    bool,
     bool,
 );
 
@@ -546,8 +559,13 @@ pub enum ClientMsg {
         #[ts(optional = nullable)]
         acc: Option<f32>,
     },
+    /// `via`: the ticket of an own linked permanent source in reach, for a
+    /// claim around its partner (`[keep] link`).
     Claim {
         node: i64,
+        #[serde(default)]
+        #[ts(optional = nullable)]
+        via: Option<String>,
     },
     /// Make an own claim permanent, or top up a permanent source (with its ticket).
     Keep {
@@ -622,6 +640,18 @@ pub enum ClientMsg {
         #[serde(default)]
         #[ts(optional = nullable)]
         motto: Option<String>,
+    },
+    /// Link the own permanent source at `node` with the one at `to` (both
+    /// tickets), or unlink it (no `to`).
+    Link {
+        node: i64,
+        ticket: String,
+        #[serde(default)]
+        #[ts(optional = nullable)]
+        to: Option<i64>,
+        #[serde(default)]
+        #[ts(optional = nullable)]
+        to_ticket: Option<String>,
     },
     /// Keep the finds one uncovers (opt-in), or stop and forget them.
     Collect {
@@ -710,10 +740,11 @@ mod tests {
             no_keep: false,
             motto: Some("f-glows-on".into()),
             sieged: false,
+            linked: true,
         };
         assert_eq!(
             serde_json::to_string(&i).unwrap(),
-            r#"[7,"fire",1,2,true,9.5,47.5,3,4,"keep",false,"f-glows-on",false]"#
+            r#"[7,"fire",1,2,true,9.5,47.5,3,4,"keep",false,"f-glows-on",false,true]"#
         );
     }
 

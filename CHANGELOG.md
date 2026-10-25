@@ -21,6 +21,12 @@ All notable changes to Glut & Flut. Versions follow
 - The day's first challenge at level 1 is always "claim 3 junctions".
 - Before the first find, the hint reaches `[finds] first_hint_m` (400 m)
   instead of 150 m, and every hint says how far ("noch etwa 120 m").
+- Linked permanent sources (`[keep] link`, off by default; `rules/link.toml`
+  for a playtest; migration V6): a player links two of their own Glut/Eis in
+  the player sheet; standing at one, the claim button reaches the junctions
+  around the other (both ways, any distance) at `link_factor` of the
+  strength, never the partner itself. Others see a dotted ring on a linked
+  source, not its partner.
 
 ## 0.2.0 – 2026-10-24: story campaigns and the chronicle
 

@@ -113,7 +113,7 @@ fn front_spot(
     None
 }
 
-pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
+pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<&str>) {
     let (now, region, rules) = (c.now, c.region, c.rules);
     let Some((e, out)) = game.clients.0.get(&conn) else {
         return;
@@ -140,9 +140,72 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
         return;
     }
     let slot = slot.map(|s| s.0);
+    // Through a link (`[keep] link`): standing at own permanent source A
+    // (its ticket in `via`), the claim reaches around its partner B: the
+    // range counts from B, the strength is `link_factor` of it.
+    let link = via
+        .filter(|_| rules.keep.link)
+        .and_then(crate::keep::hashes)
+        .and_then(|(ha, _)| {
+            let at = |g: &GeoNode| {
+                let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
+                Vec2::new(w.x, w.z)
+            };
+            let here = Vec2::new(pos.0.x, pos.0.z);
+            let (ea, ka) = game.keep_info.iter().find(|(_, k)| k.ticket == ha)?;
+            let (ga, _) = game.sources.get(ea).ok()?;
+            if at(ga).distance(here) > rules.claim_radius_m {
+                return None;
+            }
+            let hb = ka.link?;
+            let (eb, _) = game.keep_info.iter().find(|(_, k)| k.ticket == hb)?;
+            let (gb, sb) = game.sources.get(eb).ok()?;
+            (sb.kind == SourceKind::Keep).then(|| (at(gb), gb.id))
+        });
+    // The app may not know the junctions around B (not in view): asked for
+    // B itself, the server picks the nearest junction around it that isn't
+    // the player's side's. Nothing there: `linked`.
+    let node = match link {
+        Some((b, b_node)) if node == b_node => {
+            let pick = game
+                .nodes
+                .iter()
+                .filter(|(g, _)| g.id != b_node)
+                .filter(|(_, s)| s.owner() != Some(faction))
+                .map(|(g, _)| {
+                    let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
+                    (g.id, Vec2::new(w.x, w.z).distance(b))
+                })
+                .filter(|&(_, d)| d <= rules.claim_radius_m)
+                .min_by(|a, b| a.1.total_cmp(&b.1))
+                .map(|(id, _)| id);
+            match pick {
+                Some(id) => id,
+                None => {
+                    send(
+                        out,
+                        &ServerMsg::Claim {
+                            node,
+                            ok: false,
+                            reason: Some("linked"),
+                            bonus: false,
+                            points: 0,
+                            wait: 0.0,
+                            build: 0.0,
+                            doused: false,
+                            anchor: false,
+                        },
+                    );
+                    return;
+                }
+            }
+        }
+        _ => node,
+    };
+    let link = link.map(|(b, _)| b);
     // Reinforcing: own ground where no anchor fits but not at the front goes
     // to the nearest own junction without a source at the front, in reach.
-    let node = if rules.reinforce.enabled && rules.supply.enabled {
+    let node = if link.is_none() && rules.reinforce.enabled && rules.supply.enabled {
         front_spot(
             &game.node_by_id,
             game.sim.as_deref(),
@@ -206,9 +269,15 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
             reach_m: f32::MAX,
             ..power
         }
+    } else if link.is_some() {
+        actions::Power {
+            mult: power.mult * rules.keep.link_factor,
+            ..power
+        }
     } else {
         power
     };
+    let from = link.map_or(pos.0, |b| Vec3::new(b.x, pos.0.y, b.y));
     let saved_cd = cd.0;
     if tunnel {
         cd.0 = 0.0;
@@ -233,7 +302,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
         &game.node_by_id,
         &mut game.nodes,
         region,
-        pos.0,
+        from,
         faction,
         &mut cd,
         node,

@@ -462,6 +462,7 @@ pub fn run(a: &BenchArgs) -> Result<(), Box<dyn std::error::Error>> {
                         let _ = tx.send(FromWeb::Claim {
                             conn: w.conn,
                             node: s.at[w.to].0,
+                            via: None,
                         });
                     }
                     let came = w.from;

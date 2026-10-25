@@ -202,6 +202,7 @@ pub(crate) fn source_item(
                 .then(|| elements_shared::mottos::key_of(s.motto))
                 .flatten(),
             sieged: s.sieged,
+            linked: s.linked,
         })
     }
 }
