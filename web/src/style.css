@@ -1415,6 +1415,13 @@ body.lapse .source { display: none; }
 }
 #globe-bar[hidden] { display: none; }
 #globe-bar .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 8px; }
+#globe-world { margin-top: 10px; font-size: 14px; }
+#globe-world ol { margin: 6px 0 0; padding-left: 22px; max-height: 32vh; overflow-y: auto; }
+#globe-world li { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; }
+#globe-world .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+#globe-world .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#globe-world .pts { font-variant-numeric: tabular-nums; }
+#globe-world .cities { color: var(--soft); font-size: 12px; }
 #globe-back { padding: 8px 12px; border: 1px solid var(--raised); border-radius: 10px; background: none; color: var(--fg); }
 #globe-weather { padding: 8px 12px; border-radius: 10px; background: var(--fg); color: var(--ink); font-weight: 700; text-decoration: none; }
 body { transition: background-color 0.6s ease; }

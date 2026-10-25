@@ -209,7 +209,7 @@ impl Shards {
     }
 
     /// The other shards (a shard may list itself in ELEMENTS_SHARDS).
-    fn others(&self) -> Vec<&str> {
+    pub fn others(&self) -> Vec<&str> {
         self.urls
             .keys()
             .map(String::as_str)
@@ -238,7 +238,7 @@ impl Shards {
 
 /// One HTTP agent for calls to other shards (ureq is built without a
 /// default TLS backend: the connector is set here, as in weather.rs).
-fn agent() -> Option<&'static ureq::Agent> {
+pub fn agent() -> Option<&'static ureq::Agent> {
     static AGENT: OnceLock<Option<ureq::Agent>> = OnceLock::new();
     AGENT
         .get_or_init(|| {

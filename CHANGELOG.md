@@ -17,6 +17,10 @@ All notable changes to Glut & Flut. Versions follow
 
 - Ranking tab "Kampagne": points since the campaign start (migration V7),
   next to "Heute" and "Saison".
+- World ranking: season points of the best players over all regions and
+  shards (`GET /api/world`, merged by the shard asked from the others'
+  `?scope=shard` parts, cached five minutes); shown on the globe page, and
+  written to the globe's bucket as `glutflut/world.json` for Weathermarble.
 
 - Side reveal card: the first time a browser plays, a card says which side
   it got, what to do first ("Erobern", "Nächste Front") and that the side

@@ -25,6 +25,7 @@ Common conventions:
 | `GET /api/media`, `/api/media/{id}` | Approved images (finds, zones, chapters). |
 | `GET /api/chronicle` | The campaigns' chronicle: published chapters grouped by campaign (newest first) with titles, story, dates, goal, progress, `state` (`over`, `live`, `soon`) and `winner`. `max-age=120`. Page: `/chronik.html`. |
 | `GET /api/marble/manifest.json`, `shards.json`, `{slug}/{file}` | Globe files (`docs/data-files.md`). |
+| `GET /api/world[?scope=shard]`, `GET /api/marble/world.json` | World ranking: season points of the best players over all regions and shards (`world.rs`; `scope=shard` is one shard's part, what the shards exchange). `max-age=300`, CORS as for the globe files. |
 | `POST /api/wish` `{lat, lon}` | "I want to play here"; counts the H3 res-6 cell. 204. |
 | `POST /api/feedback` | Feedback from the app. 204. |
 | `POST /api/session` | Body: the 32-hex token; sets the token cookie (empty body deletes it). Same origin only. |

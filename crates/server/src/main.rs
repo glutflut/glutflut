@@ -58,6 +58,7 @@ mod tide;
 mod tiles;
 mod weather;
 mod web;
+mod world;
 mod writers;
 
 use actions::tick_cooldowns;

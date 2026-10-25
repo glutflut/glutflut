@@ -4,6 +4,7 @@
 import * as maplibregl from "maplibre-gl";
 import { t } from "./i18n";
 import { $ } from "./page";
+import { COLORS } from "./geo";
 import type { RegionInfo } from "./region";
 
 /** Below this zoom the globe, above the flat map again (a gap against flicker). */
@@ -114,11 +115,38 @@ export function setupGlobe(
     if (on || land) map.setPaintProperty("background", "background-color", on ? sea : land);
   }
 
+  // The world ranking (season points over all cities and shards), fetched
+  // when the globe comes up, at most every five minutes.
+  let worldAt = 0;
+  async function world() {
+    if (Date.now() - worldAt < 300_000) return;
+    worldAt = Date.now();
+    try {
+      const r = await fetch("/api/world");
+      if (!r.ok) return;
+      const d = (await r.json()) as { players: { name: string; faction: "fire" | "water"; points: number; cities: number }[] };
+      const box = $("globe-world");
+      const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+      box.querySelector("ol")!.innerHTML = d.players
+        .slice(0, 20)
+        .map(
+          (p) =>
+            `<li><span class="dot" style="background:${COLORS[p.faction]}"></span><span class="name">${esc(p.name)}</span>` +
+            `<span class="pts">${p.points.toLocaleString()}</span><span class="cities">${t(p.cities === 1 ? "globe.city.one" : "globe.city.n", { n: p.cities })}</span></li>`,
+        )
+        .join("");
+      box.hidden = d.players.length === 0;
+    } catch {
+      // Offline or an old server: no list.
+    }
+  }
+
   map.on("zoom", () => {
     const z = map.getZoom();
     if (z < 10) cities();
     if (!globe && z < GLOBE_IN) {
       globe = true;
+      void world();
       map.setProjection({ type: "globe" });
       map.setSky(sky(0.6));
       polar(true);

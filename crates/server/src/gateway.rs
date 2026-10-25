@@ -495,6 +495,8 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/regions", get(regions_handler))
                     .route("/api/marble/manifest.json", get(marble_manifest))
                     .route("/api/marble/shards.json", get(marble_index))
+                    .route("/api/marble/world.json", get(world_handler))
+                    .route("/api/world", get(world_handler))
                     .route("/api/marble/{slug}/{file}", get(marble_file))
                     .route("/api/wish", post(wish_handler))
                     .route("/api/wishes", get(wishes_handler))
@@ -772,6 +774,36 @@ async fn marble_manifest(State(s): State<AppState>, headers: HeaderMap) -> Respo
     match m {
         Some(m) => marble_cors(&headers, json_response(&m, "public, max-age=60")),
         None => (StatusCode::SERVICE_UNAVAILABLE, "not published yet").into_response(),
+    }
+}
+
+/// The world ranking (`world.rs`): `?scope=shard` this shard's part (for
+/// the other shards), else the merged list; CORS as for the globe files.
+async fn world_handler(
+    State(s): State<AppState>,
+    Query(q): Query<std::collections::HashMap<String, String>>,
+    headers: HeaderMap,
+) -> Response {
+    let now = crate::analytics::now_s();
+    let part = q.get("scope").is_some_and(|v| v == "shard");
+    let st = s.clone();
+    // Blocking work (the sync client, calls to the other shards) off the runtime.
+    let json: Option<std::sync::Arc<str>> = tokio::task::spawn_blocking(move || {
+        if part {
+            st.with_db(|c| crate::world::shard(c, st.host.shard()))
+                .map(|p| serde_json::to_string(&p).unwrap_or_default().into())
+        } else {
+            st.host
+                .db()
+                .and_then(|db| crate::world::merged(db, st.host.shard(), now))
+        }
+    })
+    .await
+    .ok()
+    .flatten();
+    match json {
+        Some(j) => marble_cors(&headers, json_response(&j, "public, max-age=300")),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
     }
 }
 

@@ -113,6 +113,19 @@ The eu server also writes `glutflut/shards.json` (max-age=300), so that a new sh
 
 `manifest` is relative to `glutflut/`.
 
+### `glutflut/world.json` (world ranking)
+
+Written by the eu shard with the index, every five minutes; also served at `/api/world` by every shard. Season points (all days) of the best players over all regions and shards, hidden players left out; people are the same across shards by name and side.
+
+```json
+{
+  "format": "glutflut-world", "version": 1, "at": 1761400000,
+  "shards": ["eu", "na", "sa"],
+  "players": [ { "name": "Cisne Suave 54", "faction": "water", "points": 12340, "cities": 3 } ],
+  "fire": 1234567, "water": 1200000
+}
+```
+
 ### Configuration and local testing
 
 `ELEMENTS_MARBLE_S3_ENDPOINT`, `_BUCKET`, `_KEY_ID`, `_SECRET` and `_REGION` enable the upload (see `deploy.md`). `ELEMENTS_MARBLE_UNLISTED=1` also publishes beta regions. Without the upload settings, the same files are served at `/api/marble/manifest.json`, `/api/marble/shards.json` and `/api/marble/<slug>/r<res>_<hash>.bin`.

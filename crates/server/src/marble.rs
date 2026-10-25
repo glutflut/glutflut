@@ -751,6 +751,21 @@ pub fn publish(host: &crate::regions::Host, s3: Option<&S3>, now: f64) {
         if ok {
             host.marble.published.lock().unwrap().index = Some(idx.into());
         }
+        // The world ranking next to it (`world.rs`), every publish.
+        if let (Some(s3), Some(json)) = (
+            s3,
+            host.db()
+                .and_then(|db| crate::world::merged(db, host.shard(), now)),
+        ) {
+            if let Err(e) = s3.put_url(
+                s3.url_at("PUT", "glutflut/world.json"),
+                &gzip(json.as_bytes()),
+                "application/json",
+                INDEX_CACHE,
+            ) {
+                tracing::warn!(error = %e, "marble: world.json upload failed");
+            }
+        }
     }
     let gone: Vec<String> = {
         let mut p = host.marble.published.lock().unwrap();
