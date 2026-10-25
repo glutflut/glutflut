@@ -6,6 +6,4 @@ The game rules as TOML, read by the server (`crates/shared/src/rules.rs`). `defa
 - More sets: a file that starts with `base = "default.toml"` and lists what it changes. Per region: `geo.regions.rules = '<name>'` picks `<name>.toml` next to `ELEMENTS_RULES`. In an image: put them in `rules.local/` before the build.
 - Single values on top of every set: `ELEMENTS_RULES_OVERRIDE="claim_ttl_s=420; field.reach_scale=250"` (a typo stops the server at startup).
 
-Sets in this folder: `default.toml` (the image), `link.toml` (default plus linked permanent sources, `[keep] link`; a playtest set, not on anywhere).
-
 Every key and its default: `docs/configuration.md`, section 2.

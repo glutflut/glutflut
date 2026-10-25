@@ -46,6 +46,9 @@ per_player = 2
 per_level = 1
 # A campaign start or end keeps the strong ones (topped up within ~10 h).
 survive = 0.6
+# Linked permanent sources: at one of two linked own sources, claims reach
+# the junctions around the other (0.7 of the strength).
+link = true
 
 # The day's weather tilts the sides by about ±5 pp: rain weakens natural fire
 # and lets water sources age slower, warmth the other way round, frost lets

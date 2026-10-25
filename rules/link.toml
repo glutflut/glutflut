@@ -1,5 +1,0 @@
-# Playtest: the default set plus linked permanent sources (lab round 27).
-base = "default.toml"
-name = "link"
-[keep]
-link = true
