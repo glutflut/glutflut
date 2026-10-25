@@ -161,6 +161,8 @@ struct Loaded {
     weather: Option<WeatherDay>,
     /// The latest campaign start or end that has passed (unix s).
     boundary: Option<f64>,
+    /// The latest campaign start that has passed (unix s).
+    start: Option<f64>,
     mottos: Vec<CityMotto>,
     periods: Vec<(f64, f64)>,
     /// Campaigns of the region: slug, first start, last end.
@@ -190,6 +192,9 @@ pub struct Campaign {
     /// The latest campaign start or end that has passed (unix s): levels
     /// start again there (`Scores::campaign_reset`), as permanent sources do.
     pub boundary: Option<f64>,
+    /// The latest campaign start that has passed (unix s): the levels start
+    /// again there (`Scores::campaign_reset`), not at an end.
+    pub start: Option<f64>,
     /// Approved phrases of the running campaign(s).
     pub mottos: Vec<CityMotto>,
     /// Campaigns of the region, first start to last end (unix s): streak
@@ -220,6 +225,7 @@ impl Campaign {
             past: Vec::new(),
             weather: None,
             boundary: None,
+            start: None,
             mottos: Vec::new(),
             periods: Vec::new(),
             campaigns: Vec::new(),
@@ -367,6 +373,7 @@ impl Campaign {
             self.past = l.past;
             self.weather = l.weather.or(self.weather);
             self.boundary = l.boundary.or(self.boundary);
+            self.start = l.start.or(self.start);
             self.mottos = l.mottos;
             self.periods = l.periods;
             self.campaigns = l.campaigns;
@@ -645,6 +652,14 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
             &[&region],
         )?
         .get(0);
+    let start = c
+        .query_one(
+            "SELECT extract(epoch FROM max(b))::float8 FROM ( \
+               SELECT min(starts) AS b FROM game.chapters WHERE region = $1 AND kind IS NULL AND status = 'published' GROUP BY campaign \
+             ) x WHERE b <= now()",
+            &[&region],
+        )?
+        .get(0);
     // Phrases of campaigns running now (first start to last end).
     let mottos = c
         .query(
@@ -693,6 +708,7 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
         past,
         weather: None,
         boundary,
+        start,
         mottos,
         periods,
         campaigns,

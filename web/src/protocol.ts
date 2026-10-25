@@ -117,7 +117,7 @@ export type PowSolution = { c: string, n: string, };
 /**
  * What a player sees about their own standing.
  */
-export type Mine = { name: string, xp: number, level: number, next: number | null, today: number, total: number, rank_today: number | null, rank_total: number | null, hidden: boolean, badges: Array<string>, title: boolean, streak: StreakView | null, };
+export type Mine = { name: string, xp: number, level: number, next: number | null, today: number, total: number, campaign: number, rank_today: number | null, rank_total: number | null, rank_campaign: number | null, hidden: boolean, badges: Array<string>, title: boolean, streak: StreakView | null, };
 
 /**
  * The streak as the app shows it.

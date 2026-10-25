@@ -27,6 +27,8 @@ interface Side {
 interface Board {
   today: Entry[];
   season: Entry[];
+  /** Since the campaign start. */
+  campaign?: Entry[];
   fire: Side;
   water: Side;
   /** Weekly title holders (fire, water). */
@@ -39,7 +41,7 @@ export function setupBoard(net: Net) {
   const el = $("board");
   let data: Board | null = null;
   let mine: Mine | null = null;
-  let tab: "today" | "season" = "today";
+  let tab: "today" | "campaign" | "season" = "today";
   let pane: "rank" | "me" | "help" = "rank";
   let timer = 0;
 
@@ -48,8 +50,8 @@ export function setupBoard(net: Net) {
     if (mine) {
       $("my-name").textContent = mine.name;
       ($("listed") as HTMLInputElement).checked = !mine.hidden;
-      const rank = tab === "today" ? mine.rank_today : mine.rank_total;
-      const pts = tab === "today" ? mine.today : mine.total;
+      const rank = tab === "today" ? mine.rank_today : tab === "campaign" ? mine.rank_campaign : mine.rank_total;
+      const pts = tab === "today" ? mine.today : tab === "campaign" ? mine.campaign : mine.total;
       $("my-rank").textContent = mine.hidden ? t("board.hidden", { pts }) : rank ? t("board.rank", { rank, pts }) : t("board.points", { pts });
       const badges = $("my-badges");
       badges.replaceChildren(
@@ -78,7 +80,7 @@ export function setupBoard(net: Net) {
       : (c.days > 0 ? t(c.days === 1 ? "city.streak.one" : "city.streak", { n: c.days }) : t("city.streak.none")) +
         (c.today ? "" : ` · ${t(c.missing === 1 ? "city.missing.one" : "city.missing", { n: c.missing, day: c.days + 1 })}`);
     $("city-streak").title = c ? t("city.help", { need: c.need }) : "";
-    const rows = tab === "today" ? data.today : data.season;
+    const rows = tab === "today" ? data.today : tab === "campaign" ? (data.campaign ?? []) : data.season;
     $("ranks").innerHTML = rows.length
       ? rows
           .map(
@@ -86,7 +88,7 @@ export function setupBoard(net: Net) {
               `<li class="${mine && !mine.hidden && r.name === mine.name ? "me" : ""}"><span class="dot" style="background:${COLORS[r.faction]}"></span><span class="name">${r.title ? "★ " : ""}${esc(r.name)}${r.streak ? ` <span class="streak">${r.faction === "fire" ? "🔥" : "💧"}${r.streak}</span>` : ""}</span><span>${r.points}</span></li>`,
           )
           .join("")
-      : `<li class="empty">${t(tab === "today" ? "board.empty.today" : "board.empty.season")}</li>`;
+      : `<li class="empty">${t(tab === "today" ? "board.empty.today" : tab === "campaign" ? "board.empty.campaign" : "board.empty.season")}</li>`;
   }
   async function load() {
     try {

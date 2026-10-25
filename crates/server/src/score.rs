@@ -110,6 +110,8 @@ pub struct Rec {
     /// Points in this region, and the day of `today`.
     pub total: i64,
     pub today: i64,
+    /// Points since the campaign start (`campaign_reset`).
+    pub campaign: i64,
     pub day: i64,
     pub hidden: bool,
     rated: u8,
@@ -227,6 +229,7 @@ struct RowOut {
     name: String,
     total: i64,
     today: i64,
+    campaign: i64,
     day: i64,
     hidden: bool,
     last_seen: i64,
@@ -243,8 +246,11 @@ pub struct Mine {
     pub next: Option<u32>,
     pub today: i64,
     pub total: i64,
+    /// Points since the campaign start.
+    pub campaign: i64,
     pub rank_today: Option<usize>,
     pub rank_total: Option<usize>,
+    pub rank_campaign: Option<usize>,
     pub hidden: bool,
     pub badges: Vec<String>,
     /// Most points this week on their side in this city.
@@ -286,8 +292,8 @@ pub struct Scores {
     fac_dirty: bool,
     tx: Option<crate::writers::LaneTx<Write>>,
     board: SharedBoard,
-    /// Sorted slots (today, total), refreshed with the board.
-    order: (Vec<u32>, Vec<u32>),
+    /// Sorted slots (today, total, campaign), refreshed with the board.
+    order: (Vec<u32>, Vec<u32>, Vec<u32>),
     pub changed: Vec<u32>,
     /// XP and level rules (from the rule set).
     pub prog: Progression,
@@ -467,6 +473,7 @@ impl Scores {
                 name: String::new(),
                 total: 0,
                 today: 0,
+                campaign: 0,
                 day: self.today,
                 hidden: false,
                 rated: 0,
@@ -790,6 +797,7 @@ impl Scores {
         let shadow = r.shadow_until > now;
         r.today += points;
         r.total += points;
+        r.campaign += points;
         let week = week_of(day);
         if r.week != week {
             r.week = week;
@@ -924,18 +932,37 @@ impl Scores {
         }
     }
 
-    /// A campaign started or ended at `boundary` (unix s): players whose XP
-    /// is older start their levels again (their level badges stay).
+    /// A campaign started at `boundary` (unix s): players whose XP is older
+    /// start their levels again (their level badges stay), from
+    /// `carry_to_level` if they had reached `carry_from_level`; their
+    /// campaign points start at 0.
     pub fn campaign_reset(&mut self, boundary: f64, now: f64) {
         let today = self.today;
+        let prog = &self.prog;
+        let carry = (prog.carry_from_level > 0 && prog.carry_to_level > 1)
+            .then(|| {
+                prog.thresholds
+                    .get(prog.carry_to_level as usize - 2)
+                    .copied()
+            })
+            .flatten()
+            .unwrap_or(0.0);
         for (slot, r) in self.recs.iter_mut().enumerate() {
             let Some(r) = r.as_mut().filter(|r| r.xp_since < boundary) else {
                 continue;
             };
-            r.xp_prev = 0.0;
+            let xp = r.xp_prev
+                + if r.xp_day == today {
+                    r.day_xp.total(prog)
+                } else {
+                    0.0
+                };
+            let keep = prog.carry_from_level > 0 && prog.level(xp) >= prog.carry_from_level;
+            r.xp_prev = if keep { carry } else { 0.0 };
             r.day_xp = DayXp::default();
             r.xp_day = today;
             r.xp_since = now;
+            r.campaign = 0;
             r.dirty = true;
             self.changed.push(slot as u32);
         }
@@ -974,8 +1001,10 @@ impl Scores {
                 .map(|&t| t as u32),
             today: if r.day == self.today { r.today } else { 0 },
             total: r.total,
+            campaign: r.campaign,
             rank_today: rank(&self.order.0),
             rank_total: rank(&self.order.1),
+            rank_campaign: rank(&self.order.2),
             hidden: r.hidden,
             badges: {
                 let mut b: Vec<String> = r.badges.iter().cloned().collect();
@@ -1040,6 +1069,7 @@ impl Scores {
                     name: r.name.clone(),
                     total: r.total,
                     today: r.today,
+                    campaign: r.campaign,
                     day: r.day,
                     hidden: r.hidden,
                     last_seen: r.last_seen,
@@ -1093,6 +1123,12 @@ impl Scores {
             .filter(|(_, r)| r.total > 0)
             .map(|(s, _)| *s)
             .collect();
+        visible.sort_by_key(|(_, r)| std::cmp::Reverse(r.campaign));
+        let by_campaign: Vec<u32> = visible
+            .iter()
+            .filter(|(_, r)| r.campaign > 0)
+            .map(|(s, _)| *s)
+            .collect();
         visible.retain(|(_, r)| r.day == today && r.today > 0);
         visible.sort_by_key(|(_, r)| std::cmp::Reverse(r.today));
         let by_today: Vec<u32> = visible.iter().map(|(s, _)| *s).collect();
@@ -1130,7 +1166,7 @@ impl Scores {
             points: i64,
             wins: u32,
         }
-        let entries = |order: &[u32], today: bool| -> Vec<Entry> {
+        let entries = |order: &[u32], pts: fn(&Rec) -> i64| -> Vec<Entry> {
             order
                 .iter()
                 .take(TOP_N)
@@ -1138,7 +1174,7 @@ impl Scores {
                 .map(|(s, r)| Entry {
                     name: &r.name,
                     faction: r.faction.as_str(),
-                    points: if today { r.today } else { r.total },
+                    points: pts(r),
                     title: titles.contains(&Some(s)),
                     streak: self.streak_view(s).map(|v| v.weeks).filter(|&w| w > 0),
                 })
@@ -1150,15 +1186,16 @@ impl Scores {
             wins: self.wins[i],
         };
         let json = serde_json::json!({
-            "today": entries(&by_today, true),
-            "season": entries(&by_total, false),
+            "today": entries(&by_today, |r| r.today),
+            "season": entries(&by_total, |r| r.total),
+            "campaign": entries(&by_campaign, |r| r.campaign),
             "fire": side(0),
             "water": side(1),
             "titles": titles.map(|t| t.and_then(|s| self.get(s)).map(|r| r.name.clone())),
             "city": self.city_view(),
         });
         *self.board.write().unwrap() = Some(json.to_string().into());
-        self.order = (by_today, by_total);
+        self.order = (by_today, by_total, by_campaign);
     }
 }
 
@@ -1192,7 +1229,7 @@ fn load(conn: &str, region: &str, today: i64) -> Result<Loaded, Box<dyn std::err
          (p.day - DATE '1970-01-01')::int, p.collect, p.claims, \
          (r.week - DATE '1970-01-01')::int, r.points_week, extract(epoch FROM p.xp_since)::float8, \
          p.streak_weeks, (p.streak_week - DATE '1970-01-01')::int, p.streak_days, \
-         (p.streak_day - DATE '1970-01-01')::int, p.streak_acts, p.streak_spared \
+         (p.streak_day - DATE '1970-01-01')::int, p.streak_acts, p.streak_spared, r.points_campaign \
          FROM game.player_region r JOIN game.players p USING (id) WHERE r.region = $1",
         &[&region],
     )? {
@@ -1214,6 +1251,7 @@ fn load(conn: &str, region: &str, today: i64) -> Result<Loaded, Box<dyn std::err
             name: r.get(2),
             total: r.get(3),
             today: r.get(4),
+            campaign: r.get(25),
             day: r.get::<_, i32>(5) as i64,
             hidden: r.get(6),
             rated: 0,
@@ -1409,6 +1447,7 @@ fn write(c: &mut postgres::Client, region: &str, msg: Write) -> Result<(), postg
             let claims: Vec<i32> = rows.iter().map(|r| r.claims).collect();
             let weeks: Vec<i32> = rows.iter().map(|r| r.week as i32).collect();
             let week_pts: Vec<i64> = rows.iter().map(|r| r.points_week).collect();
+            let camps: Vec<i64> = rows.iter().map(|r| r.campaign).collect();
             let st = |f: fn(&Streak) -> i64| -> Vec<i32> { rows.iter().map(|r| f(&r.streak) as i32).collect() };
             let (sw, swk, sd, sdy, sa, ss) = (
                 st(|s| s.weeks as i64),
@@ -1453,16 +1492,16 @@ fn write(c: &mut postgres::Client, region: &str, msg: Write) -> Result<(), postg
             )?;
             t.execute(
                 "INSERT INTO game.player_region AS r (region, id, points_total, points_day, day, last_seen, \
-                  week, points_week, since) \
+                  week, points_week, since, points_campaign) \
                  SELECT $1, i, t, d, DATE '1970-01-01' + dy, DATE '1970-01-01' + ls, DATE '1970-01-01' + wk, pw, \
-                        DATE '1970-01-01' + ls \
-                 FROM unnest($2::bytea[], $3::int8[], $4::int8[], $5::int[], $6::int[], $7::int[], $8::int8[]) \
-                      AS x(i, t, d, dy, ls, wk, pw) \
+                        DATE '1970-01-01' + ls, pc \
+                 FROM unnest($2::bytea[], $3::int8[], $4::int8[], $5::int[], $6::int[], $7::int[], $8::int8[], $9::int8[]) \
+                      AS x(i, t, d, dy, ls, wk, pw, pc) \
                  ON CONFLICT (region, id) DO UPDATE SET points_total = EXCLUDED.points_total, \
                  points_day = EXCLUDED.points_day, day = EXCLUDED.day, last_seen = EXCLUDED.last_seen, \
                  days = LEAST(r.days + (EXCLUDED.last_seen > r.last_seen)::int, 32767), \
-                 week = EXCLUDED.week, points_week = EXCLUDED.points_week",
-                &[&region, &ids, &totals, &todays, &days, &seen, &weeks, &week_pts],
+                 week = EXCLUDED.week, points_week = EXCLUDED.points_week, points_campaign = EXCLUDED.points_campaign",
+                &[&region, &ids, &totals, &todays, &days, &seen, &weeks, &week_pts, &camps],
             )?;
             // Growth numbers of the day (only counts; the read role sees no players).
             if let Some(&today) = seen.iter().max() {
@@ -1560,8 +1599,8 @@ pub fn tick(
     }
     if now >= *hold_at {
         *hold_at = now + HOLD_EVERY_S;
-        // A campaign started or ended: levels start again.
-        if let Some(b) = campaign.as_ref().and_then(|c| c.boundary) {
+        // A campaign started: levels start again (not at an end).
+        if let Some(b) = campaign.as_ref().and_then(|c| c.start) {
             scores.campaign_reset(b, now);
         }
         if let Some(c) = campaign.as_ref() {
@@ -1759,6 +1798,33 @@ mod tests {
         let x = s.xp(old).0;
         s.campaign_reset(t0 - 3600.0, t0 + 60.0);
         assert_eq!(s.xp(old).0, x);
+    }
+
+    #[test]
+    fn a_campaign_start_carries_high_levels_to_level_2() {
+        let mut s = scores();
+        s.prog = Progression {
+            enabled: true,
+            carry_from_level: 3,
+            carry_to_level: 2,
+            ..Default::default()
+        };
+        let t0 = now_s();
+        let high = s.adopt("high", global("Hoch", Faction::Fire, 700.0));
+        let low = s.adopt("low", global("Tief", Faction::Water, 300.0));
+        for slot in [high, low] {
+            s.get_mut(slot).unwrap().xp_since = t0 - 7200.0;
+            s.get_mut(slot).unwrap().campaign = 50;
+        }
+        assert_eq!((s.xp(high).1, s.xp(low).1), (3, 2));
+        s.campaign_reset(t0 - 3600.0, t0);
+        assert_eq!(s.xp(high), (100.0, 2), "level 3 and up start at level 2");
+        assert_eq!(s.xp(low), (0.0, 1), "below that from 1");
+        assert_eq!(
+            s.get(high).unwrap().campaign,
+            0,
+            "campaign points start again"
+        );
     }
 
     #[test]

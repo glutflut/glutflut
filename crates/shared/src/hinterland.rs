@@ -149,6 +149,9 @@ pub struct Keep {
     /// be topped up that way. Others see only that a source is linked.
     pub link: bool,
     pub link_factor: f32,
+    /// A campaign start or end clears the map of permanent sources, except
+    /// those at least this strong (0 = none survive).
+    pub survive: f32,
 }
 
 impl Default for Keep {
@@ -166,6 +169,7 @@ impl Default for Keep {
             expire_s: 3.0 * 86_400.0,
             link: false,
             link_factor: 0.7,
+            survive: 0.0,
         }
     }
 }

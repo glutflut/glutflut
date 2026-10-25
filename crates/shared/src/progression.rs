@@ -40,6 +40,11 @@ pub struct Progression {
     /// (0: no limit).
     pub challenge_gap_s: f32,
     pub challenges_per_day: u32,
+    /// A campaign start sets the levels back; whoever reached
+    /// `carry_from_level` or more starts the next campaign at
+    /// `carry_to_level` instead of 1 (0 = everyone at 1).
+    pub carry_from_level: u8,
+    pub carry_to_level: u8,
     /// Points for a finished challenge (0 = XP only).
     pub challenge_points: f32,
     pub xp_challenge: f32,
@@ -82,6 +87,8 @@ impl Default for Progression {
             challenge_back_to_back: false,
             challenge_gap_s: 0.0,
             challenges_per_day: 0,
+            carry_from_level: 0,
+            carry_to_level: 0,
             challenge_points: 0.0,
             xp_challenge: 30.0,
             xp_round: 10.0,

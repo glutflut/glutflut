@@ -400,14 +400,31 @@ pub fn tick(
     let boundary = keeps.rx.as_ref().and_then(|rx| rx.try_iter().last());
     if let Some(b) = boundary.filter(|&b| b > keeps.last_reset) {
         let mut n = 0;
+        let mut gone = Vec::new();
         for (e, _, k, s) in &q {
-            if s.is_some_and(|s| s.kind == SourceKind::Keep) {
-                keeps.pot_add(k.ticket, k.points);
-                commands
-                    .entity(e)
-                    .remove::<KeepInfo>()
-                    .remove::<ElementSource>();
-                n += 1;
+            let Some(s) = s.filter(|s| s.kind == SourceKind::Keep) else {
+                continue;
+            };
+            // Strong ones stay (`[keep] survive`).
+            let strong = rules.0.keep.survive > 0.0
+                && rules.0.keep.strength(s.age, k.wear) >= rules.0.keep.survive;
+            if strong {
+                continue;
+            }
+            keeps.pot_add(k.ticket, k.points);
+            commands
+                .entity(e)
+                .remove::<KeepInfo>()
+                .remove::<ElementSource>();
+            gone.push(k.ticket);
+            n += 1;
+        }
+        for (_, _, mut k, s) in &mut q {
+            if k.link.is_some_and(|l| gone.contains(&l)) {
+                k.link = None;
+                if let Some(mut s) = s {
+                    s.linked = false;
+                }
             }
         }
         keeps.last_reset = b;

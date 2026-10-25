@@ -44,6 +44,8 @@ hit = 0.0
 gap_m = 60.0
 per_player = 2
 per_level = 1
+# A campaign start or end keeps the strong ones (topped up within ~10 h).
+survive = 0.6
 
 # The day's weather tilts the sides by about ±5 pp: rain weakens natural fire
 # and lets water sources age slower, warmth the other way round, frost lets
@@ -74,6 +76,9 @@ break_minutes = 5.0
 # Levels, XP, abilities, challenges (one per round, then 30 min pause, at
 # most 4 a day) and a head start for newcomers.
 [progression]
+# Levels start again at a campaign start; level 3 and up start at level 2.
+carry_from_level = 3
+carry_to_level = 2
 enabled = true
 challenges = true
 abilities = true

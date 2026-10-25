@@ -6,7 +6,17 @@ All notable changes to Glut & Flut. Versions follow
 
 ## Unreleased
 
+### Changed
+
+- Campaign start, not end, sets the levels back; whoever had reached
+  `[progression] carry_from_level` (3) starts at `carry_to_level` (2)
+  instead of 1. Permanent sources at least `[keep] survive` (0.6) strong
+  stay on the map at a campaign boundary; links survive only with both ends.
+
 ### Added
+
+- Ranking tab "Kampagne": points since the campaign start (migration V7),
+  next to "Heute" and "Saison".
 
 - Side reveal card: the first time a browser plays, a card says which side
   it got, what to do first ("Erobern", "Nächste Front") and that the side

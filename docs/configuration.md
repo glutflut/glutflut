@@ -263,6 +263,7 @@ Off unless `enabled`.
 | `challenge_back_to_back` | false | – | Next challenge right after finishing one (else when the round ends). |
 | `challenge_gap_s` | 0 | 1800 | Pause after a round before the next challenge (0 = when the round ends). |
 | `challenges_per_day` | 0 | 4 | Challenges per player and day (0 = no limit). |
+| `carry_from_level`, `carry_to_level` | 0, 0 | 3, 2 | A campaign start sets the levels back to 1 (campaign ends don't); whoever had reached `carry_from_level` starts at `carry_to_level` instead (0 = everyone at 1). |
 | `challenge_points` | 0 | – | Points for a finished challenge (0 = XP only). |
 | `xp_challenge` | 30 | 90 | XP per challenge. |
 | `xp_round` | 10 | – | XP per round. |
@@ -345,6 +346,7 @@ Permanent player sources. They fade from `strength` to `floor` over `fade_s`; ea
 | `expire_s` | 259200 (3 days) | – | server | Gone after this long without a top-up. |
 | `link` | false | – | server | Linked permanent sources: a player connects two of their own (app: list in the player sheet); at one of them, claims reach the junctions around the other, both ways, any distance (ticket of the near one as `via` in `claim`). The partner itself can't be topped up that way. Others see only that a source is linked. |
 | `link_factor` | 0.7 | – | server | Strength of a claim through a link, as a factor. |
+| `survive` | 0 | 0.6 | server | A campaign start or end clears the map of permanent sources, except those at least this strong (0 = none survive). A link survives only with both ends. |
 
 #### `[weather]` (`weather.rs`)
 
