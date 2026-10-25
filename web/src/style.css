@@ -250,6 +250,7 @@ body.watching #board .you { display: none; }
 #claim.water { background: var(--water); }
 #claim:disabled { opacity: 0.45; }
 
+
 /* Only watching (watch.ts): one button to join instead of claim and rate. */
 #join {
   flex: 1;
@@ -1141,6 +1142,20 @@ body.outside #actions { display: none; }
 }
 #perm.fire { background: var(--fire); }
 #perm.water { background: var(--water); }
+/* A claim through a link (linked permanent sources): above "Erobern", like #perm. */
+#claim-link {
+  width: min(100%, 420px);
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border: 2px dotted rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  color: #fff;
+  background: var(--neutral);
+}
+#claim-link.fire { background: var(--fire); }
+#claim-link.water { background: var(--water); }
+#claim-link:disabled { opacity: 0.45; }
 
 /* New version after a deploy (update.ts); manual reload in the settings. */
 #update {

@@ -27,7 +27,10 @@ All notable changes to Glut & Flut. Versions follow
   around the other (both ways, any distance) at `link_factor` of the
   strength, never the partner itself. Others see a dotted ring on a linked
   source, not its partner; the owner sees their links as dashed lines on the
-  map and links or unlinks from the junction card of an own source too.
+  map and links or unlinks from the junction card of an own source too. At a
+  linked source a second button "Drüben erobern" appears when something is
+  to take around the partner (the app asks the server, `peek`); after the
+  claim the camera shows the spot for a moment and comes back.
 
 ## 0.2.0 – 2026-10-24: story campaigns and the chronicle
 

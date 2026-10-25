@@ -169,6 +169,11 @@ pub enum FromWeb {
         ticket: String,
         motto: Option<String>,
     },
+    /// A claim through the link of `via`: what would it take now?
+    Peek {
+        conn: u64,
+        via: String,
+    },
     /// Link two own permanent sources, or unlink one.
     Link {
         conn: u64,
@@ -1454,6 +1459,7 @@ async fn handle_socket(
                 ticket,
                 motto,
             },
+            ClientMsg::Peek { via } => FromWeb::Peek { conn, via },
             ClientMsg::Link {
                 node,
                 ticket,

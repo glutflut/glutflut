@@ -301,6 +301,20 @@ pub enum ServerMsg<'a> {
         #[ts(optional)]
         reason: Option<&'static str>,
     },
+    /// Answer to `peek`: the junction a claim through the link of `via`
+    /// would take now, with its position; none when nothing is to take there.
+    Peek {
+        via: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        node: Option<i64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        lon: Option<f64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        lat: Option<f64>,
+    },
     /// Answer to `link`: linked or unlinked, or why not (`off`, `notyours`, `same`).
     Link {
         node: i64,
@@ -640,6 +654,11 @@ pub enum ClientMsg {
         #[serde(default)]
         #[ts(optional = nullable)]
         motto: Option<String>,
+    },
+    /// What a claim through the link of the own source with ticket `via`
+    /// would take now (the app asks while standing at it).
+    Peek {
+        via: String,
     },
     /// Link the own permanent source at `node` with the one at `to` (both
     /// tickets), or unlink it (no `to`).

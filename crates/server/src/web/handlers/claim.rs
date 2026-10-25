@@ -113,6 +113,97 @@ fn front_spot(
     None
 }
 
+/// The far end of a link (`[keep] link`): standing within reach of own
+/// permanent source A (its ticket `via`), its partner B as (position, node).
+fn link_partner(
+    keep_info: &Query<(Entity, &mut crate::keep::KeepInfo)>,
+    sources: &Query<(&GeoNode, &mut crate::sim::ElementSource)>,
+    region: &RegionInfo,
+    rules: &elements_shared::rules::Rules,
+    here: Vec2,
+    via: &str,
+) -> Option<(Vec2, i64)> {
+    let (ha, _) = crate::keep::hashes(via)?;
+    let at = |g: &GeoNode| {
+        let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
+        Vec2::new(w.x, w.z)
+    };
+    let (ea, ka) = keep_info.iter().find(|(_, k)| k.ticket == ha)?;
+    let (ga, _) = sources.get(ea).ok()?;
+    if at(ga).distance(here) > rules.claim_radius_m {
+        return None;
+    }
+    let hb = ka.link?;
+    let (eb, _) = keep_info.iter().find(|(_, k)| k.ticket == hb)?;
+    let (gb, sb) = sources.get(eb).ok()?;
+    (sb.kind == SourceKind::Keep).then(|| (at(gb), gb.id))
+}
+
+/// The nearest junction within `radius` of B that isn't `faction`'s (never
+/// B itself): (id, lon, lat).
+fn link_target(
+    nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
+    region: &RegionInfo,
+    radius: f32,
+    b: Vec2,
+    b_node: i64,
+    faction: Faction,
+) -> Option<(i64, f64, f64)> {
+    nodes
+        .iter()
+        .filter(|(g, _)| g.id != b_node)
+        .filter(|(_, s)| s.owner() != Some(faction))
+        .map(|(g, _)| {
+            let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
+            (g, Vec2::new(w.x, w.z).distance(b))
+        })
+        .filter(|&(_, d)| d <= radius)
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(g, _)| (g.id, g.lon, g.lat))
+}
+
+/// What a claim through the link of `via` would take right now (the app's
+/// second button and its camera move): the target around the partner, if any.
+pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: &str) {
+    let Some((e, out)) = game.clients.0.get(&conn) else {
+        return;
+    };
+    let Ok((&faction, pos, ..)) = game.players.get(*e) else {
+        return;
+    };
+    let target = Some(())
+        .filter(|_| c.rules.keep.link)
+        .and_then(|_| {
+            link_partner(
+                &game.keep_info,
+                &game.sources,
+                c.region,
+                c.rules,
+                Vec2::new(pos.0.x, pos.0.z),
+                via,
+            )
+        })
+        .and_then(|(b, b_node)| {
+            link_target(
+                &game.nodes,
+                c.region,
+                c.rules.claim_radius_m,
+                b,
+                b_node,
+                faction,
+            )
+        });
+    send(
+        out,
+        &ServerMsg::Peek {
+            via,
+            node: target.map(|t| t.0),
+            lon: target.map(|t| t.1),
+            lat: target.map(|t| t.2),
+        },
+    );
+}
+
 pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<&str>) {
     let (now, region, rules) = (c.now, c.region, c.rules);
     let Some((e, out)) = game.clients.0.get(&conn) else {
@@ -143,44 +234,31 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
     // Through a link (`[keep] link`): standing at own permanent source A
     // (its ticket in `via`), the claim reaches around its partner B: the
     // range counts from B, the strength is `link_factor` of it.
-    let link = via
-        .filter(|_| rules.keep.link)
-        .and_then(crate::keep::hashes)
-        .and_then(|(ha, _)| {
-            let at = |g: &GeoNode| {
-                let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
-                Vec2::new(w.x, w.z)
-            };
-            let here = Vec2::new(pos.0.x, pos.0.z);
-            let (ea, ka) = game.keep_info.iter().find(|(_, k)| k.ticket == ha)?;
-            let (ga, _) = game.sources.get(ea).ok()?;
-            if at(ga).distance(here) > rules.claim_radius_m {
-                return None;
-            }
-            let hb = ka.link?;
-            let (eb, _) = game.keep_info.iter().find(|(_, k)| k.ticket == hb)?;
-            let (gb, sb) = game.sources.get(eb).ok()?;
-            (sb.kind == SourceKind::Keep).then(|| (at(gb), gb.id))
-        });
+    let link = via.filter(|_| rules.keep.link).and_then(|v| {
+        link_partner(
+            &game.keep_info,
+            &game.sources,
+            region,
+            rules,
+            Vec2::new(pos.0.x, pos.0.z),
+            v,
+        )
+    });
     // The app may not know the junctions around B (not in view): asked for
     // B itself, the server picks the nearest junction around it that isn't
     // the player's side's. Nothing there: `linked`.
     let node = match link {
         Some((b, b_node)) if node == b_node => {
-            let pick = game
-                .nodes
-                .iter()
-                .filter(|(g, _)| g.id != b_node)
-                .filter(|(_, s)| s.owner() != Some(faction))
-                .map(|(g, _)| {
-                    let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
-                    (g.id, Vec2::new(w.x, w.z).distance(b))
-                })
-                .filter(|&(_, d)| d <= rules.claim_radius_m)
-                .min_by(|a, b| a.1.total_cmp(&b.1))
-                .map(|(id, _)| id);
+            let pick = link_target(
+                &game.nodes,
+                region,
+                rules.claim_radius_m,
+                b,
+                b_node,
+                faction,
+            );
             match pick {
-                Some(id) => id,
+                Some((id, _, _)) => id,
                 None => {
                     send(
                         out,

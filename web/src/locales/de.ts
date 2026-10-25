@@ -287,7 +287,7 @@ export const de = {
   "perm.dist": "{m} m entfernt",
   "perm.strength": "{p} %",
   "perm.weakest": "schwächste",
-  "claim.link": "Über die Verbindung erobern",
+  "claim.link": "Drüben erobern",
   "claim.linked": "Um die verbundene Quelle ist gerade nichts zu holen",
   "perm.link": "Verbinden …",
   "perm.unlink": "Verbindung lösen",

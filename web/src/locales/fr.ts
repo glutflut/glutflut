@@ -288,7 +288,7 @@ export const fr: Dict = {
   "perm.dist": "à {m} m",
   "perm.strength": "{p} %",
   "perm.weakest": "la plus faible",
-  "claim.link": "Conquérir par la liaison",
+  "claim.link": "Conquérir là-bas",
   "claim.linked": "Rien à prendre autour de la source reliée pour l’instant",
   "perm.link": "Relier …",
   "perm.unlink": "Rompre la liaison",

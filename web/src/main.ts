@@ -245,6 +245,12 @@ async function main() {
     reinforce: progress.reinforce,
     perm,
     links: perm.links,
+    // A claim through a link: the camera goes there for a moment, then back.
+    look: (ll) => {
+      player.setFollow(false);
+      map.flyTo({ center: ll, zoom: Math.max(map.getZoom(), 16.5), duration: 1500, essential: true });
+      setTimeout(() => player.home(), 4000);
+    },
     tunnel,
     card,
   });
@@ -441,6 +447,7 @@ async function main() {
     released: onKeep,
     motto: onKeep,
     link: onKeep,
+    peek: claim.onPeek,
     sources(m) {
       live?.rows(m.items);
       const now = Date.now();

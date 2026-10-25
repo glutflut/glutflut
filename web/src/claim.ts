@@ -10,8 +10,9 @@ import { $, plus, toast } from "./page";
 
 const TOO_FAST = t("too.fast");
 
-/** `via`: the ticket of an own linked permanent source in reach (the claim goes around its partner). */
-type Target = { id: number; anchor: boolean; reinforce?: boolean; via?: string };
+type Target = { id: number; anchor: boolean; reinforce?: boolean };
+/** Ask the server again what the link would take, at most this often while in reach. */
+const PEEK_EVERY_MS = 15_000;
 /** Farther than this the front hint is no help on foot. */
 const FRONT_HINT_M = 2000;
 
@@ -29,13 +30,41 @@ export function setupClaim(d: {
   perm: { update(me: [number, number] | null, sources: Src[], faction: Faction | null): void };
   /** Own linked permanent sources (perm.ts). */
   links: () => Link[];
+  /** Show the camera a spot (a claim through a link), then back to the player. */
+  look: (ll: [number, number]) => void;
   /** The tunnel's say on a claim: true if it went through one. */
   tunnel: { onClaim(node: number, ok: boolean): boolean };
   card: { onClaim(node: number): void };
 }) {
   const { net, sound, nodePos, state } = d;
   const claimBtn = $("claim") as HTMLButtonElement;
+  const linkBtn = $("claim-link") as HTMLButtonElement;
   const rateBtn = $("rate") as HTMLButtonElement;
+  // The second button: standing at an own linked permanent source, what a
+  // claim through the link would take (the server says, `peek`).
+  let linkTarget: { ticket: string; node: number; ll: [number, number] } | null = null;
+  let peeked = { ticket: "", at: 0 };
+  /** Where the claim just sent through a link goes (the camera shows it when it lands). */
+  let flyTo: [number, number] | null = null;
+  function drawLink() {
+    const faction = d.faction();
+    linkBtn.hidden = !linkTarget || !faction;
+    linkBtn.className = faction ?? "";
+    linkBtn.textContent = t("claim.link");
+    linkBtn.disabled = !!wait;
+  }
+  function peek() {
+    const me = d.me();
+    const l = me && d.faction() ? d.links().find((l) => distM(me, l.ll) <= d.claimRadius()) : undefined;
+    if (!l) {
+      linkTarget = null;
+      peeked = { ticket: "", at: 0 };
+    } else if (peeked.ticket !== l.ticket || Date.now() - peeked.at > PEEK_EVERY_MS) {
+      peeked = { ticket: l.ticket, at: Date.now() };
+      net.send({ t: "peek", via: l.ticket });
+    }
+    drawLink();
+  }
   // Wait after a claim (cooldown) or while moving too fast: the button is
   // off, fills up and counts down.
   let wait: { from: number; until: number; moving: boolean } | null = null;
@@ -59,9 +88,7 @@ export function setupClaim(d: {
         ? t(faction === "fire" ? "claim.anchor.go.fire" : "claim.anchor.go.water")
         : tg?.reinforce
           ? t("claim.reinforce.go")
-          : tg?.via
-            ? t("claim.link")
-            : t("claim.button");
+          : t("claim.button");
       // Nothing at all in range: the button points the way (the first tip).
       if (!tg && me && faction) {
         const f = nearestFront(me, faction === "fire" ? 1 : 2);
@@ -79,6 +106,12 @@ export function setupClaim(d: {
     drawWait();
     claimBtn.disabled = !(faction && me) || !!wait;
     rateBtn.disabled = !(faction && me);
+    peek();
+  };
+  linkBtn.onclick = () => {
+    if (!linkTarget) return;
+    flyTo = linkTarget.ll;
+    send(linkTarget.node, linkTarget.ticket);
   };
 
   /** Where the last successful claim went (for the video script). */
@@ -109,16 +142,15 @@ export function setupClaim(d: {
     const sources = d.sources();
     const supply = d.supply();
     const mine = faction === "fire" ? 1 : 2;
-    const nearestAt = (at: [number, number], ok: (id: number) => boolean): number | null => {
+    const nearest = (ok: (id: number) => boolean): number | null => {
       let best: [number, number] | null = null;
       for (const [id, c] of nodePos) {
-        const dist = distM(at, c);
+        const dist = distM(p, c);
         if (dist > d.claimRadius() || (best && dist >= best[1]) || !ok(id)) continue;
         best = [id, dist];
       }
       return best?.[0] ?? null;
     };
-    const nearest = (ok: (id: number) => boolean) => nearestAt(p, ok);
     const src = new Map(sources.map((s) => [s.node, s]));
     const spark = nearest((id) => src.get(id)?.kind === "spark" && src.get(id)?.faction !== faction);
     if (spark !== null) return { id: spark, anchor: false };
@@ -128,15 +160,6 @@ export function setupClaim(d: {
     };
     const open = nearest(takeable);
     if (open !== null) return { id: open, anchor: false };
-    // Through a link: at an own linked permanent source, the nearest
-    // takeable junction around its partner (never the partner itself).
-    // Junctions around the partner may be out of view (unknown here): then
-    // the partner's node is sent and the server picks the nearest one there.
-    for (const l of d.links()) {
-      if (distM(p, l.ll) > d.claimRadius()) continue;
-      const far = nearestAt(l.partner, (id) => id !== l.partnerNode && takeable(id));
-      return { id: far ?? l.partnerNode, anchor: false, via: l.ticket };
-    }
     if (supply === null) return null;
     const anchors = sources.filter((s) => s.kind === "anchor" && s.faction === faction).map((s) => s.ll);
     const spot = nearest((id) => {
@@ -224,7 +247,7 @@ export function setupClaim(d: {
     const tg = target(me);
     if (tg === null) return toast(nothing(me));
     reinforcing = !!tg.reinforce;
-    send(tg.id, tg.via);
+    send(tg.id);
   };
 
   return {
@@ -234,6 +257,12 @@ export function setupClaim(d: {
     wait: () => (wait && Date.now() < wait.until ? { s: Math.ceil((wait.until - Date.now()) / 1000), moving: wait.moving } : null),
     target,
     lastClaim: () => lastClaim,
+    /** The server's answer to `peek`: the second button and where it goes. */
+    onPeek(m: Extract<ServerMsg, { t: "peek" }>) {
+      if (m.via !== peeked.ticket) return;
+      linkTarget = m.node !== undefined && m.lon !== undefined && m.lat !== undefined ? { ticket: m.via, node: m.node, ll: [m.lon, m.lat] } : null;
+      drawLink();
+    },
     onRate(m: Extract<ServerMsg, { t: "rate" }>) {
       const why = m.reason === "cooldown" ? t("rate.cooldown") : m.reason === "moving" ? TOO_FAST : t("rate.nothere");
       toast(m.ok ? t("rate.thanks", { plus: plus(m.points) }) : why);
@@ -241,6 +270,14 @@ export function setupClaim(d: {
     onClaim(m: Extract<ServerMsg, { t: "claim" }>) {
       const faction = d.faction();
       clearTimeout(claimWait);
+      // Through a link: show where it landed, and ask again what is left there.
+      if (flyTo) {
+        if (m.ok) d.look(flyTo);
+        flyTo = null;
+        linkTarget = null;
+        peeked.at = 0;
+        drawLink();
+      }
       if (m.ok) lastClaim = nodePos.get(m.node) ?? null;
       if (m.wait && m.wait > 0.3) {
         const now = Date.now();

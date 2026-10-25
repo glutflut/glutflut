@@ -157,6 +157,7 @@ pub fn inbox(
                 ticket,
                 motto,
             } => keep::motto(g, &c, conn, node, &ticket, motto.as_deref()),
+            FromWeb::Peek { conn, via } => claim::peek(g, &c, conn, &via),
             FromWeb::Link {
                 conn,
                 node,
