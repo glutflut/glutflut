@@ -1182,6 +1182,7 @@ body.outside #actions { display: none; }
 #node-claim { margin-top: 12px; width: 100%; padding: 11px; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; color: #fff; background: var(--neutral); }
 #node-claim.fire { background: var(--fire); }
 #node-claim.water { background: var(--water); }
+#node-link button { margin-top: 10px; width: 100%; padding: 9px; font-size: 15px; font-weight: 600; border: 1px solid var(--soft); border-radius: 10px; background: transparent; color: inherit; }
 .node-pick { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4); pointer-events: none; }
 /* The junctions of a "hold" chapter (campaign.ts). */
 .hold-mark { pointer-events: none; }

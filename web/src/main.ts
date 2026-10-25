@@ -189,10 +189,11 @@ async function main() {
     },
     () => progress.mine()?.level ?? 1,
     () => progress.mine()?.badges ?? [],
+    map,
   );
   setupFeedback(toast);
   const news = setupNews((k) => t(k));
-  const card = setupNodeCard(map, net, (node) => claim.send(node), () => faction, () => perm.nodes(), owner, () => claim.wait(), () => player.me());
+  const card = setupNodeCard(map, net, (node) => claim.send(node), () => faction, () => perm.nodes(), owner, () => claim.wait(), () => player.me(), perm.linkControl);
   // The junction nearest a tap, within 28 px (the dots are small).
   const pickNode = (p: maplibregl.Point): number | null => {
     let best: [number, number] | null = null;

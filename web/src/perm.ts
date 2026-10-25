@@ -5,7 +5,9 @@
 // move one of them here (a card picks which, the weakest first), or top one
 // up when standing next to it. Tickets are redeemed on connect and every few
 // minutes, one at a time (points for standing, or for a fallen source).
+import type * as maplibregl from "maplibre-gl";
 import { t, type Key } from "./i18n";
+import { COLORS } from "./geo";
 import type { Faction, Net, ServerMsg } from "./net";
 import type { MottoItem } from "./protocol";
 import { $, plus } from "./page";
@@ -66,6 +68,8 @@ export function setupPerm(
   level: () => number,
   /** The player's badges (some tag lines need one). */
   badges: () => string[],
+  /** The map: own links are drawn as lines (only this device knows the pairs). */
+  map: maplibregl.Map,
 ) {
   const btn = document.getElementById("perm") as HTMLButtonElement;
   let on = false;
@@ -97,6 +101,58 @@ export function setupPerm(
   const shownMotto = new Map<number, string>();
 
   const name = (k: string) => t(`perm.${k}.${faction ?? "fire"}` as Key);
+
+  // Own links as dashed lines between the two sources.
+  map.addSource("links", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({
+    id: "links",
+    type: "line",
+    source: "links",
+    layout: { "line-cap": "round" },
+    paint: { "line-color": ["get", "color"], "line-width": 2.5, "line-dasharray": [1.5, 2], "line-opacity": 0.85 },
+  });
+  let linksKey = "";
+  function drawLinks() {
+    const pairs = links().filter((l) => l.ticket < (mine.find((m) => m.node === l.partnerNode)?.ticket ?? ""));
+    const key = pairs.map((l) => `${l.node}-${l.partnerNode}`).join(",") + (faction ?? "");
+    if (key === linksKey) return;
+    linksKey = key;
+    (map.getSource("links") as maplibregl.GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features: pairs.map((l) => ({
+        type: "Feature",
+        properties: { color: COLORS[faction ?? "fire"] },
+        geometry: { type: "LineString", coordinates: [l.ll, l.partner] },
+      })),
+    });
+  }
+
+  /** Own linked sources with a known position for both ends (claim.ts, the map). */
+  function links(): Link[] {
+    if (!linkOn) return [];
+    const out: Link[] = [];
+    for (const m of mine) {
+      const p = m.link ? mine.find((x) => x.ticket === m.link) : undefined;
+      const a = where(m);
+      const b = p && where(p);
+      if (p && a && b) out.push({ ticket: m.ticket, node: m.node, ll: a, partnerNode: p.node, partner: b });
+    }
+    return out;
+  }
+
+  /** "Verbinden …" or "Verbindung lösen" for an own source (list, junction card). */
+  function linkButton(m: Stored): HTMLButtonElement {
+    const lb = document.createElement("button");
+    lb.className = "ghost link";
+    lb.textContent = m.link ? t("perm.unlink") : t("perm.link");
+    lb.onclick = () => {
+      if (m.link) {
+        pendingLink = { a: m, b: null };
+        net.send({ t: "link", node: m.node, ticket: m.ticket, to: null });
+      } else pickLink(m);
+    };
+    return lb;
+  }
   const max = () => base + perLevel * Math.max(0, level() - 1);
   const nodes = () => new Set(mine.map((m) => m.node));
 
@@ -241,18 +297,7 @@ export function setupPerm(
         };
         li.append(b);
         // Linked permanent sources: link with another own one, or unlink.
-        if (linkOn && mine.length >= 2) {
-          const lb = document.createElement("button");
-          lb.className = "ghost link";
-          lb.textContent = r.m.link ? t("perm.unlink") : t("perm.link");
-          lb.onclick = () => {
-            if (r.m.link) {
-              pendingLink = { a: r.m, b: null };
-              net.send({ t: "link", node: r.m.node, ticket: r.m.ticket, to: null });
-            } else pickLink(r.m);
-          };
-          li.append(" ", lb);
-        }
+        if (linkOn && mine.length >= 2) li.append(" ", linkButton(r.m));
         // A tag line from level 2 (without levels: always); the city's for everyone.
         if (mottoOpen()) {
           const lab = document.createElement("label");
@@ -279,22 +324,18 @@ export function setupPerm(
     // Its partner is on its own again.
     for (const m of mine) if (m.link === ticket) delete m.link;
     save(mine);
+    drawLinks();
   }
 
   return {
     /** The nodes of this device's permanent sources here. */
     nodes,
-    /** Own linked sources with a known position for both ends (claim.ts). */
-    links(): Link[] {
-      if (!linkOn) return [];
-      const out: Link[] = [];
-      for (const m of mine) {
-        const p = m.link ? mine.find((x) => x.ticket === m.link) : undefined;
-        const a = where(m);
-        const b = p && where(p);
-        if (p && a && b) out.push({ ticket: m.ticket, node: m.node, ll: a, partnerNode: p.node, partner: b });
-      }
-      return out;
+    links,
+    /** The link button for the junction card of an own source, if linking is on. */
+    linkControl(node: number): HTMLButtonElement | null {
+      if (!linkOn || mine.length < 2) return null;
+      const m = mine.find((x) => x.node === node);
+      return m ? linkButton(m) : null;
     },
     drawList,
     onWelcome(
@@ -311,6 +352,7 @@ export function setupPerm(
       gap = m.keep_gap_m ?? 60;
       linkOn = !!m.keep_link;
       faction = f;
+      drawLinks();
       redeemTimers.forEach(clearTimeout);
       clearInterval(redeemEvery);
       if (!on) {
@@ -386,6 +428,7 @@ export function setupPerm(
             delete p.a.link;
           }
           save(mine);
+          drawLinks();
           toast(t(p.b ? "perm.link.set" : "perm.link.off"), 6000);
         } else toast(t("perm.failed"));
       } else if (m.t === "released") {
@@ -419,6 +462,7 @@ export function setupPerm(
         }
       }
       if (changed) drawList();
+      drawLinks();
       action = null;
       let label = "";
       if (on && me && f) {

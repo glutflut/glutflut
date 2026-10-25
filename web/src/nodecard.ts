@@ -29,6 +29,8 @@ export function setupNodeCard(
   /** The claim button's wait (cooldown or moving), if any. */
   claimWait: () => { s: number; moving: boolean } | null,
   me: () => [number, number] | null,
+  /** The link button for an own permanent source (perm.ts), if any. */
+  linkControl: (node: number) => HTMLElement | null,
 ) {
   const card = $("node-card");
   let node: number | null = null;
@@ -36,6 +38,8 @@ export function setupNodeCard(
   /** The last answer and when it came. */
   let last: InfoMsg | null = null;
   let got = 0;
+  /** The link button shown, as node and label (rebuilt only when that changes). */
+  let linkShown = "";
 
   // Ask again, at most once a second.
   let asked = 0;
@@ -133,6 +137,16 @@ export function setupNodeCard(
       if (s.build > 0) src += t("node.build", { t: span(s.build) });
     }
     $("node-source").textContent = src;
+    // Own permanent source: link it from here (or unlink).
+    const slot = $("node-link");
+    const own = s?.kind === "keep" && ownKeep().has(m.node);
+    const lb = own ? linkControl(m.node) : null;
+    const key = lb ? `${m.node}:${lb.textContent}` : "";
+    if (key !== linkShown) {
+      linkShown = key;
+      slot.replaceChildren(...(lb ? [lb] : []));
+      slot.hidden = !lb;
+    }
 
     // Can I take it?
     const take =
