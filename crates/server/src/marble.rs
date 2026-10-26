@@ -768,12 +768,30 @@ pub fn publish(host: &crate::regions::Host, s3: Option<&S3>, now: f64) {
             }
         }
     }
+    // Not main: the shard's manifest may be stale (every cell idle, nobody
+    // renews the main lease); files it still names stay until it moves on.
+    let named: HashSet<String> = match s3.filter(|_| !main) {
+        Some(s3) => s3
+            .get("manifest.json")
+            .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
+            .map(|m| {
+                m["regions"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|r| r["files"].as_object().into_iter().flatten())
+                    .filter_map(|(_, f)| f.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        None => HashSet::new(),
+    };
     let gone: Vec<String> = {
         let mut p = host.marble.published.lock().unwrap();
         p.manifest = Some(manifest.into());
         let (old, keep): (Vec<_>, Vec<_>) = std::mem::take(&mut p.retired)
             .into_iter()
-            .partition(|(t, _)| now - t >= 600.0);
+            .partition(|(t, path)| now - t >= 600.0 && !named.contains(path));
         p.retired = keep;
         for (_, path) in &old {
             p.files.remove(path);
