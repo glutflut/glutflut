@@ -622,11 +622,24 @@ pub fn spawn(host: std::sync::Arc<crate::regions::Host>) {
 /// Regions on the globe: this shard's listed ones (beta regions too with
 /// `ELEMENTS_MARBLE_UNLISTED=1`).
 fn shown(host: &crate::regions::Host) -> Vec<crate::db::Listing> {
-    let all = std::env::var("ELEMENTS_MARBLE_UNLISTED").is_ok_and(|v| v == "1");
     host.listings()
         .iter()
-        .filter(|l| host.here(l) && (all || l.json["listed"].as_bool() != Some(false)))
+        .filter(|l| host.here(l) && on_globe(l))
         .cloned()
+        .collect()
+}
+
+fn on_globe(l: &crate::db::Listing) -> bool {
+    std::env::var("ELEMENTS_MARBLE_UNLISTED").is_ok_and(|v| v == "1")
+        || l.json["listed"].as_bool() != Some(false)
+}
+
+/// The shard's regions on the globe, every cell.
+fn shown_shard(host: &crate::regions::Host) -> HashSet<String> {
+    host.listings()
+        .iter()
+        .filter(|l| l.shard == host.shard() && on_globe(l))
+        .map(|l| l.slug.clone())
         .collect()
 }
 
@@ -714,7 +727,16 @@ pub fn publish(host: &crate::regions::Host, s3: Option<&S3>, now: f64) {
                     Some((c, serde_json::from_slice(&b).ok()?))
                 })
                 .collect();
-            merge_cells(&manifest, &others)
+            let merged = merge_cells(&manifest, &others);
+            // A region no cell publishes yet (moved to an idle cell, or its
+            // history still restoring): its last entry stays.
+            match s3
+                .get("manifest.json")
+                .and_then(|b| serde_json::from_slice(&b).ok())
+            {
+                Some(prev) => carry_over(&merged, &prev, &shown_shard(host)),
+                None => merged,
+            }
         }
         None => manifest,
     };
@@ -928,6 +950,29 @@ fn merge_cells(own: &str, others: &[(String, serde_json::Value)]) -> String {
     m.to_string()
 }
 
+/// Entries of `prev` for regions in `keep` that `merged` lacks.
+fn carry_over(merged: &str, prev: &serde_json::Value, keep: &HashSet<String>) -> String {
+    let Ok(mut m) = serde_json::from_str::<serde_json::Value>(merged) else {
+        return merged.to_string();
+    };
+    let Some(list) = m["regions"].as_array_mut() else {
+        return merged.to_string();
+    };
+    let have: HashSet<String> = list
+        .iter()
+        .filter_map(|r| r["slug"].as_str().map(str::to_string))
+        .collect();
+    for r in prev["regions"].as_array().into_iter().flatten() {
+        if r["slug"]
+            .as_str()
+            .is_some_and(|s| keep.contains(s) && !have.contains(s))
+        {
+            list.push(r.clone());
+        }
+    }
+    m.to_string()
+}
+
 /// History of the regions new in this cell (at start, or moved here): from
 /// `<slug>/latest.json`, else the shard's manifest (published before those
 /// existed). Regions gone to another cell drop theirs.
@@ -1018,6 +1063,21 @@ mod tests {
         assert_eq!(r[0]["files"]["6"], "a/r6_x.bin");
         assert_eq!(r[1]["files"]["6"], "m/r6_new.bin");
         assert_eq!(r[2]["files"]["7"], "b/r7_z.bin");
+    }
+
+    #[test]
+    fn main_keeps_regions_no_cell_publishes() {
+        let merged = r#"{"regions":[{"slug":"a","files":{"6":"a/r6_new.bin"}}]}"#;
+        let prev = serde_json::json!({"regions":[
+            {"slug":"a","files":{"6":"a/r6_old.bin"}},
+            {"slug":"moved","files":{"6":"moved/r6_x.bin"}},
+            {"slug":"gone","files":{"6":"gone/r6_y.bin"}}]});
+        let keep: HashSet<String> = ["a", "moved"].map(String::from).into();
+        let m: serde_json::Value = serde_json::from_str(&carry_over(merged, &prev, &keep)).unwrap();
+        let r = m["regions"].as_array().unwrap();
+        assert_eq!(r.len(), 2);
+        assert_eq!(r[0]["files"]["6"], "a/r6_new.bin");
+        assert_eq!(r[1]["slug"], "moved");
     }
 
     #[test]
