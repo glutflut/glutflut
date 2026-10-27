@@ -1065,6 +1065,7 @@ body.outside #actions { display: none; }
 }
 .claim-burst .ring:nth-child(2) { animation-delay: 0.18s; border-width: 2px; }
 .claim-burst.first .ring, .claim-burst.keep .ring { animation-duration: 1.4s; }
+.claim-burst.other .ring { left: -22px; top: -22px; width: 44px; height: 44px; border-width: 2px; opacity: 0; animation-duration: 0.8s; }
 @keyframes burst-ring {
   0% { transform: scale(0.15); opacity: 1; }
   100% { transform: scale(2.6); opacity: 0; }

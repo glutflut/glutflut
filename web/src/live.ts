@@ -14,9 +14,29 @@ const WINDOW_MS = 60_000;
 /** At most this many flashes on the map at once (busy squares stay calm). */
 const FLASH_MAX = 12;
 
-export function setupLive(map: maplibregl.Map, label: () => string) {
-  const recent: { at: number; ll: [number, number]; side: Faction }[] = [];
+/** Fresh sources among `sources` rows (claims just now), each once. */
+export function freshSources() {
   const seen = new Map<number, number>();
+  return (items: SourceRow[]) => {
+    const now = Date.now();
+    const out: { node: number; ll: [number, number]; side: Faction }[] = [];
+    for (const [node, side, left, life, , lon, lat] of items) {
+      if (life - left > FRESH_S) continue;
+      // The same source again (a view load, a refresh): once is enough.
+      const before = seen.get(node);
+      if (before && now - before < 30_000) continue;
+      seen.set(node, now);
+      out.push({ node, ll: [lon, lat], side });
+    }
+    if (seen.size > 2000) for (const [k, v] of seen) if (now - v > 60_000) seen.delete(k);
+    return out;
+  };
+}
+
+/** `burst`: draws a fresh claim instead of the flash (burst.ts); false if it couldn't. */
+export function setupLive(map: maplibregl.Map, label: () => string, burst?: (node: number, side: Faction) => boolean) {
+  const recent: { at: number; ll: [number, number]; side: Faction }[] = [];
+  const fresh = freshSources();
   let flashes = 0;
 
   function flash(ll: [number, number], side: Faction) {
@@ -43,16 +63,10 @@ export function setupLive(map: maplibregl.Map, label: () => string) {
   /** Rows of `sources` / `sourcesdiff`: the fresh ones are claims just now. */
   function rows(items: SourceRow[]) {
     const now = Date.now();
-    for (const [node, side, left, life, , lon, lat] of items) {
-      if (life - left > FRESH_S) continue;
-      // The same source again (a view load, a refresh): once is enough.
-      const before = seen.get(node);
-      if (before && now - before < 30_000) continue;
-      seen.set(node, now);
-      recent.push({ at: now, ll: [lon, lat], side });
-      flash([lon, lat], side);
+    for (const { node, ll, side } of fresh(items)) {
+      recent.push({ at: now, ll, side });
+      if (!burst?.(node, side)) flash(ll, side);
     }
-    if (seen.size > 2000) for (const [k, v] of seen) if (now - v > 60_000) seen.delete(k);
     count();
   }
 

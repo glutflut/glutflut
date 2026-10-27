@@ -51,7 +51,7 @@ import { CLAIM_RADIUS_M, COLORS, distM, owner } from "./geo";
 import { $, params, toast } from "./page";
 import { KEYS, blocked, load, save } from "./store";
 import { joinGate, kiosk, tryJoin, watching } from "./watch";
-import { setupLive, startKiosk } from "./live";
+import { freshSources, setupLive, startKiosk } from "./live";
 import { setupTimelapse } from "./timelapse";
 import { lookFromHash, setupGlobe } from "./globe";
 import { openRegion } from "./region";
@@ -113,10 +113,12 @@ async function main() {
   // The moment of a claim or a new permanent source (burst.ts); off for "reduce motion".
   const burstLayer = gameView && !calm ? new BurstLayer(tiles) : null;
   if (burstLayer) map.addLayer(burstLayer, "nodes");
-  const burst = (node: number, side: Faction, kind: BurstKind) => {
+  const burst = (node: number, side: Faction, kind: BurstKind): boolean => {
     const ll = nodePos.get(node);
-    if (!burstLayer || !ll) return;
-    burstLayer.fire(node, side, kind);
+    if (!burstLayer || !ll) return false;
+    // Someone else's claim only where it can be seen.
+    if (kind === "other" && !map.getBounds().contains(ll)) return false;
+    if (!burstLayer.fire(node, side, kind)) return false;
     spotBurst(map, ll, side, kind);
     // A slight bow of the camera for a new permanent source.
     if (kind === "keep" && gfx === "full") {
@@ -124,6 +126,15 @@ async function main() {
       map.easeTo({ pitch: Math.min(55, pitch + 12), duration: 900 });
       setTimeout(() => map.easeTo({ pitch, duration: 1400 }), 2200);
     }
+    return true;
+  };
+  // While playing, other players' claims in view too; own ones had theirs (claim handler).
+  const fresh = freshSources();
+  const ownBurst = new Map<number, number>();
+  const othersBurst = (items: Parameters<typeof fresh>[0]) => {
+    if (live || !burstLayer) return;
+    const now = Date.now();
+    for (const f of fresh(items)) if (now - (ownBurst.get(f.node) ?? 0) > 15_000) burst(f.node, f.side, "other");
   };
   // Try the bursts anywhere: ?fx shows buttons that fire at the map centre; ?fx=4 in slow motion.
   const fxParam = new URLSearchParams(location.search).get("fx");
@@ -373,7 +384,7 @@ async function main() {
         }
         if (!kiosk) void joinGate(meta.region.slug, knownRegions);
         if (!live) {
-          live = setupLive(map, () => t("watch.label"));
+          live = setupLive(map, () => t("watch.label"), (node, side) => burst(node, side, "other"));
           if (kiosk) startKiosk(map, meta.hotspot ?? meta.region.centroid, live, hotspots.at, lapse, board);
         }
         if (!update.onServerVersion(m.version) && !kiosk) news.check();
@@ -474,6 +485,7 @@ async function main() {
     peek: claim.onPeek,
     sources(m) {
       live?.rows(m.items);
+      othersBurst(m.items);
       const now = Date.now();
       // An own source gone long before its time: taken over.
       if (faction) {
@@ -486,6 +498,7 @@ async function main() {
     },
     sourcesdiff(m) {
       live?.rows(m.set);
+      othersBurst(m.set);
       const now = Date.now();
       // An own source gone or taken long before its time.
       if (faction) {
@@ -544,6 +557,7 @@ async function main() {
       if (m.ok && faction) {
         const first = !load(KEYS.firstBurst);
         if (first) save(KEYS.firstBurst, "1");
+        ownBurst.set(m.node, Date.now());
         burst(m.node, faction, first ? "first" : "claim");
       }
     },

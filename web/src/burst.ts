@@ -8,14 +8,18 @@ import type { Faction } from "./net";
 import { interleaved, LOOKS, program, uniforms } from "./streetfx";
 import type { TileLayer } from "./tiles";
 
-export type BurstKind = "claim" | "first" | "keep";
+export type BurstKind = "claim" | "first" | "keep" | "other";
 
 /** Reach in cost-metres (a flat street costs its length) and front duration, s. */
 const SHAPE: Record<BurstKind, { reach: number; dur: number }> = {
   claim: { reach: 150, dur: 1.3 },
   first: { reach: 280, dur: 2.0 },
   keep: { reach: 520, dur: 3.0 },
+  // Someone else's claim: smaller and quieter.
+  other: { reach: 90, dur: 1.0 },
 };
+/** Bursts at once; more (a busy square) are skipped. */
+const MAX = 6;
 /** Glow after the front passed, s. */
 const TAIL = 1.6;
 const WAVE_PX = 22;
@@ -111,17 +115,18 @@ export class BurstLayer implements maplibregl.CustomLayerInterface {
   }
 
   /** Start a burst at a junction. */
-  fire(node: number, side: Faction, kind: BurstKind) {
-    if (!this.gl) return;
+  fire(node: number, side: Faction, kind: BurstKind): boolean {
+    if (!this.gl || this.bursts.length >= MAX) return false;
     const { reach, dur } = SHAPE[kind];
     const cost = this.spread(node, side, reach);
-    if (!cost.size) return;
+    if (!cost.size) return false;
     const t0 = now();
     const b: Burst = { t0, end: t0 + dur + TAIL + 0.2, verts: [], idx: [] };
     this.geometry(b, cost, side, reach, reach / dur);
     this.bursts.push(b);
     this.upload();
     this.map.triggerRepaint();
+    return true;
   }
 
   /** Cheapest arrival per node; walking with the element is cheap. */
@@ -251,7 +256,7 @@ export class BurstLayer implements maplibregl.CustomLayerInterface {
 export function spotBurst(map: maplibregl.Map, ll: [number, number], side: Faction, kind: BurstKind) {
   const el = document.createElement("div");
   el.className = `claim-burst ${side} ${kind}`;
-  for (let i = 0; i < 2; i++) el.append(span("ring"));
+  for (let i = 0; i < (kind === "other" ? 1 : 2); i++) el.append(span("ring"));
   if (kind === "keep") {
     el.append(span("column"));
     if (side === "fire") for (let i = 0; i < 14; i++) el.append(ember(i));
