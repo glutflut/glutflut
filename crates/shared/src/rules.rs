@@ -425,6 +425,13 @@ impl Rules {
     /// Apply `key=value; other.key=value` (e.g. from `ELEMENTS_RULES_OVERRIDE`).
     pub fn with_overrides(&self, s: &str) -> Result<Rules, String> {
         let mut r = self.clone();
+        // Quotes around the whole value come through literally from an env
+        // file (`--env-file .env`): drop them.
+        let s = s.trim();
+        let s = match (s.chars().next(), s.chars().last()) {
+            (Some(a @ ('\'' | '"')), Some(b)) if a == b && s.len() >= 2 => &s[1..s.len() - 1],
+            _ => s,
+        };
         for part in s.split(';').filter(|p| !p.trim().is_empty()) {
             let (k, v) = part
                 .split_once('=')
@@ -600,6 +607,11 @@ mod decay_tests {
         assert_eq!(r.field.reach_scale, 250.0);
         assert!(r.takeover_stronger);
         assert!(Rules::default().with_overrides("claim_tll_s=1").is_err());
+        // From an env file the quotes arrive too.
+        let r = Rules::default().with_overrides("'rise.enabled=true ; rise.dwell_s=20'").unwrap();
+        assert!(r.rise.enabled);
+        assert_eq!(r.rise.dwell_s, 20.0);
+        assert_eq!(Rules::default().with_overrides("\"claim_ttl_s=7\"").unwrap().claim_ttl_s, 7.0);
     }
 
     #[test]

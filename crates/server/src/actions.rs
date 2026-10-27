@@ -36,11 +36,15 @@ pub fn load_rules(set: Option<&str>) -> Rules {
         (None, None) => Rules::default(),
     };
     // Single values without a new image, e.g. "claim_ttl_s=420; claim_strength=0.8".
+    // A mistake there must not keep the region from loading: play on without.
     if let Ok(o) = std::env::var("ELEMENTS_RULES_OVERRIDE") {
-        r = r
-            .with_overrides(&o)
-            .unwrap_or_else(|e| panic!("ELEMENTS_RULES_OVERRIDE: {e}"));
-        info!(overrides = %o, "rule overrides");
+        match r.with_overrides(&o) {
+            Ok(x) => {
+                r = x;
+                info!(overrides = %o, "rule overrides");
+            }
+            Err(e) => error!(overrides = %o, "ELEMENTS_RULES_OVERRIDE ignored, playing without it: {e}"),
+        }
     }
     if r.frontier || r.capture_s > 0.0 || r.energy_max > 0.0 {
         warn!("rules: frontier/capture/energy are not read by the server; ignored");

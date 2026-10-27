@@ -158,7 +158,7 @@ New migrations: test database first, then production, on every shard. Add column
 
 ## Game rules
 
-The image ships `rules/default.toml` (plus `rules.local/*.toml` if you add your own) in `/srv/rules/` and uses `ELEMENTS_RULES=/srv/rules/default.toml` (live rain and sun need `ELEMENTS_WEATHER_URL`). Every key: `docs/configuration.md`, section 2. Per region: `geo.regions.rules`. Single values without a new image: `ELEMENTS_RULES_OVERRIDE="claim_ttl_s=420; claim_strength=0.8"` (a typo stops the server at startup). The server logs the effective rules at startup. Before a deploy that changes rules or what players see, add an entry on top of `NEWS` in `web/src/news.ts`.
+The image ships `rules/default.toml` (plus `rules.local/*.toml` if you add your own) in `/srv/rules/` and uses `ELEMENTS_RULES=/srv/rules/default.toml` (live rain and sun need `ELEMENTS_WEATHER_URL`). Every key: `docs/configuration.md`, section 2. Per region: `geo.regions.rules`. Single values without a new image: `ELEMENTS_RULES_OVERRIDE=claim_ttl_s=420; claim_strength=0.8` in `.env` (no quotes there; quotes around the whole value are dropped anyway). A mistake in it is logged as `ELEMENTS_RULES_OVERRIDE ignored` and the region plays without the overrides. The server logs the effective rules at startup. Before a deploy that changes rules or what players see, add an entry on top of `NEWS` in `web/src/news.ts`.
 
 ## Operations
 
