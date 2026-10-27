@@ -354,6 +354,8 @@ export const fr: Dict = {
   "rise.wait.fire": "Une hauteur ici. Reste {s} secondes et les braises s’éveilleront.",
   "rise.done.water": "La source jaillit !",
   "rise.done.fire": "Les braises s’éveillent !",
+  "rise.fill.water": "La source jaillit, le creux se remplit : {n} carrefours.",
+  "rise.fill.fire": "Les braises s’éveillent, la butte s’embrase : {n} carrefours.",
   "rise.left": "Parti trop tôt.",
   "rise.strong": "L’autre camp tient ce lieu trop fermement ; rien n’a pu jaillir.",
   "tunnel.gone": "Le tunnel s'est refermé",

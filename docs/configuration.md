@@ -315,11 +315,11 @@ When a player has nothing to claim within `idle_m`, an ownerless source of the o
 
 #### `[rise]` (Die Quelle sprudelt / Die Glut erwacht, `hinterland.rs`, server `web/handlers/rise.rs`)
 
-A player who waits `dwell_s` within `radius_m` of a sink (water) or a peak (fire), a junction at least `dh_m` below / above its neighbours' mean, raises a source of their element there. The server makes it as a claim without using the player's cooldown: on own ground an anchor (life `supply.anchor_ttl_s`, no anchor gap), elsewhere a claim of `strength` for `life_s`, subject to the usual takeover rule. Lab round 28.
+A player who waits `dwell_s` within `radius_m` of a sink (water) or a peak (fire), a junction at least `dh_m` below / above its neighbours' mean, raises a source of their element there, and with `fill_m` the hollow / hilltop around it: up to `fill_max` junctions within `fill_m` of the spot that lie no higher (water) / no lower (fire) than it plus `fill_margin_m`, nearest first (no natural or permanent sources, none of the own side). The server makes them as claims without using the player's cooldown: on own ground anchors (life `supply.anchor_ttl_s`, no anchor gap), elsewhere claims of `strength` for `life_s`, subject to the usual takeover rule. Lab rounds 28 and 28b (`hold_s`, sources that don't age, made the other side idle and stays lab only).
 
 | Key | Default | default.toml | Meaning |
 | --- | --- | --- | --- |
-| `enabled` | false | – | Switch. |
+| `enabled` | false | true | Switch. |
 | `dwell_s` | 60 | – | Waiting time (s). |
 | `radius_m` | 25 | – | Distance to the junction while waiting (m). |
 | `dh_m` | 1.0 | – | Height below / above the neighbours' mean (m). |
@@ -327,6 +327,10 @@ A player who waits `dwell_s` within `radius_m` of a sink (water) or a peak (fire
 | `life_s` | 900 | – | Its life where it isn't an anchor (s). |
 | `player_gap_s` | 1800 | – | Once per player within this (s). |
 | `place_gap_s` | 7200 | – | Once per junction within this (s). |
+| `fill_m` | 0 | 80 | The hollow / hilltop around the spot within this (m; 0 = only the spot). |
+| `fill_margin_m` | 0.5 | – | How much higher (water) / lower (fire) than the spot still counts (m). |
+| `fill_max` | 8 | – | At most this many junctions besides the spot. |
+| `hold_s` | 0 | – | Lab only: risen sources don't age for this long, then go (s; not read by the server). |
 
 #### `[supply]` (anchors, Nachschub)
 

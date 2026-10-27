@@ -494,7 +494,7 @@ async function main() {
           clearTimeout(due);
         };
       } else if (m.state === "done") {
-        toast(t(`rise.done.${faction}`));
+        toast(m.took > 1 ? t(`rise.fill.${faction}`, { n: m.took }) : t(`rise.done.${faction}`));
         sound.keep(faction);
         burst(m.node, faction, "rise");
       } else toast(t(m.state === "strong" ? "rise.strong" : "rise.left"));

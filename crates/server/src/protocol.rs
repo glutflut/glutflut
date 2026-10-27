@@ -369,6 +369,8 @@ pub enum ServerMsg<'a> {
         #[ts(type = "\"wait\" | \"done\" | \"left\" | \"strong\"")]
         state: &'static str,
         secs: u32,
+        /// `done`: junctions taken (the spot and its hollow / hilltop).
+        took: u32,
     },
     /// A spark of the other element appeared `m` metres away.
     Spark {

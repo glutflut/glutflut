@@ -354,6 +354,8 @@ export const pt: Dict = {
   "rise.wait.fire": "Aqui há uma elevação. Fica {s} segundos e as brasas despertam.",
   "rise.done.water": "A nascente brota!",
   "rise.done.fire": "As brasas despertam!",
+  "rise.fill.water": "A nascente brota e a depressão enche: {n} cruzamentos.",
+  "rise.fill.fire": "As brasas despertam e a colina arde: {n} cruzamentos.",
   "rise.left": "Saíste cedo demais.",
   "rise.strong": "O outro lado domina este lugar com demasiada força; nada brotou.",
   "tunnel.gone": "O túnel se fechou",

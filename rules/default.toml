@@ -50,6 +50,13 @@ survive = 0.6
 # the junctions around the other (0.7 of the strength).
 link = true
 
+# A source rises where a player waits a minute at a sink (water) or a peak
+# (fire), and with it the hollow / hilltop around: up to 8 junctions within
+# 80 m (lab rounds 28, 28b).
+[rise]
+enabled = true
+fill_m = 80.0
+
 # The day's weather tilts the sides by about ±5 pp: rain weakens natural fire
 # and lets water sources age slower, warmth the other way round, frost lets
 # water climb. Live rain and sun per junction (where weather files cover the

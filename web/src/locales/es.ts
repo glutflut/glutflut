@@ -355,6 +355,8 @@ export const es: Dict = {
   "rise.wait.fire": "Aquí hay una altura. Quédate {s} segundos y despertarán las brasas.",
   "rise.done.water": "¡Brota el manantial!",
   "rise.done.fire": "¡Despiertan las brasas!",
+  "rise.fill.water": "Brota el manantial y la hondonada se llena: {n} cruces.",
+  "rise.fill.fire": "Despiertan las brasas y la loma arde: {n} cruces.",
   "rise.left": "Te fuiste demasiado pronto.",
   "rise.strong": "El otro bando domina este lugar con demasiada fuerza; no brotó nada.",
   "tunnel.gone": "El túnel se ha cerrado",

@@ -53,6 +53,14 @@ pub struct Rise {
     /// Once per player, and once per junction, within these.
     pub player_gap_s: f32,
     pub place_gap_s: f32,
+    /// The hollow fills, the hilltop catches (round 28b): also up to
+    /// `fill_max` junctions within `fill_m` that lie no higher (water) / no
+    /// lower (fire) than the spot plus `fill_margin_m` (0 m = off).
+    pub fill_m: f32,
+    pub fill_margin_m: f32,
+    pub fill_max: u32,
+    /// The risen sources don't age for this long, then go (0 = they age as claims).
+    pub hold_s: f32,
 }
 
 impl Default for Rise {
@@ -66,11 +74,25 @@ impl Default for Rise {
             life_s: 900.0,
             player_gap_s: 1800.0,
             place_gap_s: 7200.0,
+            fill_m: 0.0,
+            fill_margin_m: 0.5,
+            fill_max: 8,
+            hold_s: 0.0,
         }
     }
 }
 
 impl Rise {
+    /// Does a junction at `elev` belong to the hollow (water) / hilltop
+    /// (fire) of a spot at `spot` m?
+    pub fn fills(&self, f: crate::elements::Faction, spot: f64, elev: f64) -> bool {
+        let m = f64::from(self.fill_margin_m);
+        match f {
+            crate::elements::Faction::Fire => elev >= spot - m,
+            crate::elements::Faction::Water => elev <= spot + m,
+        }
+    }
+
     /// Does a junction `dh` m above its neighbours' mean fit `f`?
     pub fn fits(&self, f: crate::elements::Faction, dh: f32) -> bool {
         match f {

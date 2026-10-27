@@ -43,7 +43,9 @@ pub fn load_rules(set: Option<&str>) -> Rules {
                 r = x;
                 info!(overrides = %o, "rule overrides");
             }
-            Err(e) => error!(overrides = %o, "ELEMENTS_RULES_OVERRIDE ignored, playing without it: {e}"),
+            Err(e) => {
+                error!(overrides = %o, "ELEMENTS_RULES_OVERRIDE ignored, playing without it: {e}")
+            }
         }
     }
     if r.frontier || r.capture_s > 0.0 || r.energy_max > 0.0 {

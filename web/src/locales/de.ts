@@ -353,6 +353,8 @@ export const de = {
   "rise.wait.fire": "Hier ist eine Anhöhe. Bleib {s} Sekunden, dann erwacht die Glut.",
   "rise.done.water": "Die Quelle sprudelt!",
   "rise.done.fire": "Die Glut erwacht!",
+  "rise.fill.water": "Die Quelle sprudelt, die Senke läuft voll: {n} Kreuzungen.",
+  "rise.fill.fire": "Die Glut erwacht, die Kuppe fängt Feuer: {n} Kreuzungen.",
   "rise.left": "Zu früh gegangen.",
   "rise.strong": "Die Gegenseite hält diesen Ort zu stark, die Quelle kam nicht durch.",
   "tunnel.gone": "Der Tunnel ist wieder zu",

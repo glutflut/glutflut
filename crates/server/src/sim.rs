@@ -313,7 +313,11 @@ pub fn setup_elements(
         (0..n)
             .filter(|&i| {
                 let nb: Vec<f64> = field.neighbours(i).map(|j| elev[j]).collect();
-                !nb.is_empty() && rules.0.rise.fits(f, (elev[i] - nb.iter().sum::<f64>() / nb.len() as f64) as f32)
+                !nb.is_empty()
+                    && rules.0.rise.fits(
+                        f,
+                        (elev[i] - nb.iter().sum::<f64>() / nb.len() as f64) as f32,
+                    )
             })
             .map(|i| i as u32)
             .collect::<Vec<u32>>()

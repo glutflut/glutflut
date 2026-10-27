@@ -354,6 +354,8 @@ export const pl: Dict = {
   "rise.wait.fire": "Tu jest wzniesienie. Zostań {s} sekund, a żar się obudzi.",
   "rise.done.water": "Źródło tryska!",
   "rise.done.fire": "Żar się budzi!",
+  "rise.fill.water": "Źródło tryska, zagłębienie się wypełnia (skrzyżowania: {n}).",
+  "rise.fill.fire": "Żar się budzi, wzgórze płonie (skrzyżowania: {n}).",
   "rise.left": "Za wcześnie odszedłeś.",
   "rise.strong": "Druga strona trzyma to miejsce zbyt mocno; nic nie wytrysnęło.",
   "tunnel.gone": "Tunel się zamknął",

@@ -354,6 +354,8 @@ export const it: Dict = {
   "rise.wait.fire": "Qui c’è un’altura. Resta {s} secondi e le braci si sveglieranno.",
   "rise.done.water": "La sorgente sgorga!",
   "rise.done.fire": "Le braci si svegliano!",
+  "rise.fill.water": "La sorgente sgorga, l’avvallamento si riempie: {n} incroci.",
+  "rise.fill.fire": "Le braci si svegliano, il dosso prende fuoco: {n} incroci.",
   "rise.left": "Te ne sei andato troppo presto.",
   "rise.strong": "L’altra parte tiene questo posto troppo saldamente; non è sorto nulla.",
   "tunnel.gone": "Il tunnel si è richiuso",

@@ -20,8 +20,13 @@ All notable changes to Glut & Flut. Versions follow
   by the life they have left; permanent sources carry a flame or a crystal.
 - The album lists past campaign finds and reopens every find's card; the
   chronicle shows a finished campaign's letters.
-- `[rise]` (off by default): wait a minute at a sink (water) or a peak (fire)
-  and a source of your element rises there (lab round 28).
+- `[rise]` (on in `rules/default.toml`): wait a minute at a sink (water) or a
+  peak (fire) and a source of your element rises there, with the hollow /
+  hilltop around it, up to 8 junctions within 80 m (lab rounds 28, 28b).
+- A claim through a link picks its target afresh when the app's one turned
+  own; `ELEMENTS_RULES_OVERRIDE` drops surrounding quotes and a bad one is
+  logged and ignored instead of keeping the region from loading.
+- What's new entry and help paragraph for all of it.
 
 - Ranking tab "Kampagne": points since the campaign start (migration V7),
   next to "Heute" and "Saison".

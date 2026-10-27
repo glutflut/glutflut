@@ -608,10 +608,18 @@ mod decay_tests {
         assert!(r.takeover_stronger);
         assert!(Rules::default().with_overrides("claim_tll_s=1").is_err());
         // From an env file the quotes arrive too.
-        let r = Rules::default().with_overrides("'rise.enabled=true ; rise.dwell_s=20'").unwrap();
+        let r = Rules::default()
+            .with_overrides("'rise.enabled=true ; rise.dwell_s=20'")
+            .unwrap();
         assert!(r.rise.enabled);
         assert_eq!(r.rise.dwell_s, 20.0);
-        assert_eq!(Rules::default().with_overrides("\"claim_ttl_s=7\"").unwrap().claim_ttl_s, 7.0);
+        assert_eq!(
+            Rules::default()
+                .with_overrides("\"claim_ttl_s=7\"")
+                .unwrap()
+                .claim_ttl_s,
+            7.0
+        );
     }
 
     #[test]

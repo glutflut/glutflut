@@ -13,6 +13,75 @@ type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
 
 export const NEWS: Entry[] = [
   {
+    id: "2026-10-27",
+    rules: true,
+    text: {
+      de: {
+        title: "Neu: Bilder, verbundene Glut und Eis, sprudelnde Quellen",
+        items: [
+          "Erobern sieht jetzt anders aus: Feuer schießt die Straßen bergauf, Wasser fließt bergab, vom eroberten Ort aus. Die Eroberungen der anderen blitzen auch auf, und deine Glut trägt eine Flamme, dein Eis einen Kristall.",
+          "Die Quelle sprudelt, die Glut erwacht: Bleib an einer Senke (Wasser) oder auf einer Kuppe (Feuer) eine Minute stehen. Dann steigt dort eine Quelle auf, und mit ihr die ganze Senke bzw. Kuppe, bis zu acht Kreuzungen.",
+          "Glut und Eis verbinden: Zwei deiner Glutquellen bzw. Eisquellen kannst du verbinden („Verbinden …“ auf der Karte der Quelle). Stehst du an der einen, eroberst du mit „Drüben erobern“ rund um die andere, egal wie weit sie weg ist.",
+          "Kapitel mit Geschichte: Kampagnen erzählen, was passiert, und manche Fundstücke sind Briefe. Was war, steht in der Chronik; im Album öffnet jedes Fundstück sein Bild wieder.",
+        ],
+      },
+      en: {
+        title: "New: visuals, linked embers and ice, rising springs",
+        items: [
+          "Claiming looks different now: fire races uphill along the streets, water flows downhill, from the place you claimed. Other players’ claims flash too, and your embers carry a flame, your ice a crystal.",
+          "The spring rises, the embers wake: stay a minute at a hollow (water) or on a hilltop (fire). A source rises there, and with it the whole hollow or hilltop, up to eight junctions.",
+          "Link embers and ice: you can link two of your embers or two of your ice (“Link …” on the source’s card). Standing at one, “Claim over there” claims around the other, however far away it is.",
+          "Chapters with a story: campaigns tell what happens, and some finds are letters. What happened is in the chronicle; in the album every find opens its picture again.",
+        ],
+      },
+      fr: {
+        title: "Nouveau : images, braises et glace reliées, sources qui jaillissent",
+        items: [
+          "Conquérir a changé d’allure&nbsp;: le feu file vers le haut des rues, l’eau coule vers le bas, depuis le lieu conquis. Les conquêtes des autres scintillent aussi, et tes braises portent une flamme, ta glace un cristal.",
+          "La source jaillit, les braises s’éveillent&nbsp;: reste une minute dans un creux (eau) ou sur une butte (feu). Une source y jaillit, et avec elle tout le creux ou toute la butte, jusqu’à huit carrefours.",
+          "Relier braises et glace&nbsp;: tu peux relier deux de tes braises ou deux de tes glaces («&nbsp;Relier …&nbsp;» sur la fiche de la source). Devant l’une, «&nbsp;Conquérir là-bas&nbsp;» conquiert autour de l’autre, quelle que soit la distance.",
+          "Des chapitres avec une histoire&nbsp;: les campagnes racontent ce qui se passe, et certaines trouvailles sont des lettres. Ce qui s’est passé est dans la chronique&nbsp;; dans l’album, chaque trouvaille rouvre son image.",
+        ],
+      },
+      es: {
+        title: "Novedades: imágenes, brasas y hielo enlazados, manantiales que brotan",
+        items: [
+          "Conquistar se ve distinto: el fuego sube corriendo por las calles, el agua baja, desde el lugar conquistado. Las conquistas de los demás también destellan, y tus brasas llevan una llama, tu hielo un cristal.",
+          "Brota el manantial, despiertan las brasas: quédate un minuto en una hondonada (agua) o en una loma (fuego). Allí brota una fuente, y con ella toda la hondonada o la loma, hasta ocho cruces.",
+          "Enlazar brasas y hielo: puedes enlazar dos de tus brasas o dos de tus hielos («Enlazar …» en la ficha de la fuente). Junto a una, «Conquistar allá» conquista alrededor de la otra, esté donde esté.",
+          "Capítulos con historia: las campañas cuentan lo que pasa, y algunos hallazgos son cartas. Lo ocurrido está en la crónica; en el álbum cada hallazgo vuelve a abrir su imagen.",
+        ],
+      },
+      pl: {
+        title: "Nowości: obrazy, połączony żar i lód, tryskające źródła",
+        items: [
+          "Zdobywanie wygląda teraz inaczej: ogień pędzi ulicami pod górę, woda spływa w dół, od zdobytego miejsca. Zdobycze innych też błyskają, a twój żar nosi płomień, twój lód kryształ.",
+          "Źródło tryska, żar się budzi: postój minutę w zagłębieniu (woda) albo na wzniesieniu (ogień). Wytryska tam źródło, a z nim całe zagłębienie albo wzniesienie, do ośmiu skrzyżowań.",
+          "Połącz żar i lód: dwa swoje żary albo dwa lody możesz połączyć („Połącz …” na karcie źródła). Stojąc przy jednym, „Zdobądź tam” zdobywa wokół drugiego, bez względu na odległość.",
+          "Rozdziały z historią: kampanie opowiadają, co się dzieje, a niektóre znaleziska to listy. To, co było, jest w kronice; w albumie każde znalezisko znów otwiera swój obraz.",
+        ],
+      },
+      it: {
+        title: "Novità: immagini, braci e ghiaccio collegati, sorgenti che sgorgano",
+        items: [
+          "Conquistare ha un altro aspetto: il fuoco corre in salita lungo le strade, l’acqua scorre in discesa, dal posto conquistato. Anche le conquiste degli altri brillano, e le tue braci portano una fiamma, il tuo ghiaccio un cristallo.",
+          "La sorgente sgorga, le braci si svegliano: resta un minuto in un avvallamento (acqua) o su un dosso (fuoco). Lì sorge una fonte, e con essa tutto l’avvallamento o il dosso, fino a otto incroci.",
+          "Collega braci e ghiaccio: puoi collegare due tue braci o due tuoi ghiacci («Collega …» sulla scheda della fonte). Vicino a una, «Conquista laggiù» conquista intorno all’altra, per quanto lontana sia.",
+          "Capitoli con una storia: le campagne raccontano cosa succede, e alcuni ritrovamenti sono lettere. Quel che è stato è nella cronaca; nell’album ogni ritrovamento riapre la sua immagine.",
+        ],
+      },
+      pt: {
+        title: "Novidades: imagens, brasas e gelo ligados, nascentes que brotam",
+        items: [
+          "Conquistar está diferente: o fogo sobe a correr pelas ruas, a água desce, a partir do sítio conquistado. As conquistas dos outros também brilham, e as tuas brasas levam uma chama, o teu gelo um cristal.",
+          "A nascente brota, as brasas despertam: fica um minuto numa depressão (água) ou numa colina (fogo). Brota lá uma fonte, e com ela toda a depressão ou colina, até oito cruzamentos.",
+          "Ligar brasas e gelo: podes ligar duas das tuas brasas ou dois dos teus gelos («Ligar …» na ficha da fonte). Junto de uma, «Conquistar lá» conquista à volta da outra, esteja onde estiver.",
+          "Capítulos com história: as campanhas contam o que acontece, e alguns achados são cartas. O que aconteceu está na crónica; no álbum cada achado volta a abrir a sua imagem.",
+        ],
+      },
+    },
+  },
+  {
     id: "2026-10-11",
     rules: true,
     text: {

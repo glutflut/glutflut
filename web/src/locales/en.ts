@@ -354,6 +354,8 @@ export const en: Dict = {
   "rise.wait.fire": "High ground here. Stay {s} seconds and the embers wake.",
   "rise.done.water": "The spring rises!",
   "rise.done.fire": "The embers wake!",
+  "rise.fill.water": "The spring rises and the hollow fills: {n} junctions.",
+  "rise.fill.fire": "The embers wake and the hilltop catches fire: {n} junctions.",
   "rise.left": "Left too early.",
   "rise.strong": "The other side holds this place too strongly; nothing could rise.",
   "tunnel.gone": "The tunnel has closed",
