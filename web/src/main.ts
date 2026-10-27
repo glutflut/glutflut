@@ -10,6 +10,7 @@ maplibregl.setWorkerUrl(workerUrl);
 import { Net, clearToken, saveToken, type Faction, type ServerMsg } from "./net";
 import { TileLayer, loadMeta, type Meta } from "./tiles";
 import { FlowLayer } from "./flow";
+import { BurstLayer, fx, spotBurst, type BurstKind } from "./burst";
 import { chooseRegion, knownRegions, openCities, setupCities } from "./outside";
 import { setupWeather } from "./weather";
 import { setupNews } from "./news";
@@ -107,6 +108,28 @@ async function main() {
         map.easeTo({ pitch: 0 });
         toast(t("gfx.slow"));
       });
+  }
+
+  // The moment of a claim or a new permanent source (burst.ts); off for "reduce motion".
+  const burstLayer = gameView && !calm ? new BurstLayer(tiles) : null;
+  if (burstLayer) map.addLayer(burstLayer, "nodes");
+  const burst = (node: number, side: Faction, kind: BurstKind) => {
+    const ll = nodePos.get(node);
+    if (!burstLayer || !ll) return;
+    burstLayer.fire(node, side, kind);
+    spotBurst(map, ll, side, kind);
+    // A slight bow of the camera for a new permanent source.
+    if (kind === "keep" && gfx === "full") {
+      const pitch = map.getPitch();
+      map.easeTo({ pitch: Math.min(55, pitch + 12), duration: 900 });
+      setTimeout(() => map.easeTo({ pitch, duration: 1400 }), 2200);
+    }
+  };
+  // Try the bursts anywhere: ?fx shows buttons that fire at the map centre; ?fx=4 in slow motion.
+  const fxParam = new URLSearchParams(location.search).get("fx");
+  if (fxParam !== null) {
+    fx.slow = Math.max(1, Number(fxParam) || 1);
+    fxDemo(map, nodePos, burst);
   }
 
   const overview = setupOverview(map, tiles, (on) => net.send({ t: "overview", on }));
@@ -309,6 +332,7 @@ async function main() {
 
   const onKeep = (m: PermMsg) => {
     if (faction && m.t === "keep" && m.ok) m.topup ? sound.topup(faction) : sound.keep(faction);
+    if (faction && m.t === "keep" && m.ok) burst(m.node, faction, m.topup ? "claim" : "keep");
     if (faction && m.t === "kept" && m.state === "fallen") sound.lost(faction);
     if (m.t === "kept" && m.points) floaters.earned(m.points, m.node ? nodePos.get(m.node) : null);
     perm.onMsg(m);
@@ -517,6 +541,11 @@ async function main() {
     claim(m) {
       claim.onClaim(m);
       if (m.ok) floaters.earned(m.points, nodePos.get(m.node));
+      if (m.ok && faction) {
+        const first = !load(KEYS.firstBurst);
+        if (first) save(KEYS.firstBurst, "1");
+        burst(m.node, faction, first ? "first" : "claim");
+      }
     },
     // Answered in net.ts.
     pong() {},
@@ -582,3 +611,32 @@ chooseRegion()
     $("me-label").textContent = t("load.error");
     console.error(e);
   });
+
+/** Buttons for trying the bursts without playing (`?fx`): nearest junction to the map centre. */
+function fxDemo(map: maplibregl.Map, nodePos: Map<number, [number, number]>, burst: (node: number, side: Faction, kind: BurstKind) => void) {
+  const bar = document.createElement("div");
+  bar.className = "fx-demo";
+  const fire = (side: Faction, kind: BurstKind) => {
+    const c = map.getCenter();
+    const k = Math.cos((c.lat * Math.PI) / 180);
+    let best = 0;
+    let bd = Infinity;
+    for (const [id, [lon, lat]] of nodePos) {
+      const d = ((lon - c.lng) * k) ** 2 + (lat - c.lat) ** 2;
+      if (d < bd) [best, bd] = [id, d];
+    }
+    if (best) burst(best, side, kind);
+  };
+  const add = (label: string, side: Faction, kind: BurstKind) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.onclick = () => fire(side, kind);
+    bar.append(b);
+  };
+  add("🔥", "fire", "claim");
+  add("💧", "water", "claim");
+  add("🔥 erste", "fire", "first");
+  add("🔥 Glut", "fire", "keep");
+  add("❄ Eis", "water", "keep");
+  document.body.append(bar);
+}

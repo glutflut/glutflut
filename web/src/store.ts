@@ -5,6 +5,8 @@
 export const KEYS = {
   /** Player token from `welcome` (net.ts), mirrored to the cookie. */
   token: "elements.token",
+  /** First claim on this device got the big burst (burst.ts). */
+  firstBurst: "elements.burst.first",
   lang: "elements.lang",
   region: "elements.region",
   intro: "elements.intro",

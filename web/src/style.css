@@ -1026,6 +1026,58 @@ body.outside #actions { display: none; }
   100% { transform: scale(2.2); opacity: 0; }
 }
 
+/* Claim burst (burst.ts): shock rings at the junction; a permanent source
+   adds a light column with rising embers (fire) or a growing crystal (ice). */
+.claim-burst { position: relative; width: 0; height: 0; pointer-events: none; --c: #ff922b; --hot: #ffe8a3; }
+.claim-burst.water { --c: var(--water-light); --hot: #e6f7ff; }
+.claim-burst .ring {
+  position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%;
+  border: 3px solid var(--c); box-shadow: 0 0 18px var(--c), inset 0 0 12px var(--c);
+  animation: burst-ring 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; opacity: 0;
+}
+.claim-burst .ring:nth-child(2) { animation-delay: 0.18s; border-width: 2px; }
+.claim-burst.first .ring, .claim-burst.keep .ring { animation-duration: 1.4s; }
+@keyframes burst-ring {
+  0% { transform: scale(0.15); opacity: 1; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.claim-burst .column {
+  position: absolute; left: -14px; bottom: 0; width: 28px; height: 220px; border-radius: 14px 14px 4px 4px;
+  background: linear-gradient(to top, var(--hot), var(--c) 25%, transparent);
+  filter: blur(3px); transform-origin: bottom center; opacity: 0;
+  animation: burst-column 3.2s ease-out forwards;
+}
+@keyframes burst-column {
+  0% { transform: scaleY(0) scaleX(0.4); opacity: 0; }
+  12% { transform: scaleY(1) scaleX(1.3); opacity: 1; }
+  40% { transform: scaleY(0.9) scaleX(0.8); opacity: 0.85; }
+  100% { transform: scaleY(1.1) scaleX(0.3); opacity: 0; }
+}
+.claim-burst .ember {
+  position: absolute; left: -3px; bottom: 0; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--hot); box-shadow: 0 0 8px 2px var(--c); opacity: 0;
+  animation: burst-ember 1.8s ease-out forwards;
+}
+@keyframes burst-ember {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--x), -200px) scale(0.2); opacity: 0; }
+}
+.claim-burst .crystal {
+  position: absolute; left: -30px; top: -78px; width: 60px; height: 70px;
+  background: linear-gradient(160deg, #ffffff, var(--c) 45%, rgba(20, 90, 200, 0.6));
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  filter: drop-shadow(0 0 12px var(--c)); transform-origin: 50% 100%; opacity: 0;
+  animation: burst-crystal 3.2s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+@keyframes burst-crystal {
+  0% { transform: scale(0.1) rotate(-20deg); opacity: 0; }
+  25% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  45% { transform: scale(1) rotate(0); opacity: 1; }
+  100% { transform: scale(1.05) translateY(-12px); opacity: 0; }
+}
+.fx-demo { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); z-index: 50; display: flex; gap: 6px; }
+.fx-demo button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--raised); color: var(--fg); font-size: 13px; }
+
 /* Album on the ranking page: one row per collection. */
 #album h3 { font-size: 13px; font-weight: 700; margin: 0 0 6px; color: var(--soft); }
 #album-off { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
