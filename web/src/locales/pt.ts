@@ -355,6 +355,7 @@ export const pt: Dict = {
   "rise.done.water": "A nascente brota!",
   "rise.done.fire": "As brasas despertam!",
   "rise.left": "Saíste cedo demais.",
+  "rise.strong": "O outro lado domina este lugar com demasiada força; nada brotou.",
   "tunnel.gone": "O túnel se fechou",
   "top.fold": "Recolher a barra",
   "top.unfold": "Abrir a barra",

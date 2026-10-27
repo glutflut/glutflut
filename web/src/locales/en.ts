@@ -355,6 +355,7 @@ export const en: Dict = {
   "rise.done.water": "The spring rises!",
   "rise.done.fire": "The embers wake!",
   "rise.left": "Left too early.",
+  "rise.strong": "The other side holds this place too strongly; nothing could rise.",
   "tunnel.gone": "The tunnel has closed",
   "top.fold": "Fold the bar",
   "top.unfold": "Unfold the bar",

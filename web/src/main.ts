@@ -497,7 +497,7 @@ async function main() {
         toast(t(`rise.done.${faction}`));
         sound.keep(faction);
         burst(m.node, faction, "rise");
-      } else toast(t("rise.left"));
+      } else toast(t(m.state === "strong" ? "rise.strong" : "rise.left"));
     },
     spark(m) {
       // A spark of the other element in your ground.

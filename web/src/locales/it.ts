@@ -355,6 +355,7 @@ export const it: Dict = {
   "rise.done.water": "La sorgente sgorga!",
   "rise.done.fire": "Le braci si svegliano!",
   "rise.left": "Te ne sei andato troppo presto.",
+  "rise.strong": "L’altra parte tiene questo posto troppo saldamente; non è sorto nulla.",
   "tunnel.gone": "Il tunnel si è richiuso",
   "top.fold": "Chiudi la barra",
   "top.unfold": "Apri la barra",

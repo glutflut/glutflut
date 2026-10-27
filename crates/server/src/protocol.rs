@@ -360,12 +360,13 @@ pub enum ServerMsg<'a> {
         rain_at: Option<String>,
     },
     /// `Rules::rise`: at a fitting place, stay `secs` (`wait`); the source
-    /// rose (`done`); or the player left too early (`left`).
+    /// rose (`done`); the player left too early (`left`); or the other side
+    /// grew too strong there meanwhile (`strong`).
     Rise {
         node: i64,
         lat: f64,
         lon: f64,
-        #[ts(type = "\"wait\" | \"done\" | \"left\"")]
+        #[ts(type = "\"wait\" | \"done\" | \"left\" | \"strong\"")]
         state: &'static str,
         secs: u32,
     },

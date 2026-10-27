@@ -33,12 +33,22 @@ pub(super) fn on_fix(game: &mut Game, c: &Ctx, conn: u64, e: Entity) {
         return;
     }
     let me = Vec2::new(pos.0.x, pos.0.z);
+    let power = actions::Power {
+        mult: r.strength / rules.claim_strength.max(0.01),
+        newcomer: false,
+        reach_m: r.radius_m + 5.0,
+    };
     // The nearest fitting junction in reach: free to rise again, no natural
-    // source, no source of the own side.
+    // source, no source of the own side, none of the other's too strong for it.
     let spot = sim
         .rise_spots(faction)
         .filter(|&n| !game.naturals.contains(n))
-        .filter(|&n| game.sources.get(n).ok().is_none_or(|(_, s)| s.faction != faction))
+        .filter(|&n| {
+            game.sources
+                .get(n)
+                .ok()
+                .is_none_or(|(_, s)| s.faction != faction && !actions::holds(s, rules, power))
+        })
         .filter_map(|n| {
             let (g, _) = game.nodes.get(n).ok()?;
             if game.rise_places.get(&g.id).is_some_and(|&t| now < t) {
@@ -72,11 +82,6 @@ pub(super) fn on_fix(game: &mut Game, c: &Ctx, conn: u64, e: Entity) {
                 .get(&s.0)
                 .and_then(|&n| game.nodes.get(n).ok())
                 .map(|(_, st)| *st);
-            let power = actions::Power {
-                mult: r.strength / rules.claim_strength.max(0.01),
-                newcomer: false,
-                reach_m: r.radius_m + 5.0,
-            };
             // The player's own claim timer stays as it was.
             let saved = cd.0;
             cd.0 = 0.0;
@@ -100,7 +105,10 @@ pub(super) fn on_fix(game: &mut Game, c: &Ctx, conn: u64, e: Entity) {
             cd.0 = saved;
             game.rise_places.retain(|_, t| *t > now);
             game.rise_places.insert(s.0, now + r.place_gap_s as f64);
-            if res.is_ok() {
+            if let Err(actions::Reject::Strong | actions::Reject::Worn) = res {
+                // Grew too strong while the player waited.
+                send(out, &msg(s, "strong", 0));
+            } else if res.is_ok() {
                 motion.rise_next = now + r.player_gap_s as f64;
                 if let Some(p) = prior {
                     let pts = rules.score.claim_points(p, faction, false);

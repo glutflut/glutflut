@@ -47,7 +47,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "peek", via: string, node?: number, lon?: number, lat?: number, }
   | { "t": "link", node: number, ok: boolean, reason?: string, }
   | { "t": "info", node: number, fire: number, water: number, source?: NodeSource, take: "ok" | "own" | "mine" | "anchor" | "strong" | "range" | "watch", wait?: number, dist: number, reach: number, elev: number, terrain: "peak" | "sink" | "slope" | "flat", dh: number, lean: "" | Faction, rain?: number, rain_at?: string, }
-  | { "t": "rise", node: number, lat: number, lon: number, state: "wait" | "done" | "left", secs: number, }
+  | { "t": "rise", node: number, lat: number, lon: number, state: "wait" | "done" | "left" | "strong", secs: number, }
   | { "t": "spark", node: number, lat: number, lon: number, m: number, };
 
 /**

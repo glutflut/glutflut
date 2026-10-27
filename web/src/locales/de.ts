@@ -354,6 +354,7 @@ export const de = {
   "rise.done.water": "Die Quelle sprudelt!",
   "rise.done.fire": "Die Glut erwacht!",
   "rise.left": "Zu früh gegangen.",
+  "rise.strong": "Die Gegenseite hält diesen Ort zu stark, die Quelle kam nicht durch.",
   "tunnel.gone": "Der Tunnel ist wieder zu",
   "top.fold": "Leiste einklappen",
   "top.unfold": "Leiste ausklappen",
