@@ -22,7 +22,8 @@ type Chapter = {
   state: "over" | "live" | "soon";
   winner: "fire" | "water" | null;
 };
-type Data = { city: string | null; campaigns: { campaign: string; chapters: Chapter[] }[] };
+type Letter = { id: number; name: string; text: Record<string, string> | null };
+type Data = { city: string | null; campaigns: { campaign: string; chapters: Chapter[]; letters?: Letter[] }[] };
 
 const $ = (id: string) => document.getElementById(id)!;
 const num = (n: number) => n.toLocaleString(lang);
@@ -137,6 +138,29 @@ function render(data: Data) {
         const names = pickLang(ch.names, lang);
         p.textContent = `${names?.title ?? ch.key}: ${day(ch.starts)}, ${time(ch.starts)}`;
         det.append(p);
+      }
+      sec.append(det);
+    }
+    // A finished campaign's letters (finds with a text), with their images.
+    if (c.letters?.length) {
+      const det = document.createElement("details");
+      det.className = "chron-letters";
+      const sum = document.createElement("summary");
+      sum.textContent = `${t("chron.letters")} (${c.letters.length})`;
+      det.append(sum);
+      for (const l of c.letters) {
+        const art = document.createElement("article");
+        art.className = "letter";
+        const h = document.createElement("h3");
+        h.textContent = l.name;
+        const slot = document.createElement("div");
+        void mediaFor("find", String(l.id)).then((m) => m && slot.append(figure(m)));
+        const text = document.createElement("div");
+        text.className = "story";
+        const body = pickLang(l.text, lang);
+        if (body) text.append(...paragraphs(body));
+        art.append(h, slot, text);
+        det.append(art);
       }
       sec.append(det);
     }

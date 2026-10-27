@@ -23,3 +23,12 @@
 .chron-soon { margin: 6px 0 0 14px; }
 .chron-soon summary { cursor: pointer; font-size: 14px; color: var(--muted); }
 .chron-soon p { margin: 6px 0 0 14px; font-size: 14px; }
+/* A finished campaign's letters. */
+.chron-letters { margin: 6px 0 0 14px; }
+.chron-letters summary { cursor: pointer; font-size: 14px; color: var(--muted); }
+.chron-letters .letter { margin: 12px 0 18px; }
+.chron-letters .letter h3 { margin: 0 0 4px; font-size: 16px; }
+.chron-letters .story p { margin: 6px 0; }
+.chron-letters figure.media { margin: 8px 0; }
+.chron-letters figure.media img { display: block; width: 100%; max-width: 480px; height: auto; border-radius: 8px; }
+.chron-letters figure.media figcaption { font-size: 11px; color: var(--muted); }

@@ -103,6 +103,26 @@ impl Finds {
         t
     }
 
+    /// Collection sizes for a player's album: what plays at `now`, plus the
+    /// player's `found` ones that no longer (or not yet) play, so a campaign's
+    /// letters stay listed, and counted fairly, after it ended.
+    pub fn album_totals(
+        &self,
+        running: &[String],
+        now: f64,
+        found: &std::collections::HashSet<i64>,
+    ) -> HashMap<String, u32> {
+        let mut t = HashMap::new();
+        for f in self
+            .items
+            .iter()
+            .filter(|f| f.on(running, now) || found.contains(&f.id))
+        {
+            *t.entry(f.collection.clone()).or_default() += 1;
+        }
+        t
+    }
+
     /// Finds playing at `now` within `r` m of `p` (ENU x/z), nearest first.
     pub fn near(&self, p: Vec2, r: f32, running: &[String], now: f64) -> Vec<&Find> {
         let mut v: Vec<(f32, &Find)> = self
@@ -172,6 +192,22 @@ mod tests {
         let ids: std::collections::HashSet<i64> = [1, 2].into();
         assert_eq!(f.count("fountains", ids.iter().copied(), &[], 0.0), 1);
         assert_eq!(f.of(&ids).count(), 2, "found ones stay known");
+    }
+
+    #[test]
+    fn album_keeps_found_letters_after_the_campaign() {
+        let region = crate::testkit::region();
+        let f = Finds::from_rows(
+            vec![row(1, None), row(2, Some("advent")), row(3, Some("advent"))],
+            &region,
+        );
+        let found: std::collections::HashSet<i64> = [2].into();
+        let t = f.album_totals(&[], 0.0, &found);
+        assert_eq!(t["fountains"], 2, "playing one plus the found letter");
+        assert_eq!(
+            f.album_totals(&["advent".into()], 0.0, &found)["fountains"],
+            3
+        );
     }
 
     #[test]

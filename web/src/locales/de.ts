@@ -436,6 +436,7 @@ export const de = {
   "chron.won.fire": "Feuer hat das Kapitel gewonnen",
   "chron.won.water": "Wasser hat das Kapitel gewonnen",
   "chron.tie": "Unentschieden",
+  "chron.letters": "Die Briefe",
   "chron.live": "Läuft gerade",
   "chron.soon": "Beginnt {when}",
   "chron.upcoming": "Demnächst ({n})",

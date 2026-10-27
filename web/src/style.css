@@ -1358,6 +1358,7 @@ body.outside #actions { display: none; }
 #story-ok { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; background: var(--fg); color: var(--ink); }
 /* A find with a text in the album: opens it again. */
 .find-letter { border: none; background: none; padding: 0; font: inherit; color: var(--gold); text-decoration: underline; cursor: pointer; }
+.find-again { border: none; background: none; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
 
 /* Sound on / off (sound.ts). */
 #nav-sound .mute, #nav-sound.off .on { display: none; }

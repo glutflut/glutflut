@@ -78,13 +78,19 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
 
   function album() {
     ($("collect") as HTMLInputElement).checked = collect;
-    const any = Object.keys(totals).length > 0;
+    // Every collection with something playing or found (sizes from the server
+    // include found ones that no longer play, e.g. a past campaign's letters).
+    const sizes: Record<string, number> = { ...totals };
+    const mineOf: Record<string, number> = {};
+    for (const f of known.values()) mineOf[f.c] = (mineOf[f.c] ?? 0) + 1;
+    for (const [c, n] of Object.entries(mineOf)) sizes[c] = Math.max(sizes[c] ?? 0, n);
+    const any = Object.keys(sizes).length > 0;
     $("album").hidden = !any;
     $("collect-row").hidden = $("collect-note").hidden = !any;
     $("album-off").hidden = collect;
     const list = $("finds-list");
     list.replaceChildren(
-      ...Object.entries(totals)
+      ...Object.entries(sizes)
         .sort((a, b) => collName(a[0]).localeCompare(collName(b[0])))
         .map(([c, of]) => {
           const mine = [...known.values()].filter((f) => f.c === c);
@@ -106,19 +112,19 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
           bar.append(fill);
           li.append(head, bar);
           if (!mine.length) return li;
-          // Names; a find with a text (a letter) opens it again.
+          // Names; each opens its card again (image, and a letter's text).
           const names = Object.assign(document.createElement("div"), { className: "coll-names" });
           mine
             .sort((a, b) => findName(a).localeCompare(findName(b)))
             .forEach((f, i) => {
               if (i) names.append(", ");
-              if (!f.text) return names.append(findName(f));
               const b = document.createElement("button");
-              b.className = "find-letter";
+              b.className = f.text ? "find-letter" : "find-again";
               b.textContent = findName(f);
               b.onclick = () => {
                 ($("board-close") as HTMLButtonElement).click();
-                letter(f, null);
+                if (f.text) return letter(f, null);
+                show({ cls: ELEMENT[f.c] ?? "other", kicker: t("finds.found"), name: findName(f), line: collName(f.c), ask: false, note: false, media: ["find", String(f.id)] });
               };
               names.append(b);
             });

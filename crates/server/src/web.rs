@@ -425,7 +425,7 @@ fn send_finds(out: &Outbox, f: &Finds, scores: &Scores, slot: u32, running: &[St
         &ServerMsg::Finds {
             collect,
             items: f.of(&known).collect(),
-            totals: f.totals(running, now),
+            totals: f.album_totals(running, now, &known),
         },
     );
 }

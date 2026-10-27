@@ -438,6 +438,7 @@ export const es: Dict = {
   "chron.won.fire": "El Fuego ganó el capítulo",
   "chron.won.water": "El Agua ganó el capítulo",
   "chron.tie": "Empate",
+  "chron.letters": "Las cartas",
   "chron.live": "En curso",
   "chron.soon": "Empieza {when}",
   "chron.upcoming": "Próximamente ({n})",

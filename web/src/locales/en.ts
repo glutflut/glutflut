@@ -437,6 +437,7 @@ export const en: Dict = {
   "chron.won.fire": "Fire won the chapter",
   "chron.won.water": "Water won the chapter",
   "chron.tie": "A tie",
+  "chron.letters": "The letters",
   "chron.live": "Running now",
   "chron.soon": "Starts {when}",
   "chron.upcoming": "Coming up ({n})",

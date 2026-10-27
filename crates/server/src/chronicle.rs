@@ -1,7 +1,9 @@
 //! The chronicle: what happened in a region's campaigns, public
 //! (`GET /api/chronicle`, page `web/chronik.html`). Finished chapters with
 //! their winner and the story's ending for it, the running one with its
-//! progress, the next ones with their dates. Nothing per player.
+//! progress, the next ones with their dates. Once all its chapters are over,
+//! a campaign also carries its letters (finds with a text), so the story
+//! stays readable; before that they would spoil the search. Nothing per player.
 
 use axum::extract::{Query, State};
 use axum::http::{header, StatusCode};
@@ -53,6 +55,12 @@ fn load(db: &mut postgres::Client, slug: &str) -> Result<Value, postgres::Error>
          ORDER BY 14 DESC, ch.campaign, ch.starts",
         &[&slug],
     )?;
+    let letters = db.query(
+        "SELECT id, campaign, name, text::text FROM geo.finds \
+         WHERE region = $1 AND campaign IS NOT NULL AND text IS NOT NULL AND NOT hidden \
+         ORDER BY starts NULLS FIRST, id",
+        &[&slug],
+    )?;
     let mut campaigns: Vec<Value> = Vec::new();
     for r in &rows {
         let campaign: String = r.get(1);
@@ -89,6 +97,31 @@ fn load(db: &mut postgres::Client, slug: &str) -> Result<Value, postgres::Error>
         {
             Some(c) => c["chapters"].as_array_mut().unwrap().push(chapter),
             None => campaigns.push(json!({ "campaign": campaign, "chapters": [chapter] })),
+        }
+    }
+    for c in &mut campaigns {
+        let over = c["chapters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|ch| ch["state"] == "over");
+        if !over {
+            continue;
+        }
+        let name = c["campaign"].as_str().unwrap_or_default().to_string();
+        let list: Vec<Value> = letters
+            .iter()
+            .filter(|r| r.get::<_, String>(1) == name)
+            .map(|r| {
+                json!({
+                    "id": r.get::<_, i64>(0),
+                    "name": r.get::<_, String>(2),
+                    "text": serde_json::from_str::<Value>(r.get(3)).unwrap_or(Value::Null),
+                })
+            })
+            .collect();
+        if !list.is_empty() {
+            c["letters"] = Value::Array(list);
         }
     }
     Ok(json!({
