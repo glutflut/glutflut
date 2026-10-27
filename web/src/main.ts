@@ -136,12 +136,16 @@ async function main() {
     const now = Date.now();
     for (const f of fresh(items)) if (now - (ownBurst.get(f.node) ?? 0) > 15_000) burst(f.node, f.side, "other");
   };
-  // Try the bursts anywhere: ?fx shows buttons that fire at the map centre; ?fx=4 in slow motion.
+  // Try the bursts on a test server (`sim` in welcome): ?fx shows buttons that
+  // fire at the map centre; ?fx=4 in slow motion.
   const fxParam = new URLSearchParams(location.search).get("fx");
-  if (fxParam !== null) {
+  let fxShown = false;
+  const fxOn = (sim: boolean) => {
+    if (fxParam === null || !sim || fxShown) return;
+    fxShown = true;
     fx.slow = Math.max(1, Number(fxParam) || 1);
     fxDemo(map, nodePos, burst);
-  }
+  };
 
   const overview = setupOverview(map, tiles, (on) => net.send({ t: "overview", on }));
   const sources = setupSources(map);
@@ -396,6 +400,7 @@ async function main() {
       sendProfile();
       gps.start(params.has("sim") && m.sim);
       document.body.classList.toggle("test", m.sim); // test server: dev data, sim allowed
+      fxOn(m.sim);
       applyFaction(m.faction);
       sideBtn.hidden = !m.sim;
       // Test servers with levels: jump to a level (abilities, challenges).
