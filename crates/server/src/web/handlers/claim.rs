@@ -249,9 +249,15 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
     });
     // The app may not know the junctions around B (not in view): asked for
     // B itself, the server picks the nearest junction around it that isn't
-    // the player's side's. Nothing there: `linked`.
+    // the player's side's. Nothing there: `linked`. The app's target is up
+    // to a peek old: turned the player's side's meanwhile, pick again.
+    let own_now = game
+        .node_by_id
+        .get(&node)
+        .and_then(|&n| game.nodes.get(n).ok())
+        .is_some_and(|(_, s)| s.owner() == Some(faction));
     let node = match link {
-        Some((b, b_node)) if node == b_node => {
+        Some((b, b_node)) if node == b_node || own_now => {
             let pick = link_target(
                 &game.nodes,
                 region,

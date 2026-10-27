@@ -128,6 +128,13 @@ async function main() {
     }
     return true;
   };
+  // A claim far away (through a link): once the camera is there and the
+  // streets around it are loaded (tries for 3 s).
+  const burstThere = (node: number, side: Faction, kind: BurstKind, tries = 8) => {
+    const ll = nodePos.get(node);
+    if (ll && map.getBounds().contains(ll)) return void burst(node, side, kind);
+    if (tries > 0) setTimeout(() => burstThere(node, side, kind, tries - 1), 400);
+  };
   // While playing, other players' claims in view too; own ones had theirs (claim handler).
   const fresh = freshSources();
   const ownBurst = new Map<number, number>();
@@ -587,7 +594,7 @@ async function main() {
         const first = !load(KEYS.firstBurst);
         if (first) save(KEYS.firstBurst, "1");
         ownBurst.set(m.node, Date.now());
-        burst(m.node, faction, first ? "first" : "claim");
+        burstThere(m.node, faction, first ? "first" : "claim");
       }
     },
     // Answered in net.ts.

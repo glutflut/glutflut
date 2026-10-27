@@ -245,6 +245,8 @@ export function setupClaim(d: {
     const me = d.me();
     if (!me) return;
     const tg = target(me);
+    // Nothing left here, but the link has a target: through the link.
+    if (tg === null && linkTarget && !linkBtn.hidden) return linkBtn.click();
     if (tg === null) return toast(nothing(me));
     reinforcing = !!tg.reinforce;
     send(tg.id);
