@@ -66,11 +66,11 @@ void main() {
   float i;
   if (v_kind < 1.5) fireLook(u, v_side, age * 2.2, c, i);
   else waterLook(u, v_side, age * 2.0, 0.35, c, i);
-  float head = exp(-since * 7.0);
+  float head = exp(-since * 4.0);
   float tail = 1.0 - smoothstep(0.0, u_tail, since);
   float core = 1.0 - abs(v_side);
   // White-hot head, the element's look behind it, fading out.
-  c = mix(c, vec3(1.0, 0.97, 0.9), 0.6 * head * core);
+  c = mix(c, vec3(1.0, 0.98, 0.92), 0.85 * head * core);
   float a = clamp((0.35 + 0.65 * i + 1.4 * head) * core * tail, 0.0, 0.95);
   frag = vec4(c * a, a);
 }`;

@@ -799,8 +799,36 @@ body.game .maplibregl-ctrl-attrib a { color: #ccd; }
 /* In a ring of the other side's players (siege.rs): blinks while it fades fast. */
 .source.sieged svg { animation: src-sieged 0.9s ease-in-out infinite alternate; }
 @keyframes src-sieged { from { opacity: 1; } to { opacity: 0.35; } }
+/* Glow by the life left (--life 0..1, sources.ts), breathing slowly. */
+.source { --glow: 255, 122, 40; }
+.source.water { --glow: 90, 170, 255; }
+.source svg { position: relative; }
+.source .src-glow {
+  position: absolute; left: -16px; top: -16px; width: 72px; height: 72px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--glow), 0.75) 0%, rgba(var(--glow), 0.3) 38%, rgba(var(--glow), 0) 70%);
+  opacity: calc(0.15 + 0.85 * var(--life, 1)); transform: scale(calc(0.55 + 0.6 * var(--life, 1)));
+  animation: src-breathe 3.2s ease-in-out infinite;
+}
+.source.cut .src-glow { animation: none; opacity: 0.12; }
+@keyframes src-breathe { 50% { filter: brightness(1.35); } }
+/* Permanent source: its emblem stands above the marker, with a shadow on the ground. */
+.source .keep-emblem { position: absolute; left: 7px; bottom: 36px; width: 26px; height: 37px; pointer-events: none; }
+.source .keep-emblem svg { filter: drop-shadow(0 0 5px rgba(var(--glow), 0.9)); animation: emblem-hover 3.6s ease-in-out infinite; }
+.source .keep-emblem .shadow {
+  position: absolute; left: 4px; bottom: -6px; width: 18px; height: 6px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35); filter: blur(2px);
+}
+@keyframes emblem-hover { 50% { transform: translateY(-3px); } }
+.source .keep-emblem.fire .flame-out { transform-origin: 50% 100%; transform-box: fill-box; animation: flame 0.9s ease-in-out infinite alternate; }
+.source .keep-emblem.fire .flame-in { transform-origin: 50% 100%; transform-box: fill-box; animation: flame 0.6s ease-in-out infinite alternate-reverse; }
+@keyframes flame {
+  from { transform: scale(1, 1) skewX(-3deg); }
+  to { transform: scale(0.92, 1.1) skewX(4deg); }
+}
+.source .keep-emblem.water .glint { transform-origin: center; transform-box: fill-box; animation: glint 2.8s ease-in-out infinite; opacity: 0; }
+@keyframes glint { 0%, 70%, 100% { opacity: 0; transform: scale(0.3); } 80% { opacity: 1; transform: scale(1.4) rotate(45deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .source .spin, .source .pulse { animation: none; }
+  .source .spin, .source .pulse, .source .src-glow, .source .keep-emblem *, .source .keep-emblem svg { animation: none; }
 }
 
 /* Camera view (AR) over the map; HUD and buttons stay on top. */
@@ -1064,8 +1092,11 @@ body.outside #actions { display: none; }
 }
 .claim-burst .crystal {
   position: absolute; left: -30px; top: -78px; width: 60px; height: 70px;
-  background: linear-gradient(160deg, #ffffff, var(--c) 45%, rgba(20, 90, 200, 0.6));
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.95) 0 30%, transparent 30%),
+    linear-gradient(245deg, rgba(200, 235, 255, 0.9) 0 28%, transparent 28%),
+    linear-gradient(90deg, #6fb6ee 0 50%, #2f7fd0 50%);
+  clip-path: polygon(50% 0, 88% 32%, 70% 92%, 50% 100%, 30% 92%, 12% 32%);
   filter: drop-shadow(0 0 12px var(--c)); transform-origin: 50% 100%; opacity: 0;
   animation: burst-crystal 3.2s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }

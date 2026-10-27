@@ -95,7 +95,7 @@ export function setupSources(map: maplibregl.Map) {
   }
   const sourceMarkers = new Map<
     number,
-    { marker: maplibregl.Marker; arc: SVGCircleElement; dot: SVGCircleElement | null; secs: SVGTextElement | null; key: string }
+    { marker: maplibregl.Marker; arc: SVGCircleElement; dot: SVGCircleElement | null; secs: SVGTextElement | null; key: string; glow?: HTMLElement }
   >();
   function sourceMarker(s: Src, now: number) {
     const color = COLORS[s.faction];
@@ -131,7 +131,11 @@ export function setupSources(map: maplibregl.Map) {
           : s.kind === "keep"
           ? `<path d="M20 11 L27.8 15.5 L27.8 24.5 L20 29 L12.2 24.5 L12.2 15.5 Z" fill="${color}" stroke="#fff" stroke-width="2"/>`
           : `<circle cx="20" cy="20" r="5" fill="${color}" stroke="#fff" stroke-width="2"/>`;
+    el.classList.add(s.faction);
     el.innerHTML =
+      // A glow by the life left (draw sets --life); permanent sources get their emblem above.
+      `<div class="src-glow"></div>` +
+      (s.kind === "keep" ? keepEmblem(s.faction) : "") +
       `<svg viewBox="0 0 40 40" width="40" height="40">` +
       (s.mine ? `<circle cx="20" cy="20" r="18.5" fill="none" stroke="#fff" stroke-width="3"/>` : "") +
       // Linked permanent source: a dotted ring (not with which one).
@@ -145,7 +149,8 @@ export function setupSources(map: maplibregl.Map) {
       centre +
       `</svg>`;
     const marker = new maplibregl.Marker({ element: el }).setLngLat(s.ll).addTo(map);
-    return { marker, arc: el.querySelector<SVGCircleElement>(".arc")!, dot: null, secs: null, key: srcKey(s, now) };
+    const glow = el.querySelector<HTMLElement>(".src-glow") ?? undefined;
+    return { marker, arc: el.querySelector<SVGCircleElement>(".arc")!, dot: null, secs: null, key: srcKey(s, now), glow };
   }
   function draw() {
     const now = Date.now();
@@ -181,6 +186,7 @@ export function setupSources(map: maplibregl.Map) {
       }
       const life = Math.min(1, Math.max(0, (s.until - now) / (s.full * 1000)));
       m.arc.setAttribute("stroke-dashoffset", String(ARC_C * (1 - life)));
+      m.glow?.style.setProperty("--life", life.toFixed(2));
     }
   }
   // Often while something builds up (arc, seconds), else every 2 s.
@@ -220,4 +226,19 @@ export function setupSources(map: maplibregl.Map) {
       }
     },
   };
+}
+
+/** Above a permanent source: a flickering flame (Glut) or a faceted crystal (Eis), with its shadow. */
+function keepEmblem(f: Faction) {
+  const shape =
+    f === "fire"
+      ? `<path class="flame-out" d="M12 30 C4 24 6 14 12 4 C13 11 18 12 18 18 C20 15 20 12 19 9 C24 15 22 25 12 30 Z" fill="#ff6a00"/>` +
+        `<path class="flame-in" d="M12 29 C8 26 8 20 12 15 C13 19 16 20 15 24 C17 23 17 21 17 20 C18 24 16 28 12 29 Z" fill="#ffe08a"/>`
+      : `<path d="M12 2 L20 12 L16 30 L12 32 L8 30 L4 12 Z" fill="#9fd8ff"/>` +
+        `<path d="M12 2 L20 12 L12 15 Z" fill="#e8f7ff"/>` +
+        `<path d="M12 2 L12 15 L4 12 Z" fill="#c4e8ff"/>` +
+        `<path d="M4 12 L12 15 L12 32 L8 30 Z" fill="#5aa9e6"/>` +
+        `<path d="M20 12 L16 30 L12 32 L12 15 Z" fill="#3d8bd4"/>` +
+        `<path class="glint" d="M9 8 L10.5 9.5 L9 11 L7.5 9.5 Z" fill="#fff"/>`;
+  return `<div class="keep-emblem ${f}"><span class="shadow"></span><svg viewBox="0 0 24 34" width="26" height="37">${shape}</svg></div>`;
 }
