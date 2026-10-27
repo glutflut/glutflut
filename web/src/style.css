@@ -1064,7 +1064,14 @@ body.outside #actions { display: none; }
   animation: burst-ring 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; opacity: 0;
 }
 .claim-burst .ring:nth-child(2) { animation-delay: 0.18s; border-width: 2px; }
-.claim-burst.first .ring, .claim-burst.keep .ring { animation-duration: 1.4s; }
+.claim-burst.first .ring, .claim-burst.keep .ring, .claim-burst.rise .ring { animation-duration: 1.4s; }
+/* Waiting for a source to rise (burst.ts riseWait): a ring filling over --secs. */
+.rise-wait { width: 60px; height: 60px; pointer-events: none; --c: #ff922b; }
+.rise-wait.water { --c: var(--water-light); }
+.rise-wait svg { transform: rotate(-90deg); filter: drop-shadow(0 0 6px var(--c)); }
+.rise-wait .track { fill: none; stroke: var(--c); stroke-opacity: 0.25; stroke-width: 4; }
+.rise-wait .fill { fill: none; stroke: var(--c); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: rise-fill var(--secs, 60s) linear forwards; }
+@keyframes rise-fill { to { stroke-dashoffset: 0; } }
 .claim-burst.other .ring { left: -22px; top: -22px; width: 44px; height: 44px; border-width: 2px; opacity: 0; animation-duration: 0.8s; }
 @keyframes burst-ring {
   0% { transform: scale(0.15); opacity: 1; }

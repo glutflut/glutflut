@@ -8,13 +8,15 @@ import type { Faction } from "./net";
 import { interleaved, LOOKS, program, uniforms } from "./streetfx";
 import type { TileLayer } from "./tiles";
 
-export type BurstKind = "claim" | "first" | "keep" | "other";
+export type BurstKind = "claim" | "first" | "keep" | "rise" | "other";
 
 /** Reach in cost-metres (a flat street costs its length) and front duration, s. */
 const SHAPE: Record<BurstKind, { reach: number; dur: number }> = {
   claim: { reach: 150, dur: 1.3 },
   first: { reach: 280, dur: 2.0 },
   keep: { reach: 520, dur: 3.0 },
+  // A source rose where the player waited (`[rise]`).
+  rise: { reach: 360, dur: 2.4 },
   // Someone else's claim: smaller and quieter.
   other: { reach: 90, dur: 1.0 },
 };
@@ -257,14 +259,14 @@ export function spotBurst(map: maplibregl.Map, ll: [number, number], side: Facti
   const el = document.createElement("div");
   el.className = `claim-burst ${side} ${kind}`;
   for (let i = 0; i < (kind === "other" ? 1 : 2); i++) el.append(span("ring"));
-  if (kind === "keep") {
+  if (kind === "keep" || kind === "rise") {
     el.append(span("column"));
     if (side === "fire") for (let i = 0; i < 14; i++) el.append(ember(i));
     else el.append(span("crystal"));
   }
   const m = new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map);
   if (fx.slow > 1) for (const an of el.getAnimations({ subtree: true })) an.playbackRate = 1 / fx.slow;
-  setTimeout(() => m.remove(), (kind === "keep" ? 3600 : 1800) * fx.slow);
+  setTimeout(() => m.remove(), (kind === "keep" || kind === "rise" ? 3600 : 1800) * fx.slow);
 }
 
 function span(cls: string) {
@@ -313,4 +315,14 @@ function translated(m: ArrayLike<number>, [x, y]: [number, number]): Float32Arra
   for (let i = 0; i < 16; i++) out[i] = m[i];
   for (let r = 0; r < 4; r++) out[12 + r] = m[r] * x + m[4 + r] * y + m[12 + r];
   return out;
+}
+
+/** While waiting for a source to rise: a ring at the junction that fills over `secs`. */
+export function riseWait(map: maplibregl.Map, ll: [number, number], side: Faction, secs: number) {
+  const el = document.createElement("div");
+  el.className = `rise-wait ${side}`;
+  el.style.setProperty("--secs", `${secs}s`);
+  el.innerHTML = `<svg viewBox="0 0 60 60" width="60" height="60"><circle class="track" cx="30" cy="30" r="26"/><circle class="fill" cx="30" cy="30" r="26" pathLength="100"/></svg>`;
+  const m = new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map);
+  return () => m.remove();
 }

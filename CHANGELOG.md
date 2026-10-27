@@ -15,6 +15,14 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Added
 
+- Claims, new permanent sources and other players' claims burst along the
+  streets over the terrain (fire runs uphill, water downhill); sources glow
+  by the life they have left; permanent sources carry a flame or a crystal.
+- The album lists past campaign finds and reopens every find's card; the
+  chronicle shows a finished campaign's letters.
+- `[rise]` (off by default): wait a minute at a sink (water) or a peak (fire)
+  and a source of your element rises there (lab round 28).
+
 - Ranking tab "Kampagne": points since the campaign start (migration V7),
   next to "Heute" and "Saison".
 - World ranking: season points of the best players over all regions and

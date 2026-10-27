@@ -432,6 +432,7 @@ pub(super) fn pos(
             (here, _) => motion.at_find = here.map(|id| (id, now)),
         }
     }
+    super::rise::on_fix(game, c, conn, e);
 }
 
 pub(super) fn bye(game: &mut Game, c: &Ctx, conn: u64) {

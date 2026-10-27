@@ -8,6 +8,7 @@ mod claim;
 mod info;
 mod keep;
 mod presence;
+mod rise;
 mod session;
 
 use std::collections::HashMap;
@@ -71,6 +72,8 @@ pub struct Game<'w, 's> {
     naturals: Query<'w, 's, &'static GeoNode, With<crate::sim::NaturalSource>>,
     parked: ResMut<'w, Parked>,
     cheers: ResMut<'w, crate::cheer::Cheers>,
+    /// `Rules::rise`: when a junction may rise again (node id -> unix s).
+    rise_places: Local<'s, HashMap<i64, f64>>,
 }
 
 /// The frame's time, region and rules.

@@ -10,7 +10,7 @@ maplibregl.setWorkerUrl(workerUrl);
 import { Net, clearToken, saveToken, type Faction, type ServerMsg } from "./net";
 import { TileLayer, loadMeta, type Meta } from "./tiles";
 import { FlowLayer } from "./flow";
-import { BurstLayer, fx, spotBurst, type BurstKind } from "./burst";
+import { BurstLayer, fx, riseWait, spotBurst, type BurstKind } from "./burst";
 import { chooseRegion, knownRegions, openCities, setupCities } from "./outside";
 import { setupWeather } from "./weather";
 import { setupNews } from "./news";
@@ -364,6 +364,7 @@ async function main() {
   };
   // Watching only (watch.ts): flashes of fresh claims, the kiosk tour.
   let watchTap = false;
+  let stopRise: (() => void) | null = null;
   let live: ReturnType<typeof setupLive> | null = null;
   const on: Handlers = {
     welcome(m) {
@@ -467,6 +468,29 @@ async function main() {
     badge(m) {
       finds.onBadge(m.badge);
       sound.motif();
+    },
+    rise(m) {
+      // `[rise]`: stay at a sink (water) or a peak (fire), and a source rises.
+      stopRise?.();
+      stopRise = null;
+      if (!faction) return;
+      if (m.state === "wait") {
+        toast(t(`rise.wait.${faction}`, { s: m.secs }));
+        const ring = riseWait(map, [m.lon, m.lat], faction, m.secs);
+        // A device standing still may send no fix: tell the server once the time is up.
+        const due = setTimeout(() => {
+          const me = player.me();
+          if (me) net.send({ t: "pos", lat: me[1], lon: me[0] });
+        }, (m.secs + 1) * 1000);
+        stopRise = () => {
+          ring();
+          clearTimeout(due);
+        };
+      } else if (m.state === "done") {
+        toast(t(`rise.done.${faction}`));
+        sound.keep(faction);
+        burst(m.node, faction, "rise");
+      } else toast(t("rise.left"));
     },
     spark(m) {
       // A spark of the other element in your ground.

@@ -165,6 +165,9 @@ pub struct ElementSim {
     /// Hilltops and sinks (dense indices), for tunnels (`Rules::tunnel`).
     peaks: Vec<u32>,
     sinks: Vec<u32>,
+    /// Where a source may rise (`Rules::rise`): junctions `dh_m` above
+    /// (fire) or below (water) their neighbours' mean, dense indices.
+    rise: [Vec<u32>; 2],
     /// Street lengths, for supply (`Rules::supply`).
     streets: Option<Streets>,
     /// What the field is built from, to build it again (weather: frost).
@@ -213,6 +216,11 @@ impl ElementSim {
             Faction::Water => &self.sinks,
         };
         v.iter().map(|&i| self.nodes[i as usize])
+    }
+
+    /// Where a source of `f` may rise (`Rules::rise`).
+    pub fn rise_spots(&self, f: Faction) -> impl Iterator<Item = Entity> + '_ {
+        self.rise[f.index()].iter().map(|&i| self.nodes[i as usize])
     }
 
     /// Dense indices next to node `i` on the street graph.
@@ -300,6 +308,16 @@ pub fn setup_elements(
     } else {
         Default::default()
     };
+
+    let rise = Faction::ALL.map(|f| {
+        (0..n)
+            .filter(|&i| {
+                let nb: Vec<f64> = field.neighbours(i).map(|j| elev[j]).collect();
+                !nb.is_empty() && rules.0.rise.fits(f, (elev[i] - nb.iter().sum::<f64>() / nb.len() as f64) as f32)
+            })
+            .map(|i| i as u32)
+            .collect::<Vec<u32>>()
+    });
 
     // Natural sources: nodes marked by the data import (e.g.
     // db/import/simple-sources.sql); otherwise by elevation, lowest -> fire,
@@ -394,6 +412,7 @@ pub fn setup_elements(
         cur: vec![(0.0, 0.0); n],
         peaks,
         sinks,
+        rise,
         streets,
         costs,
         affinity,

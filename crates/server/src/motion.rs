@@ -32,6 +32,9 @@ pub struct Motion {
     pub track: crate::plausible::Track,
     /// Find not known yet within reach, and since when (uncover by being there).
     pub at_find: Option<(i64, f64)>,
+    /// `Rules::rise`: waiting at this junction since then; no new rise before `rise_next`.
+    pub at_rise: Option<(i64, f64)>,
+    pub rise_next: f64,
     /// The last accepted fix (past the speed check; every one on test servers).
     pub last_fix: Option<(Vec3, f64)>,
     /// Plausible playing time this connection (gaps over 30 s don't count).

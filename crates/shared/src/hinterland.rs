@@ -37,6 +37,49 @@ pub struct Sparks {
     pub points: i64,
 }
 
+/// A source rises where a player waits (`[rise]`, lab round 28): water at a
+/// sink, fire at a peak (at least `dh_m` below / above the neighbours' mean).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Rise {
+    pub enabled: bool,
+    /// Standing this long within `radius_m` of a fitting junction.
+    pub dwell_s: f32,
+    pub radius_m: f32,
+    pub dh_m: f32,
+    /// Strength and life of the risen source (an anchor on own ground).
+    pub strength: f32,
+    pub life_s: f32,
+    /// Once per player, and once per junction, within these.
+    pub player_gap_s: f32,
+    pub place_gap_s: f32,
+}
+
+impl Default for Rise {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            dwell_s: 60.0,
+            radius_m: 25.0,
+            dh_m: 1.0,
+            strength: 1.0,
+            life_s: 900.0,
+            player_gap_s: 1800.0,
+            place_gap_s: 7200.0,
+        }
+    }
+}
+
+impl Rise {
+    /// Does a junction `dh` m above its neighbours' mean fit `f`?
+    pub fn fits(&self, f: crate::elements::Faction, dh: f32) -> bool {
+        match f {
+            crate::elements::Faction::Fire => dh >= self.dh_m,
+            crate::elements::Faction::Water => dh <= -self.dh_m,
+        }
+    }
+}
+
 impl Default for Sparks {
     fn default() -> Self {
         Self {

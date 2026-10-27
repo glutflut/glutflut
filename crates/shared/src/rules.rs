@@ -59,6 +59,8 @@ pub struct Rules {
     pub tunnel: Tunnel,
     /// Sparks of the other element where there is nothing to do.
     pub sparks: crate::hinterland::Sparks,
+    /// A source rises where a player waits at a fitting place.
+    pub rise: crate::hinterland::Rise,
     /// Anchors supply the sources at the front.
     pub supply: crate::hinterland::Supply,
     /// Permanent player sources.
@@ -331,6 +333,7 @@ impl Default for Rules {
             progression: Default::default(),
             tunnel: Default::default(),
             sparks: Default::default(),
+            rise: Default::default(),
             supply: Default::default(),
             keep: Default::default(),
             weather: Default::default(),

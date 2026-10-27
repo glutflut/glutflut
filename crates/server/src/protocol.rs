@@ -359,6 +359,16 @@ pub enum ServerMsg<'a> {
         #[ts(optional)]
         rain_at: Option<String>,
     },
+    /// `Rules::rise`: at a fitting place, stay `secs` (`wait`); the source
+    /// rose (`done`); or the player left too early (`left`).
+    Rise {
+        node: i64,
+        lat: f64,
+        lon: f64,
+        #[ts(type = "\"wait\" | \"done\" | \"left\"")]
+        state: &'static str,
+        secs: u32,
+    },
     /// A spark of the other element appeared `m` metres away.
     Spark {
         node: i64,
