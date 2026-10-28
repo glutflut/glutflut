@@ -13,6 +13,60 @@ type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
 
 export const NEWS: Entry[] = [
   {
+    id: "2026-10-28",
+    text: {
+      de: {
+        title: "Neu: Freunde einladen",
+        items: [
+          "Im Profil gibt es jetzt „Freunde einladen“: Teil deinen Link übers Handy, kopier ihn oder zeig ihn als QR-Code, etwa jemandem, der neben dir steht.",
+          "Steigt jemand über deinen Link neu ein, erobert mindestens fünf Kreuzungen und spielt an einem späteren Tag wieder, bekommst du 200 Punkte. Bis zu zehn Einladungen in 30 Tagen zählen.",
+        ],
+      },
+      en: {
+        title: "New: invite friends",
+        items: [
+          "Your profile now has “Invite friends”: share your link from your phone, copy it or show it as a QR code, for example to someone standing next to you.",
+          "If someone joins through your link, claims at least five junctions and plays again on a later day, you get 200 points. Up to ten invites in 30 days count.",
+        ],
+      },
+      fr: {
+        title: "Nouveau&nbsp;: inviter des amis",
+        items: [
+          "Ton profil propose maintenant «&nbsp;Inviter des amis&nbsp;»&nbsp;: partage ton lien depuis ton téléphone, copie-le ou montre-le en code QR, par exemple à quelqu’un à côté de toi.",
+          "Si quelqu’un arrive par ton lien, conquiert au moins cinq carrefours et rejoue un autre jour, tu gagnes 200 points. Jusqu’à dix invitations sur 30 jours comptent.",
+        ],
+      },
+      es: {
+        title: "Novedad: invita a tus amigos",
+        items: [
+          "En tu perfil está ahora «Invitar a amigos»: comparte tu enlace desde el móvil, cópialo o muéstralo como código QR, por ejemplo a quien esté a tu lado.",
+          "Si alguien entra con tu enlace, conquista al menos cinco cruces y vuelve a jugar otro día, recibes 200 puntos. Cuentan hasta diez invitaciones en 30 días.",
+        ],
+      },
+      pl: {
+        title: "Nowość: zaproś znajomych",
+        items: [
+          "W profilu jest teraz „Zaproś znajomych”: udostępnij swój link z telefonu, skopiuj go albo pokaż jako kod QR, na przykład komuś, kto stoi obok.",
+          "Jeśli ktoś dołączy przez twój link, zdobędzie co najmniej pięć skrzyżowań i zagra ponownie innego dnia, dostajesz 200 pkt. Liczy się do dziesięciu zaproszeń w ciągu 30 dni.",
+        ],
+      },
+      it: {
+        title: "Novità: invita gli amici",
+        items: [
+          "Nel profilo c’è ora «Invita amici»: condividi il tuo link dal telefono, copialo o mostralo come codice QR, per esempio a chi ti sta accanto.",
+          "Se qualcuno entra con il tuo link, conquista almeno cinque incroci e torna a giocare un altro giorno, ricevi 200 punti. Contano fino a dieci inviti in 30 giorni.",
+        ],
+      },
+      pt: {
+        title: "Novidade: convide amigos",
+        items: [
+          "No seu perfil agora há “Convidar amigos”: compartilhe seu link pelo celular, copie ou mostre como QR code, por exemplo para quem está ao seu lado.",
+          "Se alguém entrar pelo seu link, conquistar pelo menos cinco cruzamentos e jogar de novo em outro dia, você ganha 200 pontos. Contam até dez convites em 30 dias.",
+        ],
+      },
+    },
+  },
+  {
     id: "2026-10-27",
     rules: true,
     text: {
