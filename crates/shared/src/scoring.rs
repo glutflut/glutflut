@@ -25,6 +25,12 @@ pub struct Score {
     pub points_day_max: i64,
     /// The day cap grows by this for each level above 1 (where levels are on).
     pub points_day_per_level: i64,
+    /// For inviting someone who then really plays: at least `invite_claims`
+    /// claims and back on a later day. At most `invite_max` invites per
+    /// player in 30 days count.
+    pub invite: i64,
+    pub invite_claims: i32,
+    pub invite_max: i64,
 }
 
 impl Default for Score {
@@ -39,6 +45,9 @@ impl Default for Score {
             points_hour_max: 1500,
             points_day_max: 6000,
             points_day_per_level: 3000,
+            invite: 200,
+            invite_claims: 5,
+            invite_max: 10,
         }
     }
 }

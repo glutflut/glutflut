@@ -34,6 +34,7 @@ pub(super) fn hello(
     by_tiles: bool,
     pow_ok: bool,
     watch: bool,
+    invite: Box<crate::score::InviteHello>,
     out: Outbox,
 ) {
     let (now, rules) = (c.now, c.rules);
@@ -130,6 +131,11 @@ pub(super) fn hello(
     if let Some(slot) = slot {
         game.scores.touch(slot);
         game.commands.entity(entity).insert(ScoreSlot(slot));
+        // A brand-new identity from someone's link; or a known player's invites.
+        match invite.by {
+            Some(by) if known.is_none() => game.scores.invited(slot, by),
+            _ => game.scores.invite_hello(slot, &invite),
+        }
     }
     send(
         &out,
@@ -158,6 +164,12 @@ pub(super) fn hello(
             mottos: crate::protocol::MottoItem::all(&game.campaign.mottos),
             hotspot_m: rules.hotspot_radius_m,
             version: crate::gateway::version(),
+            invite: if watch {
+                String::new()
+            } else {
+                crate::score::invite_code(&crate::score::token_id(&token))
+            },
+            invite_points: rules.score.invite,
             watch,
         },
     );

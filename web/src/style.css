@@ -598,7 +598,7 @@ button, a { touch-action: manipulation; }
   text-decoration: none;
   min-height: 40px;
 }
-#keep-qr { margin-top: 8px; max-width: 200px; background: #fff; padding: 6px; border-radius: 8px; }
+#keep-qr, #invite-qr { margin-top: 8px; max-width: 200px; background: #fff; padding: 6px; border-radius: 8px; }
 .keep-note { font-size: 12px; }
 .keep-redeem { display: flex; gap: 6px; margin-top: 10px; }
 .keep-redeem input {

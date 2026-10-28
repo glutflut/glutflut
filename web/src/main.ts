@@ -45,6 +45,7 @@ import { setupGps } from "./gps";
 import { setupArBridge } from "./arbridge";
 import { setupVideo } from "./video";
 import { setupBoard } from "./board";
+import { setupInvite } from "./invite";
 import { setupRecovery } from "./recovery";
 import { onProfile, renderProfiles, sendProfile } from "./profile";
 import { CLAIM_RADIUS_M, COLORS, distM, owner } from "./geo";
@@ -276,6 +277,7 @@ async function main() {
     toast,
   );
   const recovery = setupRecovery(net);
+  const invite = setupInvite();
   const progress = setupProgress(net, sound, () => faction, () => player.drawRange());
   const claim = setupClaim({
     net,
@@ -419,6 +421,7 @@ async function main() {
       const want = params.get("side");
       if (m.sim && (want === "fire" || want === "water") && want !== m.faction) net.send({ t: "side", faction: want });
       progress.welcome(m);
+      invite.welcome(m.invite, m.invite_points);
       hotspots.setRadius(m.hotspot_m);
       perm.onWelcome(m, m.faction);
       // What's new: in the app of the new version, not just before it reloads.
@@ -572,6 +575,10 @@ async function main() {
     ringbroken(m) {
       toast(t("ring.broken", { n: m.points }), 5000);
       floaters.earned(m.points, null, "big");
+    },
+    invited(m) {
+      invite.paid(m.points);
+      if (m.points > 0) floaters.earned(m.points, null, "big");
     },
     encircled(m) {
       toast(t(`siege.points.${m.side}` as Key, { n: m.points }), 5000);

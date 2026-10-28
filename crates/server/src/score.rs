@@ -140,6 +140,8 @@ pub struct Rec {
     /// Flagged by the plausibility check until then (unix s): plays on and
     /// sees their points, but no leaderboard and no points for the side.
     shadow_until: f64,
+    /// Joined through someone's invite and not yet counted: (who, day joined).
+    invite: Option<([u8; 32], i64)>,
 }
 
 /// The player as stored in `game.players` (the same in every region).
@@ -203,6 +205,16 @@ enum Write {
     },
     /// Collecting switched off: forget the finds.
     ClearFinds([u8; 32]),
+    /// `id` joined through the invite of `by` on `day` (counts only while
+    /// `by` has fewer than `max` invites in the last 30 days).
+    Invite {
+        id: [u8; 32],
+        by: [u8; 32],
+        day: i64,
+        max: i64,
+    },
+    /// `id` really played: the invite counts for whoever invited them.
+    Qualified([u8; 32]),
     /// Rows unseen since this day go (daily; a pinned region never reloads).
     Sweep(i32),
     FactionDay {
@@ -310,6 +322,8 @@ pub struct Scores {
     pub news: Vec<(u32, String)>,
     /// Rings broken since the last send: (slot, points paid).
     pub rings: Vec<(u32, i64)>,
+    /// Invites that counted, paid since the last send: (slot, points).
+    pub invites: Vec<(u32, i64)>,
     /// Rings closed around a source since the last send: (slot, points, the
     /// surrounded source's side).
     pub sieges: Vec<(u32, i64, elements_shared::prelude::Faction)>,
@@ -360,6 +374,7 @@ impl Scores {
             region: region.clone(),
             news: Vec::new(),
             rings: Vec::new(),
+            invites: Vec::new(),
             sieges: Vec::new(),
             areas: None,
             titles: [None; 2],
@@ -490,6 +505,7 @@ impl Scores {
                 hour: 0,
                 points_hour: 0,
                 shadow_until: 0.0,
+                invite: None,
                 week: week_of(self.today),
                 points_week: 0,
             }),
@@ -545,12 +561,56 @@ impl Scores {
         true
     }
 
+    /// A new player who came through the invite of `by`.
+    pub fn invited(&mut self, slot: u32, by: [u8; 32]) {
+        let (day, max) = (self.today, self.points.invite_max);
+        let Some(r) = self.get_mut(slot) else { return };
+        if r.id == by {
+            return;
+        }
+        r.invite = Some((by, day));
+        let id = r.id;
+        // The player row first (the invite refers to it).
+        self.flush();
+        if let Some(tx) = &self.tx {
+            let _ = tx.send(Write::Invite { id, by, day, max });
+        }
+    }
+
+    /// What the gateway read for this player: their own open invite, and
+    /// invites of theirs that counted since they were last here.
+    pub fn invite_hello(&mut self, slot: u32, h: &InviteHello) {
+        if let Some(r) = self.get_mut(slot) {
+            if h.pending.is_some() {
+                r.invite = h.pending;
+            }
+        }
+        if h.rewards > 0 {
+            let points = self.award(slot, self.points.invite * i64::from(h.rewards));
+            self.invites.push((slot, points));
+        }
+    }
+
     /// A successful claim: count it (player and side), milestones.
     pub fn claimed(&mut self, slot: u32) {
+        let (today, need) = (self.today, self.points.invite_claims);
         let Some(r) = self.get_mut(slot) else { return };
         r.claims += 1;
         r.dirty = true;
         let (n, f, shadow) = (r.claims, r.faction.index(), r.shadow_until > now_s());
+        // An invited player who really plays: enough claims, and back on a
+        // later day (one person with a second phone or a private window
+        // rarely keeps that up; the private window forgets them overnight).
+        let qualified = r
+            .invite
+            .is_some_and(|(_, day)| !shadow && n >= need && today > day);
+        if qualified {
+            r.invite = None;
+            let id = r.id;
+            if let Some(tx) = &self.tx {
+                let _ = tx.send(Write::Qualified(id));
+            }
+        }
         if !shadow {
             self.fac_claims[f] += 1;
             self.fac_dirty = true;
@@ -1272,6 +1332,7 @@ fn load(conn: &str, region: &str, today: i64) -> Result<Loaded, Box<dyn std::err
             hour: 0,
             points_hour: 0,
             shadow_until: 0.0,
+            invite: None,
         });
     }
     // Season = all stored days (clear game.faction_day to start a new one).
@@ -1312,6 +1373,75 @@ fn load(conn: &str, region: &str, today: i64) -> Result<Loaded, Box<dyn std::err
 }
 
 /// The stored player of a token, if any (gateway, on connect).
+/// A player's invite code: the first 12 hex digits of SHA-256("invite:" + id)
+/// (the same as the generated column `game.players.invite`).
+pub fn invite_code(id: &[u8; 32]) -> String {
+    let mut h = Sha256::new();
+    h.update(b"invite:");
+    h.update(id);
+    crate::shards::hex(&h.finalize()[..6])
+}
+
+/// Invites, read by the gateway on hello.
+#[derive(Default, Clone)]
+pub struct InviteHello {
+    /// A new player: who invited them (from the code in the link).
+    pub by: Option<[u8; 32]>,
+    /// A known player: their open invite (who, day joined).
+    pub pending: Option<([u8; 32], i64)>,
+    /// A known player: invites of theirs that counted, now paid (marked here).
+    pub rewards: u32,
+}
+
+/// For a new player with an invite `code`: whose it is. For a known one:
+/// their open invite, and the invites of theirs that counted since.
+pub fn invite_hello(
+    c: &mut postgres::Client,
+    token: Option<&str>,
+    code: Option<&str>,
+    known: bool,
+) -> Result<InviteHello, postgres::Error> {
+    let mut h = InviteHello::default();
+    let id = token.map(token_id);
+    if !known {
+        let code = code.filter(|c| c.len() == 12 && c.bytes().all(|b| b.is_ascii_hexdigit()));
+        if let Some(code) = code {
+            let rows = c.query(
+                "SELECT id FROM game.players WHERE invite = $1 LIMIT 2",
+                &[&code.to_ascii_lowercase()],
+            )?;
+            // Two players with one code: neither.
+            if let [r] = &rows[..] {
+                h.by = <[u8; 32]>::try_from(r.get::<_, Vec<u8>>(0))
+                    .ok()
+                    .filter(|by| Some(*by) != id);
+            }
+        }
+        return Ok(h);
+    }
+    let Some(id) = id else { return Ok(h) };
+    h.pending = c
+        .query_opt(
+            "SELECT referrer, (day - DATE '1970-01-01')::int FROM game.invites \
+             WHERE referee = $1 AND NOT qualified",
+            &[&&id[..]],
+        )?
+        .and_then(|r| {
+            let by = <[u8; 32]>::try_from(r.get::<_, Vec<u8>>(0)).ok()?;
+            Some((by, i64::from(r.get::<_, i32>(1))))
+        });
+    let n: i64 = c
+        .query_one(
+            "WITH paid AS (UPDATE game.invites SET rewarded = true \
+             WHERE referrer = $1 AND qualified AND NOT rewarded RETURNING 1) \
+             SELECT count(*) FROM paid",
+            &[&&id[..]],
+        )?
+        .get(0);
+    h.rewards = n.clamp(0, 100) as u32;
+    Ok(h)
+}
+
 pub fn lookup(c: &mut postgres::Client, token: &str) -> Result<Option<Global>, postgres::Error> {
     let row = c.query_opt(
         "SELECT faction, name, hidden, recovery_hash, xp_prev, xp_day_base, xp_day_claims, \
@@ -1538,6 +1668,22 @@ fn write(c: &mut postgres::Client, region: &str, msg: Write) -> Result<(), postg
             // A visitor's home gets it too.
             crate::shards::queue_badge(c, &id, &badge)
         }
+        Write::Invite { id, by, day, max } => c
+            .execute(
+                "INSERT INTO game.invites (referee, referrer, day) \
+                 SELECT $1, $2, DATE '1970-01-01' + $3::int \
+                 WHERE (SELECT count(*) FROM game.invites \
+                        WHERE referrer = $2 AND day > DATE '1970-01-01' + $3::int - 30) < $4 \
+                 ON CONFLICT DO NOTHING",
+                &[&&id[..], &&by[..], &(day as i32), &max],
+            )
+            .map(|_| ()),
+        Write::Qualified(id) => c
+            .execute(
+                "UPDATE game.invites SET qualified = true WHERE referee = $1",
+                &[&&id[..]],
+            )
+            .map(|_| ()),
         Write::ClearFinds(id) => c
             .execute("DELETE FROM game.player_finds WHERE id = $1", &[&&id[..]])
             .map(|_| ()),
@@ -1767,6 +1913,68 @@ mod tests {
             presence: Vec::new(),
             streak: Default::default(),
         }
+    }
+
+    #[test]
+    fn an_invite_counts_after_enough_claims_on_a_later_day() {
+        let mut s = scores();
+        let host = s.create("host", Faction::Fire);
+        let host_id = s.get(host).unwrap().id;
+        let guest = s.create("guest", Faction::Water);
+        s.invited(guest, host_id);
+        assert_eq!(s.get(guest).unwrap().invite, Some((host_id, s.today)));
+        for _ in 0..10 {
+            s.claimed(guest);
+        }
+        assert!(
+            s.get(guest).unwrap().invite.is_some(),
+            "not on the first day"
+        );
+        s.today += 1;
+        s.claimed(guest);
+        assert!(s.get(guest).unwrap().invite.is_none(), "counted");
+    }
+
+    #[test]
+    fn no_invite_counts_while_shadowed_or_for_oneself() {
+        let mut s = scores();
+        let host = s.create("host", Faction::Fire);
+        let host_id = s.get(host).unwrap().id;
+        s.invited(host, host_id);
+        assert!(s.get(host).unwrap().invite.is_none(), "not oneself");
+        let guest = s.create("guest", Faction::Water);
+        s.invited(guest, host_id);
+        s.shadow(guest, now_s() + 3600.0);
+        s.today += 1;
+        for _ in 0..10 {
+            s.claimed(guest);
+        }
+        assert!(s.get(guest).unwrap().invite.is_some(), "shadowed: no");
+    }
+
+    #[test]
+    fn counted_invites_are_paid_on_hello() {
+        let mut s = scores();
+        let host = s.create("host", Faction::Fire);
+        s.invite_hello(
+            host,
+            &InviteHello {
+                rewards: 2,
+                ..Default::default()
+            },
+        );
+        assert_eq!(s.invites, vec![(host, 2 * s.points.invite)]);
+        assert_eq!(s.get(host).unwrap().total, 2 * s.points.invite);
+    }
+
+    #[test]
+    fn invite_code_matches_the_column() {
+        // substr(encode(sha256('invite:'::bytea || id), 'hex'), 1, 12)
+        let code = invite_code(&[0u8; 32]);
+        assert_eq!(code.len(), 12);
+        assert!(code
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()));
     }
 
     #[test]

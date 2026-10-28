@@ -195,6 +195,16 @@
       <section id="pane-me" class="me-box" role="tabpanel" hidden>
         <div class="name-row"><span id="my-name"></span> <button id="rename" data-i18n="board.rename">Neuer Name</button></div>
         <div id="my-keeps" hidden><h3></h3><ul></ul></div>
+        <div id="invite" hidden>
+          <h3 data-i18n="invite.title">Freunde einladen</h3>
+          <p class="keep-note" id="invite-note"></p>
+          <div class="keep-actions">
+            <button id="invite-share" data-i18n="invite.share">Teilen</button>
+            <button id="invite-copy" data-i18n="invite.copy">Link kopieren</button>
+            <button id="invite-qr-btn" data-i18n="keep.qr">QR-Code</button>
+          </div>
+          <div id="invite-qr" hidden></div>
+        </div>
         <h3 data-i18n="board.h.privacy">Privatsphäre</h3>
         <label><input type="checkbox" id="listed" checked /> <span data-i18n="board.listed">In der Rangliste zeigen</span></label>
         <label><input type="checkbox" id="stats-on" checked /> <span data-i18n="board.stats">In der Auswertung für die Stadt mitzählen</span></label>

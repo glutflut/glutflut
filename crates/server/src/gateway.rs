@@ -71,6 +71,8 @@ pub enum FromWeb {
         pow_ok: bool,
         /// Only watching: no player row, nothing counted.
         watch: bool,
+        /// Invites read for this hello (score.rs `invite_hello`).
+        invite: Box<crate::score::InviteHello>,
         out: Outbox,
     },
     View {
@@ -1325,6 +1327,7 @@ async fn handle_socket(
                     tiles,
                     pow_ok: true,
                     watch: true,
+                    invite: Default::default(),
                     out: out.clone(),
                 }
             }
@@ -1334,6 +1337,7 @@ async fn handle_socket(
                 tiles,
                 passport,
                 pow,
+                invite,
                 ..
             } => {
                 hellos += 1;
@@ -1384,6 +1388,22 @@ async fn handle_socket(
                 }
                 let pow_ok =
                     crate::pow::bits() == 0 || pow.is_some_and(|p| crate::pow::check(&p.c, &p.n));
+                // Invites: whose link a new player came by, or a known
+                // player's open invite and the ones of theirs that counted.
+                let invite = if !bot && (global.is_some() || invite.is_some()) {
+                    let (st, t, known) = (s.clone(), token.clone(), global.is_some());
+                    tokio::task::spawn_blocking(move || {
+                        st.with_db(|c| {
+                            crate::score::invite_hello(c, t.as_deref(), invite.as_deref(), known)
+                        })
+                    })
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or_default()
+                } else {
+                    Default::default()
+                };
                 FromWeb::Hello {
                     conn,
                     token,
@@ -1392,6 +1412,7 @@ async fn handle_socket(
                     tiles,
                     pow_ok,
                     watch: false,
+                    invite: Box::new(invite),
                     out: out.clone(),
                 }
             }

@@ -9,7 +9,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "busy" }
   | { "t": "recover", ok: boolean, reason: "unknown" | "wait", }
   | { "t": "pow", c: string, bits: number, }
-  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, watch: boolean, }
+  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, invite: string, invite_points: number, watch: boolean, }
   | { "t": "state", nodes: Array<[number, number, number]>, }
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
@@ -25,6 +25,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "tunnel", node: number, lat: number, lon: number, kind: "peak" | "sink", m: number, secs: number, }
   | { "t": "badge", badge: string, }
   | { "t": "ringbroken", points: number, }
+  | { "t": "invited", points: number, }
   | { "t": "areas", player: Array<number>, mine: Array<number>, }
   | { "t": "encircled", points: number, side: Faction, }
   | { "t": "chapter", starts_in: number, ends_in: number, fire: number, water: number, winner?: Faction, resets?: boolean, key: string, campaign: string, names: Record<string, { title: string; text: string }>, goal: ChapterGoal, target: number, target_water: number, kind?: string, nodes?: number[], at?: Array<[number, number]>, story?: Record<string, { intro?: string; fire?: string; water?: string; tie?: string }>, }
@@ -53,7 +54,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
 /**
  * What the app sends.
  */
-export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, tiles?: boolean, passport?: string | null, pow?: PowSolution | null, watch?: boolean, }
+export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, tiles?: boolean, passport?: string | null, pow?: PowSolution | null, watch?: boolean, invite?: string | null, }
   | { "t": "view", tiles: Array<[number, number]>, }
   | { "t": "overview", on: boolean, }
   | { "t": "pos", lat: number, lon: number, spd?: number | null, acc?: number | null, }

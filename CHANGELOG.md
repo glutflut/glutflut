@@ -15,6 +15,11 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Added
 
+- Invite friends (profile): share the link (the phone's share sheet where the
+  browser has one), copy it or show it as a QR code. A new player who joins
+  through it and plays again on a later day with at least
+  `[score] invite_claims` (5) claims earns the inviter `invite` (200) points,
+  at most `invite_max` (10) invites per 30 days. Migration V10.
 - Claims, new permanent sources and other players' claims burst along the
   streets over the terrain (fire runs uphill, water downhill); sources glow
   by the life they have left; permanent sources carry a flame or a crystal.

@@ -399,6 +399,7 @@ pub fn run(a: &BenchArgs) -> Result<(), Box<dyn std::error::Error>> {
                     tiles: true,
                     pow_ok: true,
                     watch: false,
+                    invite: Default::default(),
                     out,
                 })?;
                 let from = rand::random_range(0..s.at.len());
@@ -545,6 +546,7 @@ pub fn run(a: &BenchArgs) -> Result<(), Box<dyn std::error::Error>> {
             tiles: true,
             pow_ok: true,
             watch: false,
+            invite: Default::default(),
             out,
         })?;
         tx.send(FromWeb::View {

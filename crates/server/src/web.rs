@@ -447,6 +447,7 @@ pub fn send_scores(
         && scores.changed.is_empty()
         && scores.news.is_empty()
         && scores.rings.is_empty()
+        && scores.invites.is_empty()
         && scores.sieges.is_empty()
     {
         return;
@@ -454,11 +455,13 @@ pub fn send_scores(
     let mut changed: std::collections::HashSet<u32> = scores.changed.drain(..).collect();
     let news = std::mem::take(&mut scores.news);
     let rings = std::mem::take(&mut scores.rings);
+    let invites = std::mem::take(&mut scores.invites);
     let sieges = std::mem::take(&mut scores.sieges);
     let areas = scores.areas.take();
     let area_ids: Vec<i32> = areas.iter().flatten().map(|(id, _)| *id).collect();
     changed.extend(news.iter().map(|(s, _)| *s));
     changed.extend(rings.iter().map(|(s, _)| *s));
+    changed.extend(invites.iter().map(|(s, _)| *s));
     changed.extend(sieges.iter().map(|(s, _, _)| *s));
     for (e, out) in clients.0.values() {
         let Ok(slot) = slots.get(*e) else { continue };
@@ -481,6 +484,9 @@ pub fn send_scores(
         }
         for &(_, points) in rings.iter().filter(|(s, _)| *s == slot.0) {
             send(out, &ServerMsg::RingBroken { points });
+        }
+        for &(_, points) in invites.iter().filter(|(s, _)| *s == slot.0) {
+            send(out, &ServerMsg::Invited { points });
         }
         for &(_, points, side) in sieges.iter().filter(|(s, _, _)| *s == slot.0) {
             send(

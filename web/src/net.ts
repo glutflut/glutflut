@@ -1,6 +1,7 @@
 // WebSocket to the server's web gateway, with reconnect. Phones drop sockets
 // silently while asleep (the socket still looks open), so the connection is
 // probed with ping/pong after silence, on return to the page and on request.
+import { arrivalInvite, inviteUsed } from "./invite";
 import { arrivalPassport, passportUsed, withRegion } from "./region";
 import { KEYS, load, save } from "./store";
 
@@ -108,8 +109,16 @@ export class Net {
 
   private hello(pow?: { c: string; n: string }) {
     const passport = arrivalPassport();
+    const invite = arrivalInvite();
     if (watching()) return void this.send({ t: "hello", token: null, tiles: true, watch: true });
-    this.send({ t: "hello", token: loadToken(), tiles: true, ...(passport ? { passport } : {}), ...(pow ? { pow } : {}) });
+    this.send({
+      t: "hello",
+      token: loadToken(),
+      tiles: true,
+      ...(passport ? { passport } : {}),
+      ...(pow ? { pow } : {}),
+      ...(invite ? { invite } : {}),
+    });
   }
 
   private connect() {
@@ -142,6 +151,7 @@ export class Net {
       if (m.t === "welcome" && !m.watch) {
         saveToken(m.token);
         passportUsed();
+        inviteUsed();
       }
       this.onMsg(m);
     };

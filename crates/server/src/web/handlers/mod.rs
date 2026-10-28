@@ -108,8 +108,11 @@ pub fn inbox(
                 tiles,
                 pow_ok,
                 watch,
+                invite,
                 out,
-            } => session::hello(g, &c, conn, token, global, bot, tiles, pow_ok, watch, out),
+            } => session::hello(
+                g, &c, conn, token, global, bot, tiles, pow_ok, watch, invite, out,
+            ),
             FromWeb::Overview { conn, on } => session::overview(g, conn, on),
             FromWeb::View { conn, tiles } => session::view(g, &c, conn, tiles),
             FromWeb::Pos {

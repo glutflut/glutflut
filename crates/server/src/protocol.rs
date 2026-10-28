@@ -75,6 +75,10 @@ pub enum ServerMsg<'a> {
         hotspot_m: f32,
         /// Build of the server: an app of another one reloads (web/src/update.ts).
         version: String,
+        /// This player's invite code (empty for watchers), and the points an
+        /// invite brings once the friend really plays.
+        invite: String,
+        invite_points: i64,
         /// A watcher (hello with `watch`): no token, no side, no score.
         watch: bool,
     },
@@ -177,6 +181,10 @@ pub enum ServerMsg<'a> {
     },
     /// A ring (held block) broken: the points this player got for it.
     RingBroken {
+        points: i64,
+    },
+    /// Invites of this player that counted: the points paid now.
+    Invited {
         points: i64,
     },
     /// Every minute (blocks on): held blocks with players' sources on the
@@ -565,6 +573,10 @@ pub enum ClientMsg {
         #[serde(default)]
         #[ts(as = "Option<bool>", optional)]
         watch: bool,
+        /// The invite code from the link a new player came by.
+        #[serde(default)]
+        #[ts(optional = nullable)]
+        invite: Option<String>,
     },
     /// The tiles the app holds now (replaces the last view).
     View {
