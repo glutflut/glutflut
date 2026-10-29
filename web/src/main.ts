@@ -34,7 +34,7 @@ import { autoGfx, calm, gfxChoice, setGfx, watchFrames, type GfxChoice } from ".
 import { createMap } from "./layers";
 import { setupWorld } from "./world";
 import { setupOverview } from "./overview";
-import { setupSources } from "./sources";
+import { setupSources, type SourceItems } from "./sources";
 import { setupProgress } from "./progress";
 import { setupClaim } from "./claim";
 import { setupHotspots } from "./hotspots";
@@ -340,6 +340,8 @@ async function main() {
     },
   });
   const gps = setupGps(map, player.setMe, tapCard);
+  // Recordings only (video.ts): staged claims keep their rings through the server's lists.
+  const staged: SourceItems = [];
   setupVideo({
     map,
     me: () => player.me(),
@@ -350,6 +352,13 @@ async function main() {
     state,
     nodePos,
     burst,
+    stage: (node, side) => {
+      const ll = nodePos.get(node);
+      if (!ll) return;
+      const item: SourceItems[number] = [node, side, 540, 540, false, ll[0], ll[1], 0, 0, "", false, null, false, false];
+      staged.push(item);
+      sources.apply([item], [], perm.nodes());
+    },
   });
   setupArBridge({ me: () => player.me(), tiles, edgeState, sources: sources.all, flow: () => flow });
   const floaters = setupFloaters(map, () => player.me(), () => faction);
@@ -533,6 +542,7 @@ async function main() {
         if (sources.all().some((s) => s.mine && s.faction === faction && s.kind !== "keep" && s.until - now > 5000 && !still.has(s.node))) sound.lost(faction);
       }
       sources.set(m.items, perm.nodes());
+      if (staged.length) sources.apply(staged, [], perm.nodes());
       claim.update();
       card.refresh();
     },

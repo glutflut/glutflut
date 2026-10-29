@@ -15,7 +15,7 @@ interface Cell {
   front: Uint8Array;
 }
 
-interface Lapse {
+export interface Lapse {
   startMin: number;
   binMin: number;
   bins: number;
@@ -26,7 +26,7 @@ interface Lapse {
 /** Game layers hidden while the time-lapse plays (the hexagons replace them). */
 const HIDE = ["edges", "edges-glow", "edges-core", "nodes", "flow", "blocks", "blocks-players", "overview", "natural", "mottos"];
 
-function parse(buf: ArrayBuffer): Lapse {
+export function parse(buf: ArrayBuffer): Lapse {
   const v = new DataView(buf);
   if (String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3)) !== "GFL1") throw new Error("not GFL1");
   const flags = v.getUint8(5);
@@ -57,7 +57,7 @@ function parse(buf: ArrayBuffer): Lapse {
 }
 
 /** The run of `c` in force at `bin` (-1: no data yet). */
-function runAt(c: Cell, bin: number): number {
+export function runAt(c: Cell, bin: number): number {
   let r = -1;
   for (let i = 0; i < c.start.length && c.start[i] <= bin; i++) r = i;
   return r;
