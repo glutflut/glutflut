@@ -766,8 +766,11 @@ body.game .maplibregl-ctrl-attrib a { color: #ccd; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 #nav button[hidden] { display: none; }
-/* Less used map buttons fold away behind "…" (navmore.ts), so the column fits above the claim buttons. */
-#nav:not(.open) button.more { display: none; }
+/* Less used map buttons fold away behind "…" (navmore.ts) and open as a row
+   to its left, so the column never grows down behind the claim buttons. */
+.nav-more-row { display: flex; flex-direction: row-reverse; align-items: center; gap: 10px; }
+#nav-drawer { display: flex; flex-direction: row-reverse; gap: 10px; }
+#nav:not(.open) #nav-drawer { display: none; }
 #nav button#nav-more[aria-expanded="true"] { color: var(--fg); background: var(--raised); }
 #nav-me.follow { color: var(--water-light); border-color: var(--water-light); }
 #nav button#nav-hot { color: var(--gold); }

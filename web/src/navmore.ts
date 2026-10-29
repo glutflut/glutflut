@@ -1,6 +1,7 @@
 // The less used map buttons (sound, radar, clouds, time-lapse, whole city)
-// fold away behind "…", so the column on the right fits above the claim
-// buttons on a phone. Dragging the map folds them in again.
+// fold away behind "…" and open as a row to its left, so the column on the
+// right never grows down behind the claim buttons. Dragging the map folds
+// them in again.
 import type * as maplibregl from "maplibre-gl";
 import { $ } from "./page";
 
