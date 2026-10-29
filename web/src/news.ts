@@ -13,6 +13,67 @@ type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
 
 export const NEWS: Entry[] = [
   {
+    id: "2026-10-29",
+    text: {
+      de: {
+        title: "Neu: Einladen mit einem Tipp",
+        items: [
+          "Rechts bei den Kartenknöpfen gibt es jetzt den goldenen Knopf „Freunde einladen“. Er zeigt sofort deinen QR-Code: Halt ihn jemandem neben dir hin, oder teil deinen Link übers Handy.",
+          "Wie bisher: Steigt jemand über deinen Link neu ein und spielt an einem späteren Tag wieder, bekommst du 200 Punkte.",
+          "Tunnel: Nach einer Eroberung durch einen Tunnel fährt die Karte jetzt immer zu dir zurück.",
+        ],
+      },
+      en: {
+        title: "New: invite with one tap",
+        items: [
+          "The map buttons on the right now include a gold “Invite friends” button. It shows your QR code right away: hold it up to someone next to you, or share your link from your phone.",
+          "As before: if someone joins through your link and plays again on a later day, you get 200 points.",
+          "Tunnels: after a claim through a tunnel, the map now always comes back to you.",
+        ],
+      },
+      fr: {
+        title: "Nouveau&nbsp;: inviter en un geste",
+        items: [
+          "Parmi les boutons de la carte, à droite, il y a maintenant le bouton doré «&nbsp;Inviter des amis&nbsp;». Il affiche tout de suite ton code QR&nbsp;: montre-le à quelqu’un à côté de toi, ou partage ton lien depuis ton téléphone.",
+          "Comme avant&nbsp;: si quelqu’un arrive par ton lien et rejoue un autre jour, tu gagnes 200 points.",
+          "Tunnels&nbsp;: après une conquête par un tunnel, la carte revient maintenant toujours vers toi.",
+        ],
+      },
+      es: {
+        title: "Novedad: invitar con un toque",
+        items: [
+          "Entre los botones del mapa, a la derecha, está ahora el botón dorado «Invitar a amigos». Muestra tu código QR al instante: enséñaselo a quien esté a tu lado o comparte tu enlace desde el móvil.",
+          "Como antes: si alguien entra con tu enlace y vuelve a jugar otro día, recibes 200 puntos.",
+          "Túneles: después de una conquista por un túnel, el mapa ahora siempre vuelve a ti.",
+        ],
+      },
+      pl: {
+        title: "Nowość: zaproś jednym dotknięciem",
+        items: [
+          "Wśród przycisków mapy po prawej jest teraz złoty przycisk „Zaproś znajomych”. Od razu pokazuje twój kod QR: pokaż go komuś obok albo udostępnij link z telefonu.",
+          "Jak dotąd: jeśli ktoś dołączy przez twój link i zagra ponownie innego dnia, dostajesz 200 pkt.",
+          "Tunele: po zdobyciu przez tunel mapa zawsze wraca teraz do ciebie.",
+        ],
+      },
+      it: {
+        title: "Novità: invita con un tocco",
+        items: [
+          "Tra i pulsanti della mappa, a destra, c’è ora il pulsante dorato «Invita amici». Mostra subito il tuo codice QR: fallo vedere a chi ti sta accanto, oppure condividi il tuo link dal telefono.",
+          "Come prima: se qualcuno entra con il tuo link e torna a giocare un altro giorno, ricevi 200 punti.",
+          "Tunnel: dopo una conquista attraverso un tunnel, la mappa ora torna sempre da te.",
+        ],
+      },
+      pt: {
+        title: "Novidade: convide com um toque",
+        items: [
+          "Entre os botões do mapa, à direita, agora há o botão dourado “Convidar amigos”. Ele mostra seu QR code na hora: mostre para alguém ao seu lado ou compartilhe seu link pelo celular.",
+          "Como antes: se alguém entrar pelo seu link e jogar de novo em outro dia, você ganha 200 pontos.",
+          "Túneis: depois de uma conquista por um túnel, o mapa agora sempre volta para você.",
+        ],
+      },
+    },
+  },
+  {
     id: "2026-10-28",
     text: {
       de: {
