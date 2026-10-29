@@ -6,6 +6,10 @@ import type { Plugin } from "vite";
 
 // Dev: the Rust server's web gateway runs on :5080.
 const gateway = process.env.ELEMENTS_GATEWAY ?? "http://127.0.0.1:5080";
+// A remote gateway (https, e.g. watching prod for a recording) routes by host
+// name and only takes sockets from its own origin; its basemap comes along.
+const isRemote = gateway.startsWith("https:");
+const remote = isRemote ? { changeOrigin: true, headers: { origin: new URL(gateway).origin } } : {};
 
 // Shown in the app. The image build passes ELEMENTS_VERSION; locally: git.
 function version(): string {
@@ -59,8 +63,9 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      "/api": gateway,
-      "/ws": { target: gateway.replace(/^http/, "ws"), ws: true },
+      "/api": { target: gateway, ...remote },
+      "/ws": { target: gateway.replace(/^http/, "ws"), ws: true, ...remote },
+      ...(isRemote ? { "/basemap": { target: gateway, ...remote } } : {}),
     },
   },
 });

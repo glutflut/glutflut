@@ -1,5 +1,5 @@
-// Hooks for scripted recordings of the app (explainer video), sim mode only:
-// `window.__video`.
+// Hooks for scripted recordings of the app (explainer video, pitch intro),
+// sim mode or `?video` only: `window.__video`.
 import * as maplibregl from "maplibre-gl";
 import qrcode from "qrcode-generator";
 import type { Faction } from "./net";
@@ -16,7 +16,7 @@ export function setupVideo(d: {
   state: Map<number, [number, number]>;
   nodePos: Map<number, [number, number]>;
 }) {
-  if (!params.has("sim")) return;
+  if (!params.has("sim") && !params.has("video")) return;
   const { map } = d;
   const want = params.get("side");
   Object.assign(window, {
