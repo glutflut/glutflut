@@ -56,8 +56,8 @@ export function setupVideo(d: {
         return null;
       },
       /** The game state now as hexagons (the globe files): every region
-       *  coarse while zoomed out, `slug` fine closer in, gone by zoom 13.6. */
-      hexes: (slug: string) => hexes(map, slug),
+       *  coarse while zoomed out, `slug` fine closer in, gone by zoom `until`. */
+      hexes: ([slug, until = 13.6]: [string, number?]) => hexes(map, slug, until),
       fly: (o: maplibregl.FlyToOptions) => map.flyTo({ ...o, essential: true }),
       qr: (url: string) => {
         const q = qrcode(0, "M");
@@ -85,7 +85,7 @@ function now(l: Lapse): GeoJSON.Feature[] {
   return out;
 }
 
-async function hexes(map: maplibregl.Map, slug: string) {
+async function hexes(map: maplibregl.Map, slug: string, until: number) {
   const m = await fetch("/api/marble/manifest.json").then((r) => r.json());
   const regions = m.regions as { slug: string; files: Record<string, string> }[];
   const load = (file?: string) =>
@@ -95,7 +95,7 @@ async function hexes(map: maplibregl.Map, slug: string) {
   // [layer, features, zoom stops of the opacity factor]
   const layers: [string, GeoJSON.Feature[], number[]][] = [
     ["vhex-far", far, [3, 0.9, 9.2, 0.9, 10.4, 0]],
-    ["vhex-near", near, [9.2, 0, 10.4, 0.8, 12.6, 0.8, 13.6, 0]],
+    ["vhex-near", near, [9.2, 0, 10.4, 0.8, until - 1, 0.8, until, 0]],
   ];
   const below = map.getLayer("edges-glow") ? "edges-glow" : undefined;
   for (const [id, features, stops] of layers) {
