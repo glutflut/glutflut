@@ -349,6 +349,7 @@ async function main() {
     lastClaim: claim.lastClaim,
     state,
     nodePos,
+    burst,
   });
   setupArBridge({ me: () => player.me(), tiles, edgeState, sources: sources.all, flow: () => flow });
   const floaters = setupFloaters(map, () => player.me(), () => faction);
