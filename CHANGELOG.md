@@ -8,6 +8,17 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Changed
 
+- Inviting is at hand: a gold button in the map buttons opens a card with the
+  QR code already showing, share and copy; the profile keeps a button to it.
+  After the third claim of a day the button pulses once (once a day).
+- A tunnel claim returns the map to the player afterwards (also when the
+  tunnel is closed or runs out), as a claim through a link does; before, it
+  only did when the map had been following the player.
+- Search engines: description, canonical links, link preview (Open Graph,
+  `og.jpg`) and structured data (schema.org `VideoGame`) on the start page;
+  `robots.txt` and `sitemap.xml` (before, both answered with the app); editor
+  and dashboard `noindex`.
+
 - Campaign start, not end, sets the levels back; whoever had reached
   `[progression] carry_from_level` (3) starts at `carry_to_level` (2)
   instead of 1. Permanent sources at least `[keep] survive` (0.6) strong
