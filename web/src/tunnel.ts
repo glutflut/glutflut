@@ -72,7 +72,7 @@ export function setupTunnel(
     ($("tunnel-bar") as HTMLElement).style.width = `${(100 * left) / open.total}%`;
   }
 
-  /** `linger`: the map stays at the far end this long before it returns. */
+  /** `linger`: the map stays at the far end this long before it returns to the player. */
   function close(note?: string, linger = 0) {
     clearInterval(timer);
     const was = !!open;
@@ -86,7 +86,7 @@ export function setupTunnel(
   // Off to the far end: the claim shows there (it builds up on enemy ground).
   $("tunnel-go").onclick = () => {
     if (!open) return;
-    map.flyTo({ center: [open.lon, open.lat], zoom: Math.max(map.getZoom(), 16.5), duration: 900 });
+    map.flyTo({ center: [open.lon, open.lat], zoom: Math.max(map.getZoom(), 16.5), duration: 1500, essential: true });
     claim(open.node);
   };
   $("tunnel-close").onclick = () => close();
@@ -108,7 +108,7 @@ export function setupTunnel(
     /** A claim answer for the tunnel's node: true if it was the tunnel's. */
     onClaim(node: number, ok: boolean): boolean {
       if (!open || open.node !== node) return false;
-      if (ok) close(undefined, 6000);
+      if (ok) close(undefined, 4000);
       return true;
     },
     /** The player moved: the line follows. */

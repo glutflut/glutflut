@@ -262,17 +262,15 @@ async function main() {
   setupPages();
   const campaign = setupCampaign(map, finds.notice);
   const weather = setupWeather(finds.notice);
-  // The tunnel shows its far end; back to following afterwards if it was on.
-  let followed = false;
+  // The tunnel shows its far end, then always back to the player (as a claim
+  // through a link does, `look` below).
   const tunnel = setupTunnel(
     map,
     () => player.me(),
     (node) => claim.send(node),
     (on) => {
-      if (on) {
-        followed = player.follow();
-        player.setFollow(false);
-      } else if (followed) player.center();
+      if (on) player.setFollow(false);
+      else player.home();
     },
     toast,
   );
