@@ -46,6 +46,8 @@ export const KEYS = {
   radar: "elements.radar",
   /** Cloud cover layer on (radar.ts). */
   clouds: "elements.clouds",
+  /** Day of the last invite nudge (invite.ts). */
+  inviteNudge: "elements.invite.nudge",
 } as const;
 
 /** A fixed key, or one per region (permanent source ticket) or per place (wish sent). */

@@ -529,6 +529,7 @@ export const en: Dict = {
   "invite.text": "Fire against water on the real streets of the city – play Glut & Flut with me:",
   "invite.copied": "Link copied",
   "invite.paid": "Someone you invited is playing: +{n} points",
+  "invite.hint": "Show the code to someone next to you, or share your link.",
   "keep.mail.subject": "My Glut & Flut code – do not share",
   "keep.mail.body": "My code for Glut & Flut ({city}): {code}\n\nDO NOT SHARE: anyone with this code can take over my progress.\nTo redeem: Leaderboard → Keep your progress → Redeem code.",
   "keep.redeem": "Redeem code",

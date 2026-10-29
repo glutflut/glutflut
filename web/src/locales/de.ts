@@ -528,6 +528,7 @@ export const de = {
   "invite.text": "Feuer gegen Wasser auf den echten Straßen der Stadt – spiel mit bei Glut & Flut:",
   "invite.copied": "Link kopiert",
   "invite.paid": "Jemand spielt über deine Einladung mit: +{n} Punkte",
+  "invite.hint": "Zeig den Code jemandem neben dir oder teil deinen Link.",
   "keep.mail.subject": "Mein Glut & Flut-Code – nicht weitergeben",
   "keep.mail.body": "Mein Code für Glut & Flut ({city}): {code}\n\nNICHT WEITERGEBEN: Wer diesen Code hat, kann meinen Spielstand übernehmen.\nEinlösen: Rangliste → Spielstand sichern → Code einlösen.",
   "keep.redeem": "Code einlösen",

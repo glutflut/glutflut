@@ -300,6 +300,7 @@ async function main() {
     },
     tunnel,
     card,
+    claimed: () => invite.claimed(),
   });
   const lapse = setupTimelapse(map, () => meta.region.slug);
   // Far out the globe, for players too; another city opens for watching there.

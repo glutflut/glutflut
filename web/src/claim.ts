@@ -35,6 +35,8 @@ export function setupClaim(d: {
   /** The tunnel's say on a claim: true if it went through one. */
   tunnel: { onClaim(node: number, ok: boolean): boolean };
   card: { onClaim(node: number): void };
+  /** A claim of this player took (invite nudge). */
+  claimed: () => void;
 }) {
   const { net, sound, nodePos, state } = d;
   const claimBtn = $("claim") as HTMLButtonElement;
@@ -298,6 +300,7 @@ export function setupClaim(d: {
       // On enemy ground a claim builds up first (rule `claim_ramp_s`).
       const via = d.tunnel.onClaim(m.node, m.ok);
       if (m.ok && faction) {
+        d.claimed();
         if (m.doused) sound.steam();
         else sound.claim(faction);
         if (m.build && m.build >= 2) sound.building(faction, m.build);

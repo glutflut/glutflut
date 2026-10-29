@@ -598,7 +598,7 @@ button, a { touch-action: manipulation; }
   text-decoration: none;
   min-height: 40px;
 }
-#keep-qr, #invite-qr { margin-top: 8px; max-width: 200px; background: #fff; padding: 6px; border-radius: 8px; }
+#keep-qr { margin-top: 8px; max-width: 200px; background: #fff; padding: 6px; border-radius: 8px; }
 .keep-note { font-size: 12px; }
 .keep-redeem { display: flex; gap: 6px; margin-top: 10px; }
 .keep-redeem input {
@@ -768,6 +768,14 @@ body.game .maplibregl-ctrl-attrib a { color: #ccd; }
 #nav button[hidden] { display: none; }
 #nav-me.follow { color: var(--water-light); border-color: var(--water-light); }
 #nav-hot { color: var(--gold); }
+/* Invite: always at hand, gold; pulses as a nudge (invite.ts). */
+#nav-invite { color: var(--gold); border-color: var(--gold); }
+#nav-invite.nudge { animation: invite-nudge 1.2s ease-in-out 4; }
+@keyframes invite-nudge {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); transform: scale(1); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 212, 59, 0.3); transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) { #nav-invite.nudge { animation: none; } }
 #nav-radar.on { color: var(--water-light); border-color: var(--water-light); }
 #nav-clouds.on { color: #e2e8f0; border-color: #e2e8f0; }
 
@@ -1328,6 +1336,15 @@ body.outside #actions { display: none; }
   border: 2px solid var(--gold);
   z-index: 9;
 }
+#invite { --card-top: 80px; z-index: 9; border: 2px solid var(--gold); background: rgba(22, 24, 29, 0.98); text-align: center; }
+#invite-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
+#invite-hint { font-size: 14px; line-height: 1.4; margin: 4px 0 10px; }
+#invite-qr { width: min(240px, 70vw); margin: 0 auto; background: #fff; padding: 8px; border-radius: 10px; }
+#invite-qr svg { display: block; width: 100%; height: auto; }
+#invite .keep-note { margin: 10px 0 12px; }
+#invite .row { display: flex; justify-content: center; gap: 8px; }
+#invite .row button { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; background: var(--raised); color: var(--fg); }
+#invite .row button.primary { background: var(--gold); color: var(--ink); }
 #news-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
 #news h3 { margin: 10px 0 4px; font-size: 16px; }
 #news ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.4; }
