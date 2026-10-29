@@ -9,6 +9,7 @@ export const de = {
   "nav.me": "Zu meinem Standort (folgen)",
   "nav.hotspot": "Zum Hotspot",
   "nav.city": "Ganze Stadt",
+  "nav.more": "Mehr",
   "globe.title": "Alle Städte von Glut & Flut",
   "globe.back": "Zurück zur Stadt",
   "globe.weather": "Wetter-Globus ↗",

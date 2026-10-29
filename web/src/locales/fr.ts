@@ -10,6 +10,7 @@ export const fr: Dict = {
   "nav.me": "Ma position (suivre)",
   "nav.hotspot": "Vers le hotspot",
   "nav.city": "Toute la ville",
+  "nav.more": "Plus",
   "globe.title": "Toutes les villes de Glut & Flut",
   "globe.back": "Retour à la ville",
   "globe.weather": "Globe météo ↗",

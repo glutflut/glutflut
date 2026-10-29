@@ -8,6 +8,10 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Changed
 
+- Map buttons: sound, rain radar, clouds, time-lapse and whole city fold away
+  behind "…" (dragging the map folds them in again), so the column fits above
+  the claim buttons on a phone. The hotspot and invite buttons are gold again
+  (a more general rule had overridden their colour).
 - Inviting is at hand: a gold button in the map buttons opens a card with the
   QR code already showing, share and copy; the profile keeps a button to it.
   After the third claim of a day the button pulses once (once a day).

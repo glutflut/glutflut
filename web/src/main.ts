@@ -46,6 +46,7 @@ import { setupArBridge } from "./arbridge";
 import { setupVideo } from "./video";
 import { setupBoard } from "./board";
 import { setupInvite } from "./invite";
+import { setupNavMore } from "./navmore";
 import { setupRecovery } from "./recovery";
 import { onProfile, renderProfiles, sendProfile } from "./profile";
 import { CLAIM_RADIUS_M, COLORS, distM, owner } from "./geo";
@@ -185,6 +186,7 @@ async function main() {
   }
 
   const sound = new Sound();
+  setupNavMore(map);
   const soundBtn = $("nav-sound");
   const drawSoundBtn = () => soundBtn.classList.toggle("off", !sound.on);
   drawSoundBtn();
