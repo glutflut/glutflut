@@ -1350,6 +1350,15 @@ body.outside #actions { display: none; }
 #invite .keep-note { margin: 10px 0 12px; }
 #invite .row { display: flex; justify-content: center; gap: 8px; }
 #invite .row button { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; background: var(--raised); color: var(--fg); }
+#gift { --card-top: 80px; z-index: 9; border: 2px solid var(--gold); background: rgba(22, 24, 29, 0.98); text-align: center; }
+#gift-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
+#gift-hint { font-size: 14px; line-height: 1.4; margin: 4px 0 10px; }
+#gift-qr { width: min(240px, 70vw); margin: 0 auto; background: #fff; padding: 8px; border-radius: 10px; }
+#gift-qr svg { display: block; width: 100%; height: auto; }
+#gift .row { display: flex; justify-content: center; gap: 8px; }
+#gift .row button { padding: 9px 16px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; background: var(--raised); color: var(--fg); }
+#gift .row button.primary { background: var(--gold); color: var(--ink); }
+#gift .row { margin-top: 12px; }
 #invite .row button.primary { background: var(--gold); color: var(--ink); }
 #news-close { position: absolute; top: 6px; right: 8px; border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
 #news h3 { margin: 10px 0 4px; font-size: 16px; }

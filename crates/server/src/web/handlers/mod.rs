@@ -189,6 +189,7 @@ pub fn inbox(
                 to,
                 to_ticket,
             } => keep::link(g, &c, conn, node, &ticket, to, to_ticket.as_deref()),
+            FromWeb::Gift { conn, node, ticket } => keep::gift(g, &c, conn, node, &ticket),
             FromWeb::Recovered { conn, token } => account::recovered(g, &c, conn, &token),
             FromWeb::Collect { conn, on } => account::collect(g, conn, on),
             FromWeb::Rekey { old, new } => account::rekey(g, &old, new),

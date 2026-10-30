@@ -532,6 +532,7 @@ async function main() {
     released: onKeep,
     motto: onKeep,
     link: onKeep,
+    gift: onKeep,
     peek: claim.onPeek,
     sources(m) {
       live?.rows(m.items);

@@ -327,6 +327,18 @@ pub enum ServerMsg<'a> {
         #[ts(optional)]
         lat: Option<f64>,
     },
+    /// Answer to `gift`: a key to the source for someone else (`key`, shown
+    /// once), or why not (`off`, `notyours`, `soon`).
+    Gift {
+        node: i64,
+        ok: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        key: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(type = "\"off\" | \"notyours\" | \"soon\"", optional)]
+        reason: Option<&'static str>,
+    },
     /// Answer to `link`: linked or unlinked, or why not (`off`, `notyours`, `same`).
     Link {
         node: i64,
@@ -703,6 +715,11 @@ pub enum ClientMsg {
         #[serde(default)]
         #[ts(optional = nullable)]
         far: Option<Far>,
+    },
+    /// A key to the own permanent source at `node` (its ticket) for someone else.
+    Gift {
+        node: i64,
+        ticket: String,
     },
     /// Link the own permanent source at `node` with the one at `to` (both
     /// tickets), or unlink it (no `to`).

@@ -182,6 +182,12 @@ pub enum FromWeb {
     FarAsk(crate::remote::Ask),
     /// From another region: its answer to a `FarAsk` of this one.
     FarAnswer(crate::remote::Answer),
+    /// A key to an own permanent source for someone else.
+    Gift {
+        conn: u64,
+        node: i64,
+        ticket: String,
+    },
     /// Link two own permanent sources, or unlink one.
     Link {
         conn: u64,
@@ -1524,6 +1530,7 @@ async fn handle_socket(
                 motto,
             },
             ClientMsg::Peek { via, far } => FromWeb::Peek { conn, via, far },
+            ClientMsg::Gift { node, ticket } => FromWeb::Gift { conn, node, ticket },
             ClientMsg::Link {
                 node,
                 ticket,

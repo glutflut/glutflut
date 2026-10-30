@@ -176,12 +176,20 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         id: a.id,
         ..Default::default()
     };
-    let b = rules
+    // The key: the source's own ticket, or a key made for others (a gift).
+    let hk = rules
         .keep
         .link
         .then(|| crate::keep::hashes(&a.key))
         .flatten()
-        .and_then(|(hb, _)| game.keep_info.iter().find(|(_, k)| k.ticket == hb))
+        .map(|h| h.0);
+    let gift = hk.filter(|h| !game.keep_info.iter().any(|(_, k)| k.ticket == *h));
+    let keep = match gift {
+        Some(g) => game.keeps.key(&g, c.now).map(|k| k.keep),
+        None => hk,
+    };
+    let b = keep
+        .and_then(|hb| game.keep_info.iter().find(|(_, k)| k.ticket == hb))
         .and_then(|(eb, _)| game.sources.get(eb).ok())
         .filter(|(_, s)| s.kind == SourceKind::Keep && s.faction == a.faction)
         .map(|(g, _)| {
@@ -215,8 +223,23 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
             ans.node = Some(node);
             ans.at = Some([lon, lat]);
         }
-        (Some(_), Some((b, (node, lon, lat)))) => {
+        (Some((_, b_node)), Some((b, (node, lon, lat)))) => {
             take(game, c, &a, power, b, node, &mut ans);
+            // A gift: one use less; its owner gets a share of the points.
+            if let (true, Some(g)) = (ans.ok, gift) {
+                game.keeps.use_key(&g);
+                let (fire, water) = ans.prior.unwrap_or_default();
+                let pts = rules
+                    .score
+                    .claim_points(ElementState { fire, water }, a.faction, false);
+                if let Some(mut k) = game
+                    .node_by_id
+                    .get(&b_node)
+                    .and_then(|&n| game.keep_info.get_mut(n).ok())
+                {
+                    k.1.points += pts as f32 * rules.keep.gift_share;
+                }
+            }
             ans.node = Some(node);
             ans.at = Some([lon, lat]);
         }

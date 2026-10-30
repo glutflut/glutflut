@@ -46,6 +46,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "released", ok: boolean, }
   | { "t": "motto", node: number, ok: boolean, reason?: string, }
   | { "t": "peek", via: string, node?: number, lon?: number, lat?: number, }
+  | { "t": "gift", node: number, ok: boolean, key?: string, reason?: "off" | "notyours" | "soon", }
   | { "t": "link", node: number, ok: boolean, reason?: string, }
   | { "t": "info", node: number, fire: number, water: number, source?: NodeSource, take: "ok" | "own" | "mine" | "anchor" | "strong" | "range" | "watch", wait?: number, dist: number, reach: number, elev: number, terrain: "peak" | "sink" | "slope" | "flat", dh: number, lean: "" | Faction, rain?: number, rain_at?: string, }
   | { "t": "rise", node: number, lat: number, lon: number, state: "wait" | "done" | "left" | "strong", secs: number, took: number, }
@@ -77,6 +78,7 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "level", level: number, }
   | { "t": "motto", node: number, ticket: string, motto?: string | null, }
   | { "t": "peek", via: string, far?: Far | null, }
+  | { "t": "gift", node: number, ticket: string, }
   | { "t": "link", node: number, ticket: string, to?: number | null, to_ticket?: string | null, }
   | { "t": "collect", on: boolean, }
   | { "t": "stats", on: boolean, }

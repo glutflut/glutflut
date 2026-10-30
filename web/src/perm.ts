@@ -15,6 +15,7 @@ import { listRegions, region } from "./region";
 import { loadJson, saveJson, type StoreKey } from "./store";
 import { ask } from "./ask";
 import { mottoText, setMottos } from "./mottos";
+import { arrivedGift, gifts, showGift } from "./gift";
 
 const KEY = () => `elements.perm.${region}` as const;
 const REDEEM_EVERY_MS = 10 * 60_000;
@@ -86,7 +87,7 @@ export type PermSrc = {
   linked?: boolean;
 };
 
-export type PermMsg = Extract<ServerMsg, { t: "keep" | "kept" | "released" | "motto" | "link" }>;
+export type PermMsg = Extract<ServerMsg, { t: "keep" | "kept" | "released" | "motto" | "link" | "gift" }>;
 
 /** An own linked permanent source in this city, with where its partner is. */
 export type Link = {
@@ -206,6 +207,14 @@ export function setupPerm(
     };
     return lb;
   }
+  /** "Schlüssel verschenken": a key for someone else (server `gift`). */
+  function giftButton(m: Stored): HTMLButtonElement {
+    const gb = document.createElement("button");
+    gb.className = "ghost link";
+    gb.textContent = t("gift.button");
+    gb.onclick = () => net.send({ t: "gift", node: m.node, ticket: m.ticket });
+    return gb;
+  }
   const max = () => base + perLevel * Math.max(0, level() - 1);
   const nodes = () => new Set(mine.map((m) => m.node));
 
@@ -268,9 +277,25 @@ export function setupPerm(
     const others = ranked().filter((r) => r.m.ticket !== a.ticket);
     // Own sources in the other regions of this server.
     const far = elsewhere();
-    if (far.size)
+    const got = gifts().filter((g) => g.region !== region);
+    if (far.size || got.length)
       void listRegions().then((rs) => {
         const hereName = rs.find((r) => r.slug === region)?.name;
+        // Keys given by others.
+        for (const g of got) {
+          const r = rs.find((x) => x.slug === g.region && !x.url);
+          if (!r) continue;
+          const btn = document.createElement("button");
+          btn.textContent = `${r.name} · ${t("gift.label")}`;
+          btn.onclick = () => {
+            box.hidden = true;
+            if (a.far) setFarThere(a.far.region, a.far.key, null);
+            a.far = { region: r.slug, key: g.key, name: r.name };
+            save(mine);
+            toast(t("perm.link.set"), 6000);
+          };
+          list.append(btn);
+        }
         for (const r of rs) {
           const there = far.get(r.slug);
           if (!there || r.url) continue;
@@ -385,7 +410,8 @@ export function setupPerm(
         };
         li.append(b);
         // Linked permanent sources: link with another own one, or unlink.
-        if (linkOn && (mine.length >= 2 || elsewhere().size)) li.append(" ", linkButton(r.m));
+        if (linkOn && (mine.length >= 2 || elsewhere().size || gifts().length)) li.append(" ", linkButton(r.m));
+        if (linkOn) li.append(" ", giftButton(r.m));
         // A tag line from level 2 (without levels: always); the city's for everyone.
         if (mottoOpen()) {
           const lab = document.createElement("label");
@@ -416,13 +442,21 @@ export function setupPerm(
     drawLinks();
   }
 
+  // A key that came with this visit.
+  const came = arrivedGift();
+  if (came)
+    void listRegions().then((rs) => {
+      const r = rs.find((x) => x.slug === came.region);
+      toast(t(r && !r.url ? "gift.got" : "gift.elsewhere", { region: r?.name ?? came.region }), 9000);
+    });
+
   return {
     /** The nodes of this device's permanent sources here. */
     nodes,
     links,
     /** The link button for the junction card of an own source, if linking is on. */
     linkControl(node: number): HTMLButtonElement | null {
-      if (!linkOn || (mine.length < 2 && !elsewhere().size)) return null;
+      if (!linkOn || (mine.length < 2 && !elsewhere().size && !gifts().length)) return null;
       const m = mine.find((x) => x.node === node);
       return m ? linkButton(m) : null;
     },
@@ -503,6 +537,9 @@ export function setupPerm(
       } else if (m.t === "motto") {
         if (!m.ok) chosen.delete(m.node);
         toast(t(m.ok ? "perm.motto.set" : m.reason === "locked" ? "perm.motto.locked" : "perm.failed"));
+      } else if (m.t === "gift") {
+        if (m.ok && m.key) showGift(region, m.key);
+        else toast(t(m.reason === "soon" ? "gift.soon" : "perm.failed"));
       } else if (m.t === "link") {
         const p = pendingLink;
         pendingLink = null;

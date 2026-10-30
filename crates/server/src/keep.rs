@@ -88,8 +88,31 @@ struct Row {
     link: Option<Hash>,
 }
 
+/// A key to a permanent source for someone else (`game.keep_keys`).
+#[derive(Clone, Debug)]
+pub struct Key {
+    /// The source's ticket hash.
+    pub keep: Hash,
+    /// `gift`, `bottle`, `ember`, `city`.
+    pub origin: &'static str,
+    pub uses: u32,
+    /// Unix s.
+    pub made: f64,
+    pub expires: f64,
+}
+
+fn origin(s: &str) -> &'static str {
+    match s {
+        "bottle" => "bottle",
+        "ember" => "ember",
+        "city" => "city",
+        _ => "gift",
+    }
+}
+
 struct Snapshot {
     keeps: Vec<Row>,
+    keys: Vec<(Hash, Key)>,
     pot: Vec<(Hash, i64, i64)>,
     slots: Vec<(Hash, Hash)>,
     /// Campaign boundary (unix s) the reset was for.
@@ -110,6 +133,8 @@ pub struct Keeps {
     pot: HashMap<Hash, (i64, i64)>,
     /// Player id -> slot hashes (one per permanent source).
     slots: HashMap<Hash, Vec<Hash>>,
+    /// Key hash -> key to a source here, for others.
+    keys: HashMap<Hash, Key>,
     /// Memory only: last redeem (unix s) and the day of the last release
     /// without a ticket, per player id.
     redeemed: HashMap<Hash, f64>,
@@ -134,6 +159,7 @@ impl Keeps {
             pending: None,
             pot: HashMap::new(),
             slots: HashMap::new(),
+            keys: HashMap::new(),
             redeemed: HashMap::new(),
             released: HashMap::new(),
             last_reset: 0.0,
@@ -149,16 +175,18 @@ impl Keeps {
             return k;
         };
         match load(&db, &region) {
-            Ok((rows, pot, slots, last)) => {
+            Ok((rows, pot, slots, last, keys)) => {
                 info!(
                     keeps = rows.len(),
                     pot = pot.len(),
                     slots = slots.len(),
+                    keys = keys.len(),
                     "permanent sources loaded"
                 );
                 k.pending = Some(rows);
                 k.pot = pot;
                 k.slots = slots;
+                k.keys = keys;
                 k.last_reset = last;
             }
             Err(e) => error!(error = %e, "permanent sources: load failed"),
@@ -251,6 +279,31 @@ impl Keeps {
         Some(p.0)
     }
 
+    /// The valid key with this hash (uses left, not expired).
+    pub fn key(&self, h: &Hash, now: f64) -> Option<&Key> {
+        self.keys.get(h).filter(|k| k.uses > 0 && k.expires > now)
+    }
+
+    /// A claim went through the key: one use less.
+    pub fn use_key(&mut self, h: &Hash) {
+        if let Some(k) = self.keys.get_mut(h) {
+            k.uses = k.uses.saturating_sub(1);
+            self.dirty = true;
+        }
+    }
+
+    /// A key of `origin` to the source with ticket hash `keep` was made since `t`.
+    pub fn made_since(&self, keep: &Hash, origin: &str, t: f64) -> bool {
+        self.keys
+            .values()
+            .any(|k| k.keep == *keep && k.origin == origin && k.made > t)
+    }
+
+    pub fn add_key(&mut self, h: Hash, key: Key) {
+        self.keys.insert(h, key);
+        self.dirty = true;
+    }
+
     /// A recovery code moved a player to a new id.
     pub fn rekey(&mut self, old: &Hash, new: Hash) {
         if let Some(s) = self.slots.remove(old) {
@@ -271,6 +324,15 @@ impl Keeps {
         // `game.keep_slots` written side by side mustn't line up.
         let mut keeps = keeps;
         keeps.sort_by_key(|r| r.node);
+        // Keys go with their source; used up or expired ones go now (a gift
+        // stays a week after expiry: one per source and week).
+        let now = now_s();
+        let tickets: std::collections::HashSet<Hash> = keeps.iter().map(|r| r.ticket).collect();
+        self.keys.retain(|_, k| {
+            tickets.contains(&k.keep) && k.expires.max(k.made + 7.0 * 86_400.0) > now
+        });
+        let mut keys: Vec<(Hash, Key)> = self.keys.iter().map(|(h, k)| (*h, k.clone())).collect();
+        keys.sort_by_key(|k| k.0);
         let old = crate::score::week_of(self.clock.day(now_s())) - 7 * POT_WEEKS;
         self.pot.retain(|_, p| p.1 > old);
         let mut pot: Vec<(Hash, i64, i64)> = self.pot.iter().map(|(h, p)| (*h, p.0, p.1)).collect();
@@ -283,6 +345,7 @@ impl Keeps {
         slots.sort();
         let _ = tx.send(Msg::Save(Snapshot {
             keeps,
+            keys,
             pot,
             slots,
             reset,
@@ -476,6 +539,7 @@ type Loaded = (
     HashMap<Hash, (i64, i64)>,
     HashMap<Hash, Vec<Hash>>,
     f64,
+    HashMap<Hash, Key>,
 );
 
 fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
@@ -535,7 +599,27 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
             &[&region],
         )?
         .map_or(0.0, |r| r.get(0));
-    Ok((rows, pot, slots, last))
+    let keys = c
+        .query(
+            "SELECT key, keep, origin, uses, extract(epoch FROM made)::float8, extract(epoch FROM expires)::float8 \
+             FROM game.keep_keys WHERE region = $1",
+            &[&region],
+        )?
+        .into_iter()
+        .filter_map(|r| {
+            Some((
+                h(r.get(0))?,
+                Key {
+                    keep: h(r.get(1))?,
+                    origin: origin(r.get(2)),
+                    uses: r.get::<_, i32>(3).max(0) as u32,
+                    made: r.get(4),
+                    expires: r.get(5),
+                },
+            ))
+        })
+        .collect();
+    Ok((rows, pot, slots, last, keys))
 }
 
 /// The latest campaign start or end that has passed (weather days don't count).
@@ -601,6 +685,19 @@ fn write(c: &mut postgres::Client, region: &str, s: &Snapshot) -> Result<(), pos
          SELECT $1, i, s FROM unnest($2::bytea[], $3::bytea[]) AS x(i, s) \
          WHERE EXISTS (SELECT 1 FROM game.players p WHERE p.id = x.i)",
         &[&region, &si, &ss],
+    )?;
+    t.execute("DELETE FROM game.keep_keys WHERE region = $1", &[&region])?;
+    let kk: Vec<&[u8]> = s.keys.iter().map(|k| &k.0[..]).collect();
+    let kp: Vec<&[u8]> = s.keys.iter().map(|k| &k.1.keep[..]).collect();
+    let ko: Vec<&str> = s.keys.iter().map(|k| k.1.origin).collect();
+    let ku: Vec<i32> = s.keys.iter().map(|k| k.1.uses as i32).collect();
+    let km: Vec<f64> = s.keys.iter().map(|k| k.1.made).collect();
+    let ke: Vec<f64> = s.keys.iter().map(|k| k.1.expires).collect();
+    t.execute(
+        "INSERT INTO game.keep_keys (key, region, keep, origin, uses, made, expires) \
+         SELECT k, $1, p, o, u, to_timestamp(m), to_timestamp(e) \
+         FROM unnest($2::bytea[], $3::bytea[], $4::text[], $5::int4[], $6::float8[], $7::float8[]) AS x(k, p, o, u, m, e)",
+        &[&region, &kk, &kp, &ko, &ku, &km, &ke],
     )?;
     if let Some(at) = s.reset {
         t.execute(
@@ -679,6 +776,35 @@ mod tests {
     use crate::sim::expire_sources;
     use crate::testkit::*;
     use elements_shared::rules::Rules;
+
+    #[test]
+    fn gift_keys_count_down_and_expire() {
+        let mut k = Keeps::new(None, "test".into(), true);
+        let (_, kh, _) = new_ticket();
+        let (_, src, _) = new_ticket();
+        let now = 1_000_000.0;
+        k.add_key(
+            kh,
+            Key {
+                keep: src,
+                origin: "gift",
+                uses: 2,
+                made: now,
+                expires: now + 100.0,
+            },
+        );
+        assert!(k.made_since(&src, "gift", now - 1.0));
+        assert!(!k.made_since(&src, "bottle", now - 1.0));
+        assert_eq!(k.key(&kh, now).map(|x| x.keep), Some(src));
+        k.use_key(&kh);
+        assert!(k.key(&kh, now).is_some());
+        k.use_key(&kh);
+        assert!(k.key(&kh, now).is_none(), "used up");
+        k.use_key(&kh);
+        assert_eq!(k.keys[&kh].uses, 0);
+        k.keys.get_mut(&kh).unwrap().uses = 1;
+        assert!(k.key(&kh, now + 101.0).is_none(), "expired");
+    }
 
     fn rules() -> Rules {
         let mut r = Rules::default();

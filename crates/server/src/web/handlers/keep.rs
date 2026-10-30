@@ -267,6 +267,61 @@ pub(super) fn link(
     reply(true, None);
 }
 
+/// A key to the own permanent source at `node` for someone else (`[keep]
+/// gift_*`): one per source and `gift_every_days`; only its hash is kept.
+pub(super) fn gift(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: &str) {
+    let Some((_, out)) = game.clients.0.get(&conn) else {
+        return;
+    };
+    let out = out.clone();
+    let reply = |ok: bool, key: Option<String>, reason: Option<&'static str>| {
+        send(
+            &out,
+            &ServerMsg::Gift {
+                node,
+                ok,
+                key,
+                reason,
+            },
+        );
+    };
+    let r = &c.rules.keep;
+    if !game.keeps.enabled() || !r.link || r.gift_uses == 0 {
+        return reply(false, None, Some("off"));
+    }
+    let own = crate::keep::hashes(ticket).and_then(|(h, _)| {
+        let &e = game.node_by_id.get(&node)?;
+        let (_, k) = game.keep_info.get(e).ok()?;
+        (k.ticket == h
+            && game
+                .sources
+                .get(e)
+                .is_ok_and(|(_, s)| s.kind == SourceKind::Keep))
+        .then_some(h)
+    });
+    let Some(h) = own else {
+        return reply(false, None, Some("notyours"));
+    };
+    if game
+        .keeps
+        .made_since(&h, "gift", c.now - f64::from(r.gift_every_days) * 86_400.0)
+    {
+        return reply(false, None, Some("soon"));
+    }
+    let (key, kh, _) = crate::keep::new_ticket();
+    game.keeps.add_key(
+        kh,
+        crate::keep::Key {
+            keep: h,
+            origin: "gift",
+            uses: r.gift_uses,
+            made: c.now,
+            expires: c.now + f64::from(r.gift_days) * 86_400.0,
+        },
+    );
+    reply(true, Some(key), None);
+}
+
 pub(super) fn redeem(game: &mut Game, c: &Ctx, conn: u64, ticket: &str) {
     let now = c.now;
     let Some((e, out)) = game.clients.0.get(&conn) else {

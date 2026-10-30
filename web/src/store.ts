@@ -48,6 +48,8 @@ export const KEYS = {
   clouds: "elements.clouds",
   /** Day of the last invite nudge (invite.ts). */
   inviteNudge: "elements.invite.nudge",
+  /** Keys to others' permanent sources (gift.ts). */
+  gifts: "elements.gifts",
 } as const;
 
 /** A fixed key, or one per region (permanent source ticket) or per place (wish sent). */

@@ -214,6 +214,14 @@ pub struct Keep {
     /// be topped up that way. Others see only that a source is linked.
     pub link: bool,
     pub link_factor: f32,
+    /// Gifts (with `link`): an owner hands out a key to a permanent source,
+    /// good for `gift_uses` claims through it within `gift_days`; one per
+    /// source every `gift_every_days`; the owner gets `gift_share` of the
+    /// points of each such claim (0 uses: no gifts).
+    pub gift_uses: u32,
+    pub gift_days: f32,
+    pub gift_every_days: f32,
+    pub gift_share: f32,
     /// A campaign start or end clears the map of permanent sources, except
     /// those at least this strong (0 = none survive).
     pub survive: f32,
@@ -234,6 +242,10 @@ impl Default for Keep {
             expire_s: 3.0 * 86_400.0,
             link: false,
             link_factor: 0.7,
+            gift_uses: 5,
+            gift_days: 14.0,
+            gift_every_days: 7.0,
+            gift_share: 0.25,
             survive: 0.0,
         }
     }
