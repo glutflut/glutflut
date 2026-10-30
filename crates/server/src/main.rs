@@ -28,6 +28,7 @@ mod clock;
 mod db;
 mod demo;
 mod finds;
+mod found;
 mod gateway;
 mod hinterland;
 mod hotspot;
@@ -697,6 +698,8 @@ pub struct RegionData {
     pub tiles: Option<Arc<tiles::TileSet>>,
     /// Gauge and junction distances to tidal water (`tide.rs`), if any.
     pub tide: Option<tide::Setup>,
+    /// Junctions at big rivers and the regions downstream (`found.rs`).
+    pub rivers: found::Rivers,
 }
 
 /// Spawn the region's graph from `prepare` as ECS entities (S2), with its
@@ -723,7 +726,9 @@ fn load_geo(
         blocks,
         tiles,
         tide,
+        rivers,
     } = data;
+    commands.insert_resource(rivers);
     // Automatic hotspots never at the waterline (`tide.rs`).
     let shore = tide.as_ref().map(tide::Setup::shore).unwrap_or_default();
     commands.insert_resource(tide::LiveTide::new(tide));

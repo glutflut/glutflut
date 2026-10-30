@@ -46,6 +46,7 @@ import { setupArBridge } from "./arbridge";
 import { setupVideo } from "./video";
 import { setupBoard } from "./board";
 import { setupInvite } from "./invite";
+import { addGift } from "./gift";
 import { setupNavMore } from "./navmore";
 import { setupRecovery } from "./recovery";
 import { onProfile, renderProfiles, sendProfile } from "./profile";
@@ -533,6 +534,12 @@ async function main() {
     motto: onKeep,
     link: onKeep,
     gift: onKeep,
+    found(m) {
+      // Funkenflug / Flaschenpost: a key to a source of the own side elsewhere.
+      addGift({ region: m.region, key: m.key, at: Date.now(), origin: m.origin });
+      toast(t(m.origin === "ember" ? "found.ember" : "found.bottle", { region: m.name }), 10_000);
+      if (faction) sound.keep(faction);
+    },
     peek: claim.onPeek,
     sources(m) {
       live?.rows(m.items);

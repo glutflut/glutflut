@@ -222,6 +222,18 @@ pub struct Keep {
     pub gift_days: f32,
     pub gift_every_days: f32,
     pub gift_share: f32,
+    /// Found keys (with `link`), to a permanent source of the own side in
+    /// another region: Funkenflug (fire, a claim on a hilltop with wind of at
+    /// least `ember_wind_kmh`; a region downwind within `ember_km`) and
+    /// Flaschenpost (water, a claim at a big river; a region downstream),
+    /// each with this chance per such claim, at most one a day per player;
+    /// good for `found_uses` claims within `found_days` (0 chance: off).
+    pub ember_chance: f32,
+    pub ember_wind_kmh: f32,
+    pub ember_km: f32,
+    pub bottle_chance: f32,
+    pub found_uses: u32,
+    pub found_days: f32,
     /// A campaign start or end clears the map of permanent sources, except
     /// those at least this strong (0 = none survive).
     pub survive: f32,
@@ -246,6 +258,12 @@ impl Default for Keep {
             gift_days: 14.0,
             gift_every_days: 7.0,
             gift_share: 0.25,
+            ember_chance: 0.03,
+            ember_wind_kmh: 25.0,
+            ember_km: 800.0,
+            bottle_chance: 0.03,
+            found_uses: 3,
+            found_days: 7.0,
             survive: 0.0,
         }
     }

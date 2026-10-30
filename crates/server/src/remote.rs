@@ -45,6 +45,33 @@ pub struct Answer {
     pub doused: bool,
 }
 
+/// X to Y: make the found key `key` (made in X) to a random permanent
+/// source of `faction` in Y; answered with [`Minted`].
+#[derive(Debug)]
+pub struct Mint {
+    pub from: String,
+    pub id: u64,
+    pub key: String,
+    pub faction: Faction,
+    pub origin: &'static str,
+}
+
+/// Y (or the database writer) to X: the found key exists now, or not
+/// (no permanent source of that side there).
+#[derive(Debug)]
+pub struct Minted {
+    pub id: u64,
+    pub ok: bool,
+}
+
+/// To Y, which woke while the key was written to the database: take it
+/// into memory too (its next save would drop it).
+#[derive(Debug)]
+pub struct AddKey {
+    pub hash: crate::keep::Hash,
+    pub key: crate::keep::Key,
+}
+
 /// Region `to` runs here now (not asleep, not still loading).
 pub fn awake(host: &Arc<Host>, to: &str) -> bool {
     host.peek(to).is_some_and(|r| r.tx.running())

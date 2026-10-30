@@ -152,6 +152,12 @@ pub fn load_region_data(conn_str: &str, slug: &str) -> Option<crate::RegionData>
         warn!(error = %e, "no tide data");
         None
     });
+    let rivers = connect(conn_str)
+        .and_then(|mut c| Ok(crate::found::load(&mut c, slug)?))
+        .unwrap_or_else(|e| {
+            warn!(error = %e, "no river data");
+            Default::default()
+        });
     Some(crate::RegionData {
         graph,
         region,
@@ -162,6 +168,7 @@ pub fn load_region_data(conn_str: &str, slug: &str) -> Option<crate::RegionData>
         blocks,
         tiles: None,
         tide,
+        rivers,
     })
 }
 

@@ -69,6 +69,7 @@ pub struct Game<'w, 's> {
     /// Asks into other regions waiting for their answer.
     pending: Local<'s, far::Pending>,
     supply: Res<'w, crate::hinterland::Supply>,
+    rivers: Option<Res<'w, crate::found::Rivers>>,
     keeps: ResMut<'w, crate::keep::Keeps>,
     marble: ResMut<'w, crate::marble::Claims>,
     keep_info: Query<'w, 's, (Entity, &'static mut crate::keep::KeepInfo)>,
@@ -182,6 +183,9 @@ pub fn inbox(
             FromWeb::Peek { conn, via, .. } => claim::peek(g, &c, conn, &via),
             FromWeb::FarAsk(a) => far::ask(g, &c, a),
             FromWeb::FarAnswer(a) => far::answer(g, &c, a),
+            FromWeb::FarMint(m) => far::mint(g, &c, m),
+            FromWeb::FarMinted(m) => far::minted(g, m),
+            FromWeb::FarKey(k) => g.keeps.add_key(k.hash, k.key),
             FromWeb::Link {
                 conn,
                 node,

@@ -335,6 +335,15 @@ pub enum ServerMsg<'a> {
         #[ts(optional)]
         lat: Option<f64>,
     },
+    /// A found key (Funkenflug `ember`, Flaschenpost `bottle`) to a permanent
+    /// source of the own side in region `region` (its `name`).
+    Found {
+        #[ts(type = "\"ember\" | \"bottle\"")]
+        origin: &'static str,
+        region: String,
+        name: String,
+        key: String,
+    },
     /// Answer to `gift`: a key to the source for someone else (`key`, shown
     /// once), or why not (`off`, `notyours`, `soon`).
     Gift {

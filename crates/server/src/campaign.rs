@@ -485,7 +485,8 @@ fn weather_day(
 ) -> Result<Option<WeatherDay>, Box<dyn std::error::Error>> {
     let stored = |c: &mut postgres::Client| {
         c.query_opt(
-            "SELECT w.tmax::float8, w.tmin::float8, w.precip_mm::float8, w.sun_h::float8, w.usual_tmax::float8 \
+            "SELECT w.tmax::float8, w.tmin::float8, w.precip_mm::float8, w.sun_h::float8, w.usual_tmax::float8, \
+                    coalesce(w.wind_kmh, 0)::float8, coalesce(w.wind_from, 0)::float8 \
              FROM game.weather_days w JOIN geo.regions r ON r.slug = w.region \
              WHERE w.region = $1 AND w.day = (now() AT TIME ZONE r.timezone)::date",
             &[&region],
@@ -497,6 +498,8 @@ fn weather_day(
                 precip_mm: r.get(2),
                 sun_h: r.get(3),
                 usual_tmax: r.get(4),
+                wind_kmh: r.get(5),
+                wind_from: r.get(6),
             })
         })
     };
@@ -516,11 +519,11 @@ fn weather_day(
             };
             let d = crate::weather::fetch(r.get(0), r.get(1))?;
             c.execute(
-                "INSERT INTO game.weather_days (region, day, tmax, tmin, precip_mm, sun_h, usual_tmax) \
+                "INSERT INTO game.weather_days (region, day, tmax, tmin, precip_mm, sun_h, usual_tmax, wind_kmh, wind_from) \
                  SELECT $1, (now() AT TIME ZONE r.timezone)::date, \
-                        $2::float8, $3::float8, $4::float8, $5::float8, $6::float8 \
+                        $2::float8, $3::float8, $4::float8, $5::float8, $6::float8, $7::float8, $8::float8 \
                  FROM geo.regions r WHERE r.slug = $1 ON CONFLICT DO NOTHING",
-                &[&region, &d.tmax, &d.tmin, &d.precip_mm, &d.sun_h, &d.usual_tmax],
+                &[&region, &d.tmax, &d.tmin, &d.precip_mm, &d.sun_h, &d.usual_tmax, &d.wind_kmh, &d.wind_from],
             )?;
             info!(?d, "weather: today");
             // Another server may have stored it first: that one counts.

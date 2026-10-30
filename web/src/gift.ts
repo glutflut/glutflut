@@ -7,7 +7,8 @@ import { t } from "./i18n";
 import { $, toast } from "./page";
 import { KEYS, loadJson, saveJson } from "./store";
 
-export type Gift = { region: string; key: string; at: number };
+/** `origin`: given by someone (default), or found (Funkenflug, Flaschenpost). */
+export type Gift = { region: string; key: string; at: number; origin?: "gift" | "ember" | "bottle" };
 
 /** Keys kept at most (the oldest goes). */
 const MAX = 3;
@@ -22,6 +23,11 @@ export function gifts(): Gift[] {
   );
 }
 
+/** Keep a key (given or found); the oldest goes beyond three. */
+export function addGift(g: Gift) {
+  saveJson(KEYS.gifts, [...gifts().filter((x) => x.key !== g.key), g].slice(-MAX));
+}
+
 export function dropGift(key: string) {
   const list = gifts().filter((g) => g.key !== key);
   saveJson(KEYS.gifts, list.length ? list : null);
@@ -34,8 +40,7 @@ let arrived: Gift | null = null;
   if (m) {
     history.replaceState(history.state, "", location.pathname + location.search);
     const g = { region: m[1], key: m[2], at: Date.now() };
-    const list = [...gifts().filter((x) => x.key !== g.key), g].slice(-MAX);
-    saveJson(KEYS.gifts, list);
+    addGift(g);
     arrived = g;
   }
 }

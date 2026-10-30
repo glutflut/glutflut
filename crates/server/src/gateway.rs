@@ -182,6 +182,12 @@ pub enum FromWeb {
     FarAsk(crate::remote::Ask),
     /// From another region: its answer to a `FarAsk` of this one.
     FarAnswer(crate::remote::Answer),
+    /// From another region: make a found key to a source here.
+    FarMint(crate::remote::Mint),
+    /// The found key of a `FarMint` of this region exists (or not).
+    FarMinted(crate::remote::Minted),
+    /// A found key written to the database for this region while it woke.
+    FarKey(crate::remote::AddKey),
     /// A key to an own permanent source for someone else.
     Gift {
         conn: u64,

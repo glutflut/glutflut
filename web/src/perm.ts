@@ -294,7 +294,7 @@ export function setupPerm(
           const r = rs.find((x) => x.slug === g.region && !x.url);
           if (!r) continue;
           const btn = document.createElement("button");
-          btn.textContent = `${r.name} · ${t("gift.label")}`;
+          btn.textContent = `${r.name} · ${t(g.origin === "ember" ? "found.label.ember" : g.origin === "bottle" ? "found.label.bottle" : "gift.label")}`;
           btn.onclick = () => {
             box.hidden = true;
             if (a.far) setFarThere(a.far.region, a.far.key, null);

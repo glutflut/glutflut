@@ -700,4 +700,8 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             far: None,
         },
     );
+    // Rarely a key flies or drifts to another region (not through a link or tunnel).
+    if res.is_ok() && link.is_none() && !tunnel {
+        super::far::found(game, c, conn, slot, node, faction);
+    }
 }

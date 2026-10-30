@@ -11,7 +11,7 @@ use elements_shared::prelude::*;
 use crate::actions;
 use crate::gateway::FromWeb;
 use crate::protocol::Far;
-use crate::remote::{deliver, Answer, Ask};
+use crate::remote::{deliver, AddKey, Answer, Ask, Mint, Minted};
 use crate::sim::SourceKind;
 use crate::web::{send, ServerMsg};
 
@@ -23,10 +23,32 @@ const WAIT_S: f64 = 3.0;
 /// A claim into a sleeping region waits for it to load (Berlin: ~45 s).
 const WAKE_WAIT_S: f64 = 90.0;
 
-/// Asks of this region waiting for Y, by id; and (as Y) asks that came
-/// before the permanent sources were back on the map, for the next frame.
+/// What waits on other regions.
 #[derive(Default)]
-pub struct Pending(HashMap<u64, Waiting>, Vec<Ask>);
+pub struct Pending {
+    /// Asks of this region waiting for Y, by id.
+    asks: HashMap<u64, Waiting>,
+    /// As Y: asks that came before the permanent sources were back on the
+    /// map, for the next frame.
+    later: Vec<Ask>,
+    /// As Y: found keys asked for before the permanent sources were back.
+    later_mint: Vec<Mint>,
+    /// Found keys being made in Y, by id.
+    found: HashMap<u64, FoundKey>,
+    /// Day (unix days) of each player's last found key: one a day.
+    found_day: HashMap<u32, i64>,
+}
+
+struct FoundKey {
+    conn: u64,
+    until: f64,
+    origin: &'static str,
+    region: String,
+    key: String,
+}
+
+/// A found key that never got made (region gone, database down) is dropped.
+const FOUND_WAIT_S: f64 = 120.0;
 
 struct Waiting {
     conn: u64,
@@ -109,7 +131,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
         }),
     );
     if sent {
-        game.pending.0.insert(
+        game.pending.asks.insert(
             id,
             Waiting {
                 conn,
@@ -196,7 +218,7 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
     // Just woken: the permanent sources come onto the map after this frame's
     // inbox; take it up next frame rather than answer `nokey`.
     if !game.keeps.restored() && a.tries < 100 {
-        game.pending.1.push(Ask {
+        game.pending.later.push(Ask {
             tries: a.tries + 1,
             ..a
         });
@@ -381,7 +403,7 @@ fn take(
 
 /// X: Y's answer, to the app that asked.
 pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
-    let Some(w) = game.pending.0.remove(&ans.id) else {
+    let Some(w) = game.pending.asks.remove(&ans.id) else {
         return;
     };
     let Some((e, out)) = game.clients.0.get(&w.conn) else {
@@ -440,25 +462,212 @@ pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
 
 /// Y: asks held back last frame (sources not yet on the map) come up again.
 pub(super) fn later(game: &mut Game, c: &Ctx) {
-    for a in std::mem::take(&mut game.pending.1) {
+    for a in std::mem::take(&mut game.pending.later) {
         ask(game, c, a);
     }
+    for m in std::mem::take(&mut game.pending.later_mint) {
+        mint(game, c, m);
+    }
+}
+
+/// X: after an ordinary claim, rarely a found key: Funkenflug (fire on a
+/// hilltop on a windy day: a region downwind) or Flaschenpost (water at a big
+/// river: a region downstream); at most one a day per player.
+pub(super) fn found(
+    game: &mut Game,
+    c: &Ctx,
+    conn: u64,
+    slot: Option<u32>,
+    node: i64,
+    faction: Faction,
+) {
+    let r = &c.rules.keep;
+    let Some(slot) = slot.filter(|_| r.link) else {
+        return;
+    };
+    let day = (c.now / 86_400.0).floor() as i64;
+    if game.pending.found_day.get(&slot) == Some(&day) {
+        return;
+    }
+    let host = game.peers.0.clone();
+    let (origin, chance, cands) = match faction {
+        Faction::Fire => {
+            let Some(w) = game
+                .campaign
+                .weather
+                .filter(|w| w.wind_kmh >= r.ember_wind_kmh)
+            else {
+                return;
+            };
+            let peak = game
+                .node_by_id
+                .get(&node)
+                .copied()
+                .zip(game.sim.as_deref())
+                .is_some_and(|(e, sim)| sim.gathers(Faction::Fire).any(|p| p == e));
+            if !peak {
+                return;
+            }
+            let down = crate::found::downwind(
+                &host,
+                &c.region.slug,
+                c.region.centroid_lat,
+                c.region.centroid_lon,
+                f64::from(w.wind_from),
+                f64::from(r.ember_km),
+            );
+            ("ember", r.ember_chance, down)
+        }
+        Faction::Water => {
+            let Some(rv) = game.rivers.as_deref() else {
+                return;
+            };
+            ("bottle", r.bottle_chance, rv.downstream(node).to_vec())
+        }
+    };
+    if cands.is_empty() || rand::random::<f32>() >= chance {
+        return;
+    }
+    // One of the nearest three.
+    let y = cands[rand::random::<u32>() as usize % cands.len().min(3)].clone();
+    game.pending.found_day.insert(slot, day);
+    let (key, kh, _) = crate::keep::new_ticket();
+    let id = rand::random::<u64>();
+    game.pending.found.insert(
+        id,
+        FoundKey {
+            conn,
+            until: c.now + FOUND_WAIT_S,
+            origin,
+            region: y.clone(),
+            key: key.clone(),
+        },
+    );
+    let from = c.region.slug.clone();
+    if host.peek(&y).is_some() {
+        // Running or loading: Y makes it (messages wait for the load).
+        deliver(
+            &host,
+            &y,
+            FromWeb::FarMint(Mint {
+                from,
+                id,
+                key,
+                faction,
+                origin,
+            }),
+        );
+        return;
+    }
+    // Asleep: straight into the database, without waking it.
+    let Some(db) = host.db().map(String::from) else {
+        return;
+    };
+    let (uses, days, now) = (r.found_uses, f64::from(r.found_days), c.now);
+    std::thread::spawn(move || {
+        let res =
+            crate::found::write_key(&db, &y, faction.as_str(), origin, &kh, uses as i32, days);
+        if let Err(e) = &res {
+            warn!(error = %e, "found key: write failed");
+        }
+        let keep = res.ok().flatten();
+        // Woke meanwhile: it read its keys before this one.
+        if let (Some(k), Some(_)) = (&keep, host.peek(&y)) {
+            if let Ok(keep) = crate::keep::Hash::try_from(k.as_slice()) {
+                let key = crate::keep::Key {
+                    keep,
+                    origin,
+                    uses,
+                    made: now,
+                    expires: now + days * 86_400.0,
+                };
+                deliver(&host, &y, FromWeb::FarKey(AddKey { hash: kh, key }));
+            }
+        }
+        let ok = keep.is_some();
+        deliver(&host, &from, FromWeb::FarMinted(Minted { id, ok }));
+    });
+}
+
+/// Y: make a found key to a random permanent source of the asker's side.
+pub(super) fn mint(game: &mut Game, c: &Ctx, m: Mint) {
+    if !game.keeps.restored() {
+        game.pending.later_mint.push(m);
+        return;
+    }
+    let r = &c.rules.keep;
+    let mine: Vec<crate::keep::Hash> = game
+        .keep_info
+        .iter()
+        .filter(|(e, _)| {
+            game.sources
+                .get(*e)
+                .is_ok_and(|(_, s)| s.kind == SourceKind::Keep && s.faction == m.faction)
+        })
+        .map(|(_, k)| k.ticket)
+        .collect();
+    let ok = match crate::keep::hashes(&m.key) {
+        Some((kh, _)) if !mine.is_empty() => {
+            let keep = mine[rand::random::<u32>() as usize % mine.len()];
+            game.keeps.add_key(
+                kh,
+                crate::keep::Key {
+                    keep,
+                    origin: m.origin,
+                    uses: r.found_uses,
+                    made: c.now,
+                    expires: c.now + f64::from(r.found_days) * 86_400.0,
+                },
+            );
+            true
+        }
+        _ => false,
+    };
+    deliver(
+        &game.peers.0,
+        &m.from,
+        FromWeb::FarMinted(Minted { id: m.id, ok }),
+    );
+}
+
+/// X: the found key exists; to the player (if still here).
+pub(super) fn minted(game: &mut Game, m: Minted) {
+    let Some(f) = game.pending.found.remove(&m.id) else {
+        return;
+    };
+    if !m.ok {
+        return;
+    }
+    let Some((_, out)) = game.clients.0.get(&f.conn) else {
+        return;
+    };
+    let name = crate::found::name(&game.peers.0, &f.region);
+    send(
+        out,
+        &ServerMsg::Found {
+            origin: f.origin,
+            region: f.region,
+            name,
+            key: f.key,
+        },
+    );
 }
 
 /// X: asks Y never answered: `linkdown` (a claim gets its wait back).
 pub(super) fn expire(game: &mut Game, c: &Ctx) {
-    if game.pending.0.is_empty() {
+    game.pending.found.retain(|_, f| f.until > c.now);
+    if game.pending.asks.is_empty() {
         return;
     }
     let late: Vec<u64> = game
         .pending
-        .0
+        .asks
         .iter()
         .filter(|(_, w)| w.until < c.now)
         .map(|(&id, _)| id)
         .collect();
     for id in late {
-        let Some(w) = game.pending.0.remove(&id) else {
+        let Some(w) = game.pending.asks.remove(&id) else {
             continue;
         };
         let Some((e, out)) = game.clients.0.get(&w.conn) else {
