@@ -32,6 +32,12 @@ node e2e/claim.mjs http://127.0.0.1:5173 claim.png                             #
 node e2e/pages.mjs http://127.0.0.1:5173 shots/                                 # help and legal pages over the game
 ```
 
+Links into another region (own far link, gift keys) on raw sockets, against one server with two regions of the same cell (`ELEMENTS_RULES=rules/default.toml`, `ELEMENTS_POW_BITS=0`, `ELEMENTS_RULES_OVERRIDE='claim_cooldown_s=1'`):
+
+```sh
+node e2e/far.mjs region-goerlitz region-baden-baden http://127.0.0.1:5080
+```
+
 `ELEMENTS_RULES_OVERRIDE='claim_ttl_s=10'` shortens claim lifetime for testing.
 
 The scripts take `E2E_REGION` and `E2E_AT` ("lat,lon", `e2e/where.mjs`; default Konstanz) and need a server with `ELEMENTS_ALLOW_SIM=1`. They play as real players on that database: use a test database, and a region no other server of it is running (each writes back its own permanent sources per region).
