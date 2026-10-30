@@ -214,6 +214,34 @@
         </div></div>
         <div id="finds-list"></div>
       </section>
+      <section class="card" id="keys-card" hidden>
+        <div class="map-head"><h2 data-i18n="ky.title">Schlüssel der Stadt</h2><button type="button" id="keys-new" data-i18n="ky.new">Neue Schlüssel</button></div>
+        <details class="help"><summary data-i18n="ky.help.sum"></summary><p data-i18n="ky.help.more"></p></details>
+        <div id="keys-form" class="ed-form place-form" hidden>
+          <label><span data-i18n="ky.f.site">Hotspot-Ort</span> <select id="keys-site"></select></label>
+          <label><span><span data-i18n="ky.f.label">Bezeichnung</span> <small data-i18n="ky.f.label.hint">(z. B. Partnerstadt, Kapitel, Brief)</small></span> <input id="keys-label" maxlength="60" /></label>
+          <div class="ed-row">
+            <label><span data-i18n="ky.f.count">Links</span> <input id="keys-count" type="number" min="1" max="200" value="10" /></label>
+            <label><span data-i18n="ky.f.uses">Eroberungen je Link</span> <input id="keys-uses" type="number" min="1" max="50" value="5" /></label>
+            <label><span data-i18n="ky.f.days">Tage gültig</span> <input id="keys-days" type="number" min="1" max="90" value="30" /></label>
+          </div>
+          <div class="ed-row">
+            <button type="button" id="keys-make" class="primary" data-i18n="ky.make">Links erzeugen</button>
+            <button type="button" id="keys-cancel" data-i18n="ui.cancel">Abbrechen</button>
+          </div>
+          <p id="keys-error" class="ed-error"></p>
+        </div>
+        <div id="keys-out" class="ed-form" hidden>
+          <p class="ed-error" data-i18n="ky.once">Diese Links werden nur jetzt angezeigt. Jetzt kopieren und aufheben.</p>
+          <textarea id="keys-links" readonly rows="6"></textarea>
+          <div class="ed-row">
+            <button type="button" id="keys-copy" class="primary" data-i18n="ky.copy">Alle kopieren</button>
+            <button type="button" id="keys-done" data-i18n="ky.done">Fertig</button>
+          </div>
+          <div id="keys-qr" class="keys-qr"></div>
+        </div>
+        <div id="keys-list"></div>
+      </section>
       </div>
 
       <div data-panel="bilder" role="tabpanel" hidden>

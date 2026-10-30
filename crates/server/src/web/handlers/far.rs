@@ -37,6 +37,31 @@ pub struct Pending {
     found: HashMap<u64, FoundKey>,
     /// Day (unix days) of each player's last found key: one a day.
     found_day: HashMap<u32, i64>,
+    /// As Y: junctions claimed from afar by players not yet known here, by
+    /// player id; theirs once they come (`adopt`).
+    owners: HashMap<[u8; 32], Vec<i64>>,
+}
+
+/// Players from afar remembered (`Pending::owners`), and junctions each.
+const OWNERS_MAX: usize = 2000;
+const OWNER_NODES_MAX: usize = 50;
+
+/// Y: a player joined here; the claims they made from afar become theirs.
+pub(super) fn adopt(game: &mut Game, id: &[u8; 32], slot: u32, faction: Faction) {
+    let Some(nodes) = game.pending.owners.remove(id) else {
+        return;
+    };
+    for n in nodes {
+        if let Some(mut s) = game
+            .node_by_id
+            .get(&n)
+            .and_then(|&e| game.sources.get_mut(e).ok())
+        {
+            if s.1.by.is_none() && s.1.faction == faction && s.1.kind != SourceKind::Keep {
+                s.1.by = Some(slot);
+            }
+        }
+    }
 }
 
 struct FoundKey {
@@ -132,6 +157,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
             newcomer: power.newcomer,
             look,
             tries: 0,
+            player: slot.and_then(|s| game.scores.get(s.0)).map(|r| r.id),
         }),
     );
     if sent {
@@ -240,8 +266,11 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         .flatten()
         .map(|h| h.0);
     let gift = hk.filter(|h| !game.keep_info.iter().any(|(_, k)| k.ticket == *h));
+    let key = gift.and_then(|g| game.keeps.key(&g, c.now));
+    // A city key (editor) opens a junction of the city's, for either side.
+    let spot = key.and_then(|k| k.spot);
     let keep = match gift {
-        Some(g) => game.keeps.key(&g, c.now).map(|k| k.keep),
+        Some(_) => key.filter(|k| k.spot.is_none()).map(|k| k.keep),
         None => hk,
     };
     debug!(
@@ -252,14 +281,22 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         key_ok = keep.is_some(),
         "far ask"
     );
-    let b = keep
-        .and_then(|hb| game.keep_info.iter().find(|(_, k)| k.ticket == hb))
-        .and_then(|(eb, _)| game.sources.get(eb).ok())
-        .filter(|(_, s)| s.kind == SourceKind::Keep && s.faction == a.faction)
-        .map(|(g, _)| {
-            let w = project_enu(g.lat, g.lon, c.region.centroid_lat, c.region.centroid_lon);
-            (Vec2::new(w.x, w.z), g.id)
-        });
+    let at = |g: &GeoNode| {
+        let w = project_enu(g.lat, g.lon, c.region.centroid_lat, c.region.centroid_lon);
+        (Vec2::new(w.x, w.z), g.id)
+    };
+    let b = match spot {
+        Some(n) => game
+            .node_by_id
+            .get(&n)
+            .and_then(|&e| game.nodes.get(e).ok())
+            .map(|(g, _)| at(g)),
+        None => keep
+            .and_then(|hb| game.keep_info.iter().find(|(_, k)| k.ticket == hb))
+            .and_then(|(eb, _)| game.sources.get(eb).ok())
+            .filter(|(_, s)| s.kind == SourceKind::Keep && s.faction == a.faction)
+            .map(|(g, _)| at(g)),
+    };
     let power = actions::Power {
         mult: a.mult * a.factor.min(rules.keep.link_factor),
         newcomer: a.newcomer,
@@ -293,7 +330,8 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
                 (ans.near, ans.streets) = near(game, c, node, a.faction);
                 ans.from = beam(game, b_node, node, a.faction);
             }
-            // A gift: one use less; its owner gets a share of the points.
+            // A gift: one use less; its owner gets a share of the points
+            // (a city key has no owner).
             if let (true, Some(g)) = (ans.ok, gift) {
                 game.keeps.use_key(&g);
                 let (fire, water) = ans.prior.unwrap_or_default();
@@ -303,6 +341,7 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
                 if let Some(mut k) = game
                     .node_by_id
                     .get(&b_node)
+                    .filter(|_| spot.is_none())
                     .and_then(|&n| game.keep_info.get_mut(n).ok())
                 {
                     k.1.points += pts as f32 * rules.keep.gift_share;
@@ -421,6 +460,8 @@ fn take(
             node,
             a.faction,
         );
+    // The player's own here (white ring) if known; else once they come.
+    let by = a.player.and_then(|id| game.scores.slot_of_id(&id));
     // X keeps the player's wait; this one is only for the call.
     let mut cd = actions::AttackCooldown(0.0);
     let res = actions::claim(
@@ -434,7 +475,7 @@ fn take(
         node,
         rules,
         ttl,
-        None,
+        by,
         existing,
         power,
         game.supply.at(a.faction, game.node_by_id.index(node)),
@@ -443,6 +484,17 @@ fn take(
     match (res, existing) {
         (Ok(done), _) => {
             ans.ok = true;
+            if let (None, Some(id)) = (by, a.player) {
+                let p = &mut game.pending.owners;
+                if p.len() < OWNERS_MAX || p.contains_key(&id) {
+                    let v = p.entry(id).or_default();
+                    v.retain(|&n| n != node);
+                    if v.len() >= OWNER_NODES_MAX {
+                        v.remove(0);
+                    }
+                    v.push(node);
+                }
+            }
             ans.build = done.ramp;
             ans.doused = done.doused;
             // The campaign here counts it; the points go to the player in X.
@@ -664,6 +716,7 @@ pub(super) fn found(
                     uses,
                     made: now,
                     expires: now + days * 86_400.0,
+                    ..Default::default()
                 };
                 deliver(&host, &y, FromWeb::FarKey(AddKey { hash: kh, key }));
             }
@@ -701,6 +754,7 @@ pub(super) fn mint(game: &mut Game, c: &Ctx, m: Mint) {
                     uses: r.found_uses,
                     made: c.now,
                     expires: c.now + f64::from(r.found_days) * 86_400.0,
+                    ..Default::default()
                 },
             );
             true

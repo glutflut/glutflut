@@ -309,6 +309,8 @@ export const de = {
   "gift.soon": "Für diese Quelle gibt es diese Woche schon einen Schlüssel",
   "gift.got": "Schlüssel zu einer Quelle in {region} erhalten. Verbinde ihn mit einer eigenen Dauerquelle („Verbinden …“).",
   "gift.elsewhere": "Schlüssel für {region} erhalten; der geht von hier aus noch nicht.",
+  "city.label": "Schlüssel der Stadt",
+  "city.got": "Ein Schlüssel der Stadt {region}: Verbinde ihn mit einer eigenen Dauerquelle („Verbinden …“), dann eroberst du von dort Kreuzungen in {region}.",
   "found.ember": "Funkenflug! Der Wind trägt einen Funken nach {region}: ein Schlüssel zu einer Glut dort. Verbinde ihn mit einer eigenen Glut („Verbinden …“).",
   "found.bottle": "Flaschenpost! Der Fluss trägt eine Flasche nach {region}: ein Schlüssel zu einem Eis dort. Verbinde ihn mit einem eigenen Eis („Verbinden …“).",
   "found.label.ember": "Funkenflug",

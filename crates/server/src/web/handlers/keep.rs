@@ -317,6 +317,7 @@ pub(super) fn gift(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: &str)
             uses: r.gift_uses,
             made: c.now,
             expires: c.now + f64::from(r.gift_days) * 86_400.0,
+            ..Default::default()
         },
     );
     reply(true, Some(key), None);

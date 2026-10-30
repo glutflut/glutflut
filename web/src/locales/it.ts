@@ -310,6 +310,8 @@ export const it: Dict = {
   "gift.soon": "Questa sorgente ha già dato una chiave questa settimana",
   "gift.got": "Ricevuta una chiave per una sorgente a {region}. Collegala a una tua sorgente permanente («Collega …»).",
   "gift.elsewhere": "Ricevuta una chiave per {region}; da qui non funziona ancora.",
+  "city.label": "chiave della città",
+  "city.got": "Una chiave della città di {region}: collegala a una tua fonte permanente («Collega …»), poi da lì conquisti incroci a {region}.",
   "found.ember": "Volo di scintille! Il vento porta una scintilla fino a {region}: una chiave per una Brace laggiù. Collegala a una tua Brace («Collega …»).",
   "found.bottle": "Messaggio in bottiglia! Il fiume porta una bottiglia fino a {region}: una chiave per un Ghiaccio laggiù. Collegala a un tuo Ghiaccio («Collega …»).",
   "found.label.ember": "volo di scintille",

@@ -444,6 +444,11 @@ impl Scores {
         n
     }
 
+    /// Slot of a known player id (`token_id`).
+    pub fn slot_of_id(&self, id: &[u8; 32]) -> Option<u32> {
+        self.by_id.get(id).copied()
+    }
+
     /// Slot of a known token.
     pub fn find(&self, token: &str) -> Option<u32> {
         self.by_id.get(&token_id(token)).copied()

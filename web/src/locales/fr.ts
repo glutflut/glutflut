@@ -310,6 +310,8 @@ export const fr: Dict = {
   "gift.soon": "Cette source a déjà donné une clé cette semaine",
   "gift.got": "Clé d’une source à {region} reçue. Relie-la à une de tes sources permanentes (« Relier … »).",
   "gift.elsewhere": "Clé pour {region} reçue ; elle ne marche pas encore d’ici.",
+  "city.label": "clé de la ville",
+  "city.got": "Une clé de la ville de {region} : relie-la à l’une de tes sources permanentes (« Relier … »), puis conquiers de là des carrefours à {region}.",
   "found.ember": "Envol d’étincelles ! Le vent porte une étincelle jusqu’à {region} : une clé d’une braise là-bas. Relie-la à une de tes braises (« Relier … »).",
   "found.bottle": "Bouteille à la mer ! Le fleuve porte une bouteille jusqu’à {region} : une clé d’une glace là-bas. Relie-la à une de tes glaces (« Relier … »).",
   "found.label.ember": "envol d’étincelles",

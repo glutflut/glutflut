@@ -28,6 +28,9 @@ pub struct Ask {
     pub look: bool,
     /// Frames this ask already waited for Y's permanent sources (just woken).
     pub tries: u8,
+    /// The player's id (`score::token_id`): the claim is theirs in Y too,
+    /// once they play there.
+    pub player: Option<[u8; 32]>,
 }
 
 /// Y to X: what fell there, or why nothing did.

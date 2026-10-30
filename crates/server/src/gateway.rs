@@ -188,6 +188,8 @@ pub enum FromWeb {
     FarMinted(crate::remote::Minted),
     /// A found key written to the database for this region while it woke.
     FarKey(crate::remote::AddKey),
+    /// The city withdrew a batch of its keys (editor).
+    FarKeysGone(String),
     /// A key to an own permanent source for someone else.
     Gift {
         conn: u64,
@@ -574,6 +576,12 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                         get(editor_notices::list)
                             .post(editor_notices::save)
                             .delete(editor_notices::delete),
+                    )
+                    .route(
+                        "/api/ops/keys",
+                        get(editor_keys::list)
+                            .post(editor_keys::make)
+                            .delete(editor_keys::withdraw),
                     )
                     .route("/api/chronicle", get(chronicle::chronicle))
                     .route("/api/media", get(editor_media::public))
@@ -2432,6 +2440,8 @@ mod chronicle;
 /// Authoring tools (chapters), with this module's state and token checks.
 #[path = "editor.rs"]
 mod editor;
+#[path = "editor_keys.rs"]
+mod editor_keys;
 /// Images for finds, zones and chapters (editor and app).
 #[path = "editor_media.rs"]
 mod editor_media;

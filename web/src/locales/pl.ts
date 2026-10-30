@@ -310,6 +310,8 @@ export const pl: Dict = {
   "gift.soon": "To źródło dało już klucz w tym tygodniu",
   "gift.got": "Otrzymano klucz do źródła: {region}. Połącz go z własnym stałym źródłem („Połącz …”).",
   "gift.elsewhere": "Otrzymano klucz do: {region}; stąd jeszcze nie działa.",
+  "city.label": "klucz miasta",
+  "city.got": "Klucz od miasta {region}: połącz go z własnym stałym źródłem („Połącz …”), a potem stamtąd zdobywasz skrzyżowania w {region}.",
   "found.ember": "Lot iskier! Wiatr niesie iskrę do: {region} – klucz do tamtejszego żaru. Połącz go z własnym żarem („Połącz …”).",
   "found.bottle": "Butelka z listem! Rzeka niesie butelkę do: {region} – klucz do tamtejszego lodu. Połącz go z własnym lodem („Połącz …”).",
   "found.label.ember": "lot iskier",

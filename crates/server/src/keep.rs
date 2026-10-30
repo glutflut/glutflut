@@ -89,10 +89,15 @@ struct Row {
 }
 
 /// A key to a permanent source for someone else (`game.keep_keys`).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Key {
-    /// The source's ticket hash.
+    /// The source's ticket hash (zero for a city key).
     pub keep: Hash,
+    /// A city key (editor): the junction it opens, for either side.
+    pub spot: Option<i64>,
+    /// A city key: its batch and the city's label for it.
+    pub batch: Option<String>,
+    pub label: Option<String>,
     /// `gift`, `bottle`, `ember`, `city`.
     pub origin: &'static str,
     pub uses: u32,
@@ -309,6 +314,13 @@ impl Keeps {
         self.dirty = true;
     }
 
+    /// The city withdrew a batch of its keys (editor).
+    pub fn drop_batch(&mut self, batch: &str) {
+        let n = self.keys.len();
+        self.keys.retain(|_, k| k.batch.as_deref() != Some(batch));
+        self.dirty |= self.keys.len() != n;
+    }
+
     /// A recovery code moved a player to a new id.
     pub fn rekey(&mut self, old: &Hash, new: Hash) {
         if let Some(s) = self.slots.remove(old) {
@@ -322,6 +334,20 @@ impl Keeps {
         }
     }
 
+    /// Keys whose source is gone, and expired ones (a week late: one gift
+    /// per source and week), go.
+    fn prune_keys(
+        keys: &mut HashMap<Hash, Key>,
+        tickets: &std::collections::HashSet<Hash>,
+        now: f64,
+    ) {
+        keys.retain(|_, k| {
+            // A city key opens a junction, not a source.
+            (k.spot.is_some() || tickets.contains(&k.keep))
+                && k.expires.max(k.made + 7.0 * 86_400.0) > now
+        });
+    }
+
     fn save(&mut self, keeps: Vec<Row>, reset: Option<f64>) {
         self.dirty = false;
         let Some(tx) = &self.tx else { return };
@@ -333,9 +359,7 @@ impl Keeps {
         // stays a week after expiry: one per source and week).
         let now = now_s();
         let tickets: std::collections::HashSet<Hash> = keeps.iter().map(|r| r.ticket).collect();
-        self.keys.retain(|_, k| {
-            tickets.contains(&k.keep) && k.expires.max(k.made + 7.0 * 86_400.0) > now
-        });
+        Self::prune_keys(&mut self.keys, &tickets, now);
         let mut keys: Vec<(Hash, Key)> = self.keys.iter().map(|(h, k)| (*h, k.clone())).collect();
         keys.sort_by_key(|k| k.0);
         let old = crate::score::week_of(self.clock.day(now_s())) - 7 * POT_WEEKS;
@@ -606,8 +630,8 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
         .map_or(0.0, |r| r.get(0));
     let keys = c
         .query(
-            "SELECT key, keep, origin, uses, extract(epoch FROM made)::float8, extract(epoch FROM expires)::float8 \
-             FROM game.keep_keys WHERE region = $1",
+            "SELECT key, keep, origin, uses, extract(epoch FROM made)::float8, extract(epoch FROM expires)::float8, \
+             spot, batch, label FROM game.keep_keys WHERE region = $1",
             &[&region],
         )?
         .into_iter()
@@ -615,7 +639,13 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
             Some((
                 h(r.get(0))?,
                 Key {
-                    keep: h(r.get(1))?,
+                    keep: match r.get::<_, Option<Vec<u8>>>(1) {
+                        Some(k) => h(k)?,
+                        None => Hash::default(),
+                    },
+                    spot: r.get(6),
+                    batch: r.get(7),
+                    label: r.get(8),
                     origin: origin(r.get(2)),
                     uses: r.get::<_, i32>(3).max(0) as u32,
                     made: r.get(4),
@@ -693,16 +723,24 @@ fn write(c: &mut postgres::Client, region: &str, s: &Snapshot) -> Result<(), pos
     )?;
     t.execute("DELETE FROM game.keep_keys WHERE region = $1", &[&region])?;
     let kk: Vec<&[u8]> = s.keys.iter().map(|k| &k.0[..]).collect();
-    let kp: Vec<&[u8]> = s.keys.iter().map(|k| &k.1.keep[..]).collect();
+    let kp: Vec<Option<&[u8]>> = s
+        .keys
+        .iter()
+        .map(|k| k.1.spot.is_none().then_some(&k.1.keep[..]))
+        .collect();
+    let kn: Vec<Option<i64>> = s.keys.iter().map(|k| k.1.spot).collect();
+    let kb: Vec<Option<&str>> = s.keys.iter().map(|k| k.1.batch.as_deref()).collect();
+    let kl: Vec<Option<&str>> = s.keys.iter().map(|k| k.1.label.as_deref()).collect();
     let ko: Vec<&str> = s.keys.iter().map(|k| k.1.origin).collect();
     let ku: Vec<i32> = s.keys.iter().map(|k| k.1.uses as i32).collect();
     let km: Vec<f64> = s.keys.iter().map(|k| k.1.made).collect();
     let ke: Vec<f64> = s.keys.iter().map(|k| k.1.expires).collect();
     t.execute(
-        "INSERT INTO game.keep_keys (key, region, keep, origin, uses, made, expires) \
-         SELECT k, $1, p, o, u, to_timestamp(m), to_timestamp(e) \
-         FROM unnest($2::bytea[], $3::bytea[], $4::text[], $5::int4[], $6::float8[], $7::float8[]) AS x(k, p, o, u, m, e)",
-        &[&region, &kk, &kp, &ko, &ku, &km, &ke],
+        "INSERT INTO game.keep_keys (key, region, keep, origin, uses, made, expires, spot, batch, label) \
+         SELECT k, $1, p, o, u, to_timestamp(m), to_timestamp(e), n, b, l \
+         FROM unnest($2::bytea[], $3::bytea[], $4::text[], $5::int4[], $6::float8[], $7::float8[], \
+                     $8::int8[], $9::text[], $10::text[]) AS x(k, p, o, u, m, e, n, b, l)",
+        &[&region, &kk, &kp, &ko, &ku, &km, &ke, &kn, &kb, &kl],
     )?;
     if let Some(at) = s.reset {
         t.execute(
@@ -796,6 +834,7 @@ mod tests {
                 uses: 2,
                 made: now,
                 expires: now + 100.0,
+                ..Default::default()
             },
         );
         assert!(k.made_since(&src, "gift", now - 1.0));
@@ -809,6 +848,31 @@ mod tests {
         assert_eq!(k.keys[&kh].uses, 0);
         k.keys.get_mut(&kh).unwrap().uses = 1;
         assert!(k.key(&kh, now + 101.0).is_none(), "expired");
+    }
+
+    #[test]
+    fn city_keys_outlive_the_sources_check() {
+        let mut k = Keeps::new(None, "test".into(), true);
+        let now = 1_000_000.0;
+        let key = |spot: Option<i64>, keep: Hash| Key {
+            keep,
+            spot,
+            origin: if spot.is_some() { "city" } else { "gift" },
+            uses: 3,
+            made: now,
+            expires: now + 86_400.0,
+            ..Default::default()
+        };
+        let (_, city, _) = new_ticket();
+        let (_, gone, _) = new_ticket();
+        let (_, src, _) = new_ticket();
+        k.add_key(city, key(Some(7), Hash::default()));
+        k.add_key(gone, key(None, new_ticket().1));
+        Keeps::prune_keys(&mut k.keys, &[src].into_iter().collect(), now);
+        assert!(k.keys.contains_key(&city), "no source behind a city key");
+        assert!(!k.keys.contains_key(&gone), "its source is gone");
+        Keeps::prune_keys(&mut k.keys, &Default::default(), now + 9.0 * 86_400.0);
+        assert!(k.keys.is_empty(), "expired");
     }
 
     fn rules() -> Rules {

@@ -7,19 +7,21 @@ import { t } from "./i18n";
 import { $, toast } from "./page";
 import { KEYS, loadJson, saveJson } from "./store";
 
-/** `origin`: given by someone (default), or found (Funkenflug, Flaschenpost). */
-export type Gift = { region: string; key: string; at: number; origin?: "gift" | "ember" | "bottle" };
+/** `origin`: given by someone (default), found (Funkenflug, Flaschenpost),
+ *  or from the city of that region (editor, `#gift=<region>.<key>.city`). */
+export type Gift = { region: string; key: string; at: number; origin?: "gift" | "ember" | "bottle" | "city" };
 
 /** Keys kept at most (the oldest goes). */
 const MAX = 3;
-/** The server's `gift_days`; older ones are dropped here too. */
+/** The server's `gift_days`; older ones are dropped here too (city keys: up to 90 days). */
 const KEEP_MS = 14 * 86_400_000;
+const CITY_MS = 90 * 86_400_000;
 
 export function gifts(): Gift[] {
   const v = loadJson<Gift[]>(KEYS.gifts);
   const now = Date.now();
   return (Array.isArray(v) ? v : []).filter(
-    (g) => typeof g?.region === "string" && /^[0-9a-f]{32}$/.test(g?.key ?? "") && now - g.at < KEEP_MS,
+    (g) => typeof g?.region === "string" && /^[0-9a-f]{32}$/.test(g?.key ?? "") && now - g.at < (g.origin === "city" ? CITY_MS : KEEP_MS),
   );
 }
 
@@ -36,10 +38,10 @@ export function dropGift(key: string) {
 /** A key just received, for the toast once the app runs. */
 let arrived: Gift | null = null;
 {
-  const m = location.hash.match(/[#&]gift=([a-z0-9-]+)\.([0-9a-f]{32})/);
+  const m = location.hash.match(/[#&]gift=([a-z0-9-]+)\.([0-9a-f]{32})(\.city)?/);
   if (m) {
     history.replaceState(history.state, "", location.pathname + location.search);
-    const g = { region: m[1], key: m[2], at: Date.now() };
+    const g: Gift = { region: m[1], key: m[2], at: Date.now(), ...(m[3] ? { origin: "city" as const } : {}) };
     addGift(g);
     arrived = g;
   }

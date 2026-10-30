@@ -310,6 +310,8 @@ export const pt: Dict = {
   "gift.soon": "Esta fonte já deu uma chave esta semana",
   "gift.got": "Você recebeu uma chave para uma fonte em {region}. Ligue-a a uma fonte permanente sua («Ligar …»).",
   "gift.elsewhere": "Você recebeu uma chave para {region}; daqui ainda não funciona.",
+  "city.label": "chave da cidade",
+  "city.got": "Uma chave da cidade de {region}: ligue-a a uma fonte permanente sua (“Ligar …”) e dali conquiste cruzamentos em {region}.",
   "found.ember": "Voo de faíscas! O vento leva uma faísca até {region}: uma chave para uma Brasa de lá. Ligue-a a uma Brasa sua («Ligar …»).",
   "found.bottle": "Mensagem na garrafa! O rio leva uma garrafa até {region}: uma chave para um Gelo de lá. Ligue-a a um Gelo seu («Ligar …»).",
   "found.label.ember": "voo de faíscas",

@@ -310,7 +310,7 @@ export function setupPerm(
           const r = rs.find((x) => x.slug === g.region && !x.url);
           if (!r) continue;
           const btn = document.createElement("button");
-          btn.textContent = `${r.name} · ${t(g.origin === "ember" ? "found.label.ember" : g.origin === "bottle" ? "found.label.bottle" : "gift.label")}`;
+          btn.textContent = `${r.name} · ${t(g.origin === "ember" ? "found.label.ember" : g.origin === "bottle" ? "found.label.bottle" : g.origin === "city" ? "city.label" : "gift.label")}`;
           btn.onclick = () => {
             box.hidden = true;
             if (a.far) setFarThere(a.far.region, a.far.key, null);
@@ -501,7 +501,7 @@ export function setupPerm(
   if (came)
     void listRegions().then((rs) => {
       const r = rs.find((x) => x.slug === came.region);
-      toast(t(r && !r.url ? "gift.got" : "gift.elsewhere", { region: r?.name ?? came.region }), 9000);
+      toast(t(r && !r.url ? (came.origin === "city" ? "city.got" : "gift.got") : "gift.elsewhere", { region: r?.name ?? came.region }), 9000);
     });
 
   return {

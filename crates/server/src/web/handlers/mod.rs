@@ -186,6 +186,7 @@ pub fn inbox(
             FromWeb::FarMint(m) => far::mint(g, &c, m),
             FromWeb::FarMinted(m) => far::minted(g, m),
             FromWeb::FarKey(k) => g.keeps.add_key(k.hash, k.key),
+            FromWeb::FarKeysGone(b) => g.keeps.drop_batch(&b),
             FromWeb::Link {
                 conn,
                 node,

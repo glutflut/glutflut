@@ -311,6 +311,8 @@ export const es: Dict = {
   "gift.soon": "Esta fuente ya dio una llave esta semana",
   "gift.got": "Recibiste una llave a una fuente en {region}. Enlázala con una fuente permanente propia («Enlazar …»).",
   "gift.elsewhere": "Recibiste una llave para {region}; desde aquí todavía no funciona.",
+  "city.label": "llave de la ciudad",
+  "city.got": "Una llave de la ciudad de {region}: enlázala con una fuente permanente tuya («Enlazar …») y desde allí conquistarás cruces en {region}.",
   "found.ember": "¡Chispas al viento! El viento lleva una chispa hasta {region}: una llave a una brasa de allá. Enlázala con una brasa tuya («Enlazar …»).",
   "found.bottle": "¡Mensaje en una botella! El río lleva una botella hasta {region}: una llave a un hielo de allá. Enlázala con un hielo tuyo («Enlazar …»).",
   "found.label.ember": "chispas al viento",

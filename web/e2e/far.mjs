@@ -8,6 +8,7 @@
 // Usage: node e2e/far.mjs <x-slug> <y-slug> [base, default http://127.0.0.1:5080]
 // FAR_Z=<slug>: also a third, not yet loaded region of the same cell (sleeping).
 // FAR_EVICT=<slug> (server: ELEMENTS_MAX_REGIONS=2): Y sleeps with its sources, a claim wakes it.
+// FAR_CITY=<key>: also claim through that city key into Y.
 // FAR_WATCH=<s>: after the own far claim, print its build-up in Y every 10 s (fresh connections).
 import { answerPow } from "./pow.mjs";
 
@@ -32,6 +33,15 @@ async function nodes(slug) {
     await sleep(1000);
   }
   throw new Error(`region ${slug} did not load`);
+}
+
+/** Does the player with `token` see the source at `node` in Y as theirs? */
+async function ownIn(token, node) {
+  const w = await new Player("own@Y", Y, token).open();
+  await sleep(2000);
+  const r = w.msgs.flatMap((m) => (m.t === "sources" ? m.items : m.t === "sourcesdiff" ? m.set : [])).filter((r) => r[0] === node).at(-1);
+  w.close();
+  return r?.[4] === true;
 }
 
 class Player {
@@ -139,6 +149,7 @@ px.send({ t: "claim", node: 0, via: a.ticket, far });
 const cl = await px.next("claim");
 check((cl.ok && Array.isArray(cl.far)) || cl.reason === "linked", "claim through own far link", cl.ok ? `+${cl.points} at ${cl.far}` : cl.reason);
 check(!cl.ok || (Array.isArray(cl.near) && cl.near.length > 0 && Array.isArray(cl.from)), "answer carries the place and its source", cl.ok ? `${cl.near?.length} junctions, ${cl.streets?.length} streets` : "");
+if (cl.ok) check(await ownIn(px.token, cl.node), "the far claim is the player's own in Y (white ring)");
 // FAR_WATCH: the server's build-up of the new source in Y.
 if (cl.ok && process.env.FAR_WATCH) {
   const t0 = Date.now();
@@ -197,6 +208,15 @@ const g1 = await qx.next("claim");
 // "linked": the key was accepted, there's just nothing to take around B now.
 const through = (m) => m.ok || m.reason === "linked";
 check(through(g1), "claim through a gift key", g1.ok ? `+${g1.points}` : g1.reason);
+// Q was never in Y: the claim becomes theirs once they come.
+if (g1.ok) check(await ownIn(qx.token, g1.node), "a newcomer's far claim is theirs on arrival in Y");
+// FAR_CITY=<key>: a city key to a junction of Y (editor_keys.rs), either side.
+if (process.env.FAR_CITY) {
+  await sleep(1200);
+  qx.send({ t: "claim", node: 0, via: a2.ticket, far: { region: Y, key: process.env.FAR_CITY } });
+  const ck = await qx.next("claim");
+  check(through(ck), "claim through a city key", ck.ok ? `+${ck.points} from ${ck.from}` : ck.reason);
+}
 // Y asleep with its permanent sources (FAR_EVICT: a third region; server with
 // ELEMENTS_MAX_REGIONS=2, so loading it puts Y to sleep): a claim wakes Y
 // and must find the source (not `nokey` before Y has it back on the map).

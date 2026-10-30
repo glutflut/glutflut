@@ -310,6 +310,8 @@ export const en: Dict = {
   "gift.soon": "This source already gave a key this week",
   "gift.got": "Got a key to a source in {region}. Link it with one of your own permanent sources (“Link …”).",
   "gift.elsewhere": "Got a key for {region}; it doesn't work from here yet.",
+  "city.label": "city key",
+  "city.got": "A key from the city of {region}: link it with one of your permanent sources (“Link …”), then you claim junctions in {region} from there.",
   "found.ember": "Flying sparks! The wind carries a spark to {region}: a key to an ember there. Link it with one of your own embers (“Link …”).",
   "found.bottle": "Message in a bottle! The river carries a bottle to {region}: a key to an ice source there. Link it with one of your own (“Link …”).",
   "found.label.ember": "flying sparks",
