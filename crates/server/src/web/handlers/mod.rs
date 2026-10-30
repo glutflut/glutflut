@@ -5,6 +5,7 @@
 mod ability;
 mod account;
 mod claim;
+mod far;
 mod info;
 mod keep;
 mod presence;
@@ -65,6 +66,8 @@ pub struct Game<'w, 's> {
     live_sun: Option<Res<'w, crate::live_rain::LiveSun>>,
     tide: Option<Res<'w, crate::tide::LiveTide>>,
     tunnels: Local<'s, Tunnels>,
+    /// Asks into other regions waiting for their answer.
+    pending: Local<'s, far::Pending>,
     supply: Res<'w, crate::hinterland::Supply>,
     keeps: ResMut<'w, crate::keep::Keeps>,
     marble: ResMut<'w, crate::marble::Claims>,
@@ -123,7 +126,15 @@ pub fn inbox(
                 acc,
             } => session::pos(g, &c, conn, lat, lon, speed, acc),
             FromWeb::Bye { conn } => session::bye(g, &c, conn),
-            FromWeb::Claim { conn, node, via } => claim::claim(g, &c, conn, node, via.as_deref()),
+            FromWeb::Claim {
+                conn,
+                node: _,
+                via: Some(via),
+                far: Some(far),
+            } => far::claim(g, &c, conn, &via, far),
+            FromWeb::Claim {
+                conn, node, via, ..
+            } => claim::claim(g, &c, conn, node, via.as_deref()),
             FromWeb::Keep { conn, node, ticket } => keep::keep(g, &c, conn, node, ticket),
             FromWeb::Redeem { conn, ticket } => keep::redeem(g, &c, conn, &ticket),
             FromWeb::Release { conn, tickets } => keep::release(g, &c, conn, &tickets),
@@ -163,7 +174,14 @@ pub fn inbox(
                 ticket,
                 motto,
             } => keep::motto(g, &c, conn, node, &ticket, motto.as_deref()),
-            FromWeb::Peek { conn, via } => claim::peek(g, &c, conn, &via),
+            FromWeb::Peek {
+                conn,
+                via,
+                far: Some(far),
+            } => far::peek(g, &c, conn, via, far),
+            FromWeb::Peek { conn, via, .. } => claim::peek(g, &c, conn, &via),
+            FromWeb::FarAsk(a) => far::ask(g, &c, a),
+            FromWeb::FarAnswer(a) => far::answer(g, &c, a),
             FromWeb::Link {
                 conn,
                 node,
@@ -199,4 +217,5 @@ pub fn inbox(
             }
         }
     }
+    far::expire(g, &c);
 }

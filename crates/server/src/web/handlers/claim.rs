@@ -29,7 +29,7 @@ fn tunnel_key(conn: u64, slot: Option<u32>) -> u64 {
 }
 
 /// A street neighbour of `node` isn't `faction`'s (`[reinforce]`).
-fn at_front(
+pub(super) fn at_front(
     by_id: &crate::sim::NodeById,
     sim: Option<&crate::sim::ElementSim>,
     nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
@@ -141,7 +141,7 @@ fn link_partner(
 
 /// A claim's strength and reach for this player: level, first day, armed
 /// reach, weaker while the identity is new.
-fn power_of(
+pub(super) fn power_of(
     scores: &crate::score::Scores,
     abilities: &Query<&mut Abilities>,
     rules: &elements_shared::rules::Rules,
@@ -172,7 +172,10 @@ fn power_of(
 }
 
 /// `power` through a link: `link_factor` of it.
-fn link_power(power: actions::Power, rules: &elements_shared::rules::Rules) -> actions::Power {
+pub(super) fn link_power(
+    power: actions::Power,
+    rules: &elements_shared::rules::Rules,
+) -> actions::Power {
     actions::Power {
         mult: power.mult * rules.keep.link_factor,
         ..power
@@ -183,7 +186,7 @@ fn link_power(power: actions::Power, rules: &elements_shared::rules::Rules) -> a
 /// B itself, nor `faction`'s): the nearest one `power` can take, else the
 /// nearest permanent source it wears down. (id, lon, lat).
 #[allow(clippy::too_many_arguments)]
-fn link_target(
+pub(super) fn link_target(
     nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
     sources: &Query<(&GeoNode, &mut crate::sim::ElementSource)>,
     node_by_id: &crate::sim::NodeById,
@@ -304,6 +307,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
                 build: 0.0,
                 doused: false,
                 anchor: false,
+                far: None,
             },
         );
         return;
@@ -330,6 +334,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
                 build: 0.0,
                 doused: false,
                 anchor: false,
+                far: None,
             },
         );
     };
@@ -696,6 +701,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             build: res.map_or(0.0, |c| c.ramp),
             doused: res.is_ok_and(|c| c.doused),
             anchor: res.is_ok_and(|c| c.anchor),
+            far: None,
         },
     );
 }

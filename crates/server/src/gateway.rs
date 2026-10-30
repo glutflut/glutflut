@@ -108,6 +108,7 @@ pub enum FromWeb {
         conn: u64,
         node: i64,
         via: Option<String>,
+        far: Option<crate::protocol::Far>,
     },
     Rename {
         conn: u64,
@@ -175,7 +176,12 @@ pub enum FromWeb {
     Peek {
         conn: u64,
         via: String,
+        far: Option<crate::protocol::Far>,
     },
+    /// From another region: claim (or look) through a link that ends here.
+    FarAsk(crate::remote::Ask),
+    /// From another region: its answer to a `FarAsk` of this one.
+    FarAnswer(crate::remote::Answer),
     /// Link two own permanent sources, or unlink one.
     Link {
         conn: u64,
@@ -1429,7 +1435,12 @@ async fn handle_socket(
                 speed: spd,
                 acc,
             },
-            ClientMsg::Claim { node, via } => FromWeb::Claim { conn, node, via },
+            ClientMsg::Claim { node, via, far } => FromWeb::Claim {
+                conn,
+                node,
+                via,
+                far,
+            },
             ClientMsg::Keep { node, ticket } => FromWeb::Keep { conn, node, ticket },
             ClientMsg::Redeem { ticket } => FromWeb::Redeem { conn, ticket },
             ClientMsg::Release { mut tickets } => {
@@ -1512,7 +1523,7 @@ async fn handle_socket(
                 ticket,
                 motto,
             },
-            ClientMsg::Peek { via } => FromWeb::Peek { conn, via },
+            ClientMsg::Peek { via, far } => FromWeb::Peek { conn, via, far },
             ClientMsg::Link {
                 node,
                 ticket,

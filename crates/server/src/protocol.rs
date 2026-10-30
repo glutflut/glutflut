@@ -108,7 +108,7 @@ pub enum ServerMsg<'a> {
         ok: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(
-            type = "\"range\" | \"cooldown\" | \"unknown\" | \"moving\" | \"own\" | \"strong\" | \"supplied\" | \"worn\" | \"linked\"",
+            type = "\"range\" | \"cooldown\" | \"unknown\" | \"moving\" | \"own\" | \"strong\" | \"supplied\" | \"worn\" | \"linked\" | \"linkfar\" | \"linkdown\" | \"nokey\"",
             optional
         )]
         reason: Option<&'static str>,
@@ -126,6 +126,10 @@ pub enum ServerMsg<'a> {
         #[serde(skip_serializing_if = "std::ops::Not::not")]
         #[ts(as = "Option<bool>", optional)]
         anchor: bool,
+        /// Through a link into another region: where it landed there (lon, lat).
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        far: Option<[f64; 2]>,
     },
     Rate {
         ok: bool,
@@ -548,6 +552,14 @@ pub struct PowSolution {
     pub n: String,
 }
 
+/// The far end of a link in another region: the region and a key to the
+/// permanent source there (its ticket); the server passes the key on, never stores it.
+#[derive(Deserialize, TS, Clone, Debug)]
+pub struct Far {
+    pub region: String,
+    pub key: String,
+}
+
 /// What the app sends.
 #[derive(Deserialize, TS)]
 #[serde(tag = "t", rename_all = "lowercase")]
@@ -605,6 +617,10 @@ pub enum ClientMsg {
         #[serde(default)]
         #[ts(optional = nullable)]
         via: Option<String>,
+        /// The link of `via` goes into another region.
+        #[serde(default)]
+        #[ts(optional = nullable)]
+        far: Option<Far>,
     },
     /// Make an own claim permanent, or top up a permanent source (with its ticket).
     Keep {
@@ -684,6 +700,9 @@ pub enum ClientMsg {
     /// would take now (the app asks while standing at it).
     Peek {
         via: String,
+        #[serde(default)]
+        #[ts(optional = nullable)]
+        far: Option<Far>,
     },
     /// Link the own permanent source at `node` with the one at `to` (both
     /// tickets), or unlink it (no `to`).
@@ -724,6 +743,7 @@ fn typescript() -> String {
     let decls = decls![
         ServerMsg<'static>,
         ClientMsg,
+        Far,
         Faction,
         AbilityName,
         SourceKind,

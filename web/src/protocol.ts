@@ -14,7 +14,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
   | { "t": "cheers", fire: number, water: number, burst: [number, number], }
-  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, }
+  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked" | "linkfar" | "linkdown" | "nokey", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, far?: [number, number], }
   | { "t": "rate", ok: boolean, reason?: string, points: number, }
   | { "t": "hotspots", items: Array<HotspotInfo>, }
   | { "t": "score" } & Mine
@@ -58,7 +58,7 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "view", tiles: Array<[number, number]>, }
   | { "t": "overview", on: boolean, }
   | { "t": "pos", lat: number, lon: number, spd?: number | null, acc?: number | null, }
-  | { "t": "claim", node: number, via?: string | null, }
+  | { "t": "claim", node: number, via?: string | null, far?: Far | null, }
   | { "t": "keep", node: number, ticket?: string | null, }
   | { "t": "redeem", ticket: string, }
   | { "t": "release", tickets: Array<string>, }
@@ -76,11 +76,17 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "cheer", side: Faction, }
   | { "t": "level", level: number, }
   | { "t": "motto", node: number, ticket: string, motto?: string | null, }
-  | { "t": "peek", via: string, }
+  | { "t": "peek", via: string, far?: Far | null, }
   | { "t": "link", node: number, ticket: string, to?: number | null, to_ticket?: string | null, }
   | { "t": "collect", on: boolean, }
   | { "t": "stats", on: boolean, }
   | { "t": "presence", code: string, };
+
+/**
+ * The far end of a link in another region: the region and a key to the
+ * permanent source there (its ticket); the server passes the key on, never stores it.
+ */
+export type Far = { region: string, key: string, };
 
 /**
  * `Faction::as_str`.

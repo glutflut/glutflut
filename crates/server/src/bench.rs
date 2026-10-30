@@ -464,6 +464,7 @@ pub fn run(a: &BenchArgs) -> Result<(), Box<dyn std::error::Error>> {
                             conn: w.conn,
                             node: s.at[w.to].0,
                             via: None,
+                            far: None,
                         });
                     }
                     let came = w.from;

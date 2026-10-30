@@ -48,6 +48,7 @@ mod pow;
 mod protocol;
 mod radar;
 mod regions;
+mod remote;
 mod score;
 mod shards;
 mod siege;
