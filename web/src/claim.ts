@@ -5,6 +5,7 @@ import type { Faction, Net, ServerMsg } from "./net";
 import type { Sound } from "./sound";
 import type { Src } from "./sources";
 import type { Link } from "./perm";
+import type { Far } from "./protocol";
 import { arrow, CLAIM_RADIUS_M, distM, owner } from "./geo";
 import { $, plus, toast } from "./page";
 
@@ -44,10 +45,12 @@ export function setupClaim(d: {
   const rateBtn = $("rate") as HTMLButtonElement;
   // The second button: standing at an own linked permanent source, what a
   // claim through the link would take (the server says, `peek`).
-  let linkTarget: { ticket: string; node: number; ll: [number, number] } | null = null;
-  let peeked = { ticket: "", at: 0 };
+  let linkTarget: { ticket: string; node: number; ll: [number, number]; far?: Far & { name?: string } } | null = null;
+  let peeked: { ticket: string; at: number; far?: Far & { name?: string } } = { ticket: "", at: 0 };
   /** Where the claim just sent through a link goes (the camera shows it when it lands). */
   let flyTo: [number, number] | null = null;
+  /** The region name of the far link just used (for the answer's toast). */
+  let farName = "";
   function drawLink() {
     const faction = d.faction();
     linkBtn.hidden = !linkTarget || !faction;
@@ -63,8 +66,9 @@ export function setupClaim(d: {
       linkTarget = null;
       peeked = { ticket: "", at: 0 };
     } else if (peeked.ticket !== l.ticket || Date.now() - peeked.at > PEEK_EVERY_MS) {
-      peeked = { ticket: l.ticket, at: Date.now() };
-      net.send({ t: "peek", via: l.ticket });
+      const far = l.far && { region: l.far.region, key: l.far.key };
+      peeked = { ticket: l.ticket, at: Date.now(), far: l.far };
+      net.send({ t: "peek", via: l.ticket, ...(far ? { far } : {}) });
     }
     drawLink();
   }
@@ -115,7 +119,8 @@ export function setupClaim(d: {
   linkBtn.onclick = () => {
     if (!linkTarget) return;
     flyTo = linkTarget.ll;
-    send(linkTarget.node, linkTarget.ticket);
+    farName = linkTarget.far?.name ?? "";
+    send(linkTarget.node, linkTarget.ticket, linkTarget.far);
   };
 
   /** Where the last successful claim went (for the video script). */
@@ -123,8 +128,9 @@ export function setupClaim(d: {
   // A claim always gets an answer; without one the connection is renewed and
   // the player is told to tap again (it used to fail silently after sleep).
   let claimWait = 0;
-  function send(node: number, via?: string) {
-    if (!net.send({ t: "claim", node, ...(via ? { via } : {}) })) return toast(t("connection.retry"));
+  function send(node: number, via?: string, far?: Far) {
+    const f = far && { region: far.region, key: far.key };
+    if (!net.send({ t: "claim", node, ...(via ? { via } : {}), ...(f ? { far: f } : {}) })) return toast(t("connection.retry"));
     net.check();
     clearTimeout(claimWait);
     claimWait = window.setTimeout(() => toast(t("connection.retry")), 5_000);
@@ -266,7 +272,10 @@ export function setupClaim(d: {
     /** The server's answer to `peek`: the second button and where it goes. */
     onPeek(m: Extract<ServerMsg, { t: "peek" }>) {
       if (m.via !== peeked.ticket) return;
-      linkTarget = m.node !== undefined && m.lon !== undefined && m.lat !== undefined ? { ticket: m.via, node: m.node, ll: [m.lon, m.lat] } : null;
+      linkTarget =
+        m.node !== undefined && m.lon !== undefined && m.lat !== undefined
+          ? { ticket: m.via, node: m.node, ll: [m.lon, m.lat], far: peeked.far }
+          : null;
       drawLink();
     },
     onRate(m: Extract<ServerMsg, { t: "rate" }>) {
@@ -279,13 +288,14 @@ export function setupClaim(d: {
       // Through a link: show where it landed, and ask again what is left there.
       if (flyTo) {
         // The server picks the junction around B; the peeked one is the fallback.
-        if (m.ok) d.look(nodePos.get(m.node) ?? flyTo);
+        // In another region the map can't go there.
+        if (m.ok && !m.far) d.look(nodePos.get(m.node) ?? flyTo);
         flyTo = null;
         linkTarget = null;
         peeked.at = 0;
         drawLink();
       }
-      if (m.ok) lastClaim = nodePos.get(m.node) ?? null;
+      if (m.ok && !m.far) lastClaim = nodePos.get(m.node) ?? null;
       if (m.wait && m.wait > 0.3) {
         const now = Date.now();
         wait = { from: now, until: now + m.wait * 1000, moving: m.reason === "moving" };
@@ -300,18 +310,23 @@ export function setupClaim(d: {
         worn: "claim.worn",
         linked: "claim.linked",
         linkfar: "claim.linkfar",
+        linkdown: "claim.linkdown",
+        nokey: "claim.nokey",
       };
       // On enemy ground a claim builds up first (rule `claim_ramp_s`).
-      const via = d.tunnel.onClaim(m.node, m.ok);
+      // A node of another region means nothing to the map here.
+      const via = !m.far && d.tunnel.onClaim(m.node, m.ok);
       if (m.ok && faction) {
         d.claimed();
         if (m.doused) sound.steam();
         else sound.claim(faction);
         if (m.build && m.build >= 2) sound.building(faction, m.build);
       }
-      d.card.onClaim(m.node);
+      if (!m.far) d.card.onClaim(m.node);
       let msg = m.ok
-        ? via
+        ? m.far
+          ? t("claim.far.ok", { region: farName, plus: plus(m.points) })
+          : via
           ? t("tunnel.ok", { plus: plus(m.points) })
           : m.doused
           ? t(faction === "fire" ? "claim.doused.water" : "claim.doused.fire", { plus: plus(m.points) })

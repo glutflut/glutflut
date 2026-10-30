@@ -11,8 +11,8 @@ import { COLORS } from "./geo";
 import type { Faction, Net, ServerMsg } from "./net";
 import type { MottoItem } from "./protocol";
 import { $, plus } from "./page";
-import { region } from "./region";
-import { loadJson, saveJson } from "./store";
+import { listRegions, region } from "./region";
+import { loadJson, saveJson, type StoreKey } from "./store";
 import { ask } from "./ask";
 import { mottoText, setMottos } from "./mottos";
 
@@ -21,8 +21,11 @@ const REDEEM_EVERY_MS = 10 * 60_000;
 /** The server takes one redeem per player every 20 s. */
 const REDEEM_GAP_MS = 25_000;
 
-/** `link`: the partner's ticket (linked permanent sources, server `[keep] link`). */
-type Stored = { ticket: string; node: number; ll?: [number, number]; link?: string };
+/** `link`: the partner's ticket (linked permanent sources, server `[keep] link`).
+ * `far`: the partner in another region of this server (only this device knows it). */
+type Stored = { ticket: string; node: number; ll?: [number, number]; link?: string; far?: FarEnd };
+/** The far end of a link: its region, its ticket (the key), where it is and the region's name. */
+type FarEnd = { region: string; key: string; ll?: [number, number]; name?: string };
 
 const valid = (v: Stored) => typeof v?.ticket === "string" && typeof v?.node === "number";
 
@@ -35,6 +38,37 @@ function load(): Stored[] {
 
 function save(list: Stored[]) {
   saveJson(KEY(), list.length ? list : null);
+}
+
+const PREFIX = "elements.perm.";
+
+/** This device's permanent sources in the other regions, by region slug. */
+function elsewhere(): Map<string, Stored[]> {
+  const out = new Map<string, Stored[]>();
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      const slug = k?.startsWith(PREFIX) ? k.slice(PREFIX.length) : "";
+      if (!slug || slug === region) continue;
+      const v = loadJson<Stored | Stored[]>(k as StoreKey);
+      const list = (Array.isArray(v) ? v : v ? [v] : []).filter(valid);
+      if (list.length) out.set(slug, list);
+    }
+  } catch {
+    // Storage blocked: no far links.
+  }
+  return out;
+}
+
+/** Set (or with `to` null clear) the far end on a source of region `slug`'s list. */
+function setFarThere(slug: string, ticket: string, to: FarEnd | null) {
+  const key = `${PREFIX}${slug}` as StoreKey;
+  const list = (loadJson<Stored[]>(key) ?? []).filter(valid);
+  const m = list.find((x) => x.ticket === ticket);
+  if (!m) return;
+  if (to) m.far = to;
+  else delete m.far;
+  saveJson(key, list);
 }
 
 /** A source as main.ts knows it (the fields used here). */
@@ -55,7 +89,15 @@ export type PermSrc = {
 export type PermMsg = Extract<ServerMsg, { t: "keep" | "kept" | "released" | "motto" | "link" }>;
 
 /** An own linked permanent source in this city, with where its partner is. */
-export type Link = { ticket: string; node: number; ll: [number, number]; partnerNode: number; partner: [number, number] };
+export type Link = {
+  ticket: string;
+  node: number;
+  ll: [number, number];
+  partnerNode: number;
+  partner: [number, number];
+  /** The partner is in another region (`claim`/`peek` with `far`). */
+  far?: { region: string; key: string; name?: string };
+};
 
 export function setupPerm(
   net: Net,
@@ -132,8 +174,13 @@ export function setupPerm(
     if (!linkOn) return [];
     const out: Link[] = [];
     for (const m of mine) {
-      const p = m.link ? mine.find((x) => x.ticket === m.link) : undefined;
       const a = where(m);
+      if (m.far && a) {
+        const { region: r, key, name, ll } = m.far;
+        out.push({ ticket: m.ticket, node: m.node, ll: a, partnerNode: -1, partner: ll ?? a, far: { region: r, key, name } });
+        continue;
+      }
+      const p = m.link ? mine.find((x) => x.ticket === m.link) : undefined;
       const b = p && where(p);
       if (p && a && b) out.push({ ticket: m.ticket, node: m.node, ll: a, partnerNode: p.node, partner: b });
     }
@@ -144,9 +191,15 @@ export function setupPerm(
   function linkButton(m: Stored): HTMLButtonElement {
     const lb = document.createElement("button");
     lb.className = "ghost link";
-    lb.textContent = m.link ? t("perm.unlink") : t("perm.link");
+    lb.textContent = m.link || m.far ? t("perm.unlink") : t("perm.link");
     lb.onclick = () => {
-      if (m.link) {
+      if (m.far) {
+        // Far links live on this device only: both ends here.
+        setFarThere(m.far.region, m.far.key, null);
+        delete m.far;
+        save(mine);
+        toast(t("perm.link.off"), 6000);
+      } else if (m.link) {
         pendingLink = { a: m, b: null };
         net.send({ t: "link", node: m.node, ticket: m.ticket, to: null });
       } else pickLink(m);
@@ -213,6 +266,25 @@ export function setupPerm(
     $("perm-pick-title").textContent = name("link.pick");
     const list = $("perm-pick-list");
     const others = ranked().filter((r) => r.m.ticket !== a.ticket);
+    // Own sources in the other regions of this server.
+    const far = elsewhere();
+    if (far.size)
+      void listRegions().then((rs) => {
+        const hereName = rs.find((r) => r.slug === region)?.name;
+        for (const r of rs) {
+          const there = far.get(r.slug);
+          if (!there || r.url) continue;
+          there.forEach((b, i) => {
+            const btn = document.createElement("button");
+            btn.textContent = `${r.name} · ${name("one")} ${i + 1}` + (b.far || b.link ? ` · ${t("perm.linked")}` : "");
+            btn.onclick = () => {
+              box.hidden = true;
+              linkFar(a, { slug: r.slug, name: r.name }, b, hereName);
+            };
+            list.append(btn);
+          });
+        }
+      });
     list.replaceChildren(
       ...others.map((r) => {
         const b = document.createElement("button");
@@ -227,6 +299,22 @@ export function setupPerm(
     );
     $("perm-pick-no").onclick = () => (box.hidden = true);
     box.hidden = false;
+  }
+
+  /** Link `a` here with `b` of region `slug` (this device only; the server checks at each claim). */
+  function linkFar(a: Stored, { slug, name: regionName }: { slug: string; name: string }, b: Stored, hereName?: string) {
+    if (a.far) setFarThere(a.far.region, a.far.key, null);
+    if (b.far) {
+      const old = b.far;
+      if (old.region === region) {
+        const x = mine.find((m) => m.ticket === old.key);
+        if (x) delete x.far;
+      } else setFarThere(old.region, old.key, null);
+    }
+    a.far = { region: slug, key: b.ticket, ll: b.ll, name: regionName };
+    save(mine);
+    setFarThere(slug, b.ticket, { region, key: a.ticket, ll: where(a), name: hereName });
+    toast(t("perm.link.set"), 6000);
   }
 
   // Tag lines: the side's, unlocked by level (without levels: those of
@@ -297,7 +385,7 @@ export function setupPerm(
         };
         li.append(b);
         // Linked permanent sources: link with another own one, or unlink.
-        if (linkOn && mine.length >= 2) li.append(" ", linkButton(r.m));
+        if (linkOn && (mine.length >= 2 || elsewhere().size)) li.append(" ", linkButton(r.m));
         // A tag line from level 2 (without levels: always); the city's for everyone.
         if (mottoOpen()) {
           const lab = document.createElement("label");
@@ -323,6 +411,7 @@ export function setupPerm(
     mine = mine.filter((m) => m.ticket !== ticket);
     // Its partner is on its own again.
     for (const m of mine) if (m.link === ticket) delete m.link;
+    if (gone?.far) setFarThere(gone.far.region, gone.far.key, null);
     save(mine);
     drawLinks();
   }
@@ -333,7 +422,7 @@ export function setupPerm(
     links,
     /** The link button for the junction card of an own source, if linking is on. */
     linkControl(node: number): HTMLButtonElement | null {
-      if (!linkOn || mine.length < 2) return null;
+      if (!linkOn || (mine.length < 2 && !elsewhere().size)) return null;
       const m = mine.find((x) => x.node === node);
       return m ? linkButton(m) : null;
     },
