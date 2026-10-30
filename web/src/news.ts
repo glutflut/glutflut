@@ -13,6 +13,68 @@ type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
 
 export const NEWS: Entry[] = [
   {
+    id: "2026-10-30b",
+    rules: true,
+    text: {
+      de: {
+        title: "Neu: Funkenflug und Flaschenpost",
+        items: [
+          "Funkenflug: Eroberst du als Feuer nahe einer Kuppe, fliegt manchmal ein Funke in eine Stadt in der Nähe. Er bringt dir einen Schlüssel zu einer Glut dort.",
+          "Flaschenpost: Eroberst du als Wasser am Ufer eines großen Flusses, treibt manchmal eine Flasche flussabwärts in eine andere Stadt, etwa vom Neckar nach Mannheim oder den Rhein hinunter. Sie bringt dir einen Schlüssel zu einem Eis dort.",
+          "Beides ist selten, höchstens einmal am Tag. Den Schlüssel findest du unter „Verbinden …“ an einer eigenen Quelle: Damit eroberst du dreimal in sieben Tagen rund um die Quelle drüben.",
+        ],
+      },
+      en: {
+        title: "New: flying sparks and messages in a bottle",
+        items: [
+          "Flying sparks: when you claim near a hilltop as fire, a spark sometimes flies to a city nearby. It brings you a key to an ember there.",
+          "Message in a bottle: when you claim on the bank of a big river as water, a bottle sometimes drifts downstream to another city, say from the Neckar to Mannheim or down the Rhine. It brings you a key to an ice source there.",
+          "Both are rare, at most once a day. You find the key under “Link …” at one of your own sources: with it you claim around the source over there three times in seven days.",
+        ],
+      },
+      fr: {
+        title: "Nouveau&nbsp;: envol d’étincelles et bouteille à la mer",
+        items: [
+          "Envol d’étincelles&nbsp;: quand tu conquiers près d’un sommet côté feu, une étincelle s’envole parfois vers une ville proche. Elle t’apporte une clé d’une braise là-bas.",
+          "Bouteille à la mer&nbsp;: quand tu conquiers au bord d’un grand fleuve côté eau, une bouteille descend parfois le courant jusqu’à une autre ville, par exemple du Neckar à Mannheim ou le long du Rhin. Elle t’apporte une clé d’une glace là-bas.",
+          "C’est rare, au plus une fois par jour. Tu trouves la clé sous «&nbsp;Relier …&nbsp;» sur une de tes sources&nbsp;: avec elle, tu conquiers trois fois en sept jours autour de la source là-bas.",
+        ],
+      },
+      es: {
+        title: "Nuevo: chispas al viento y mensaje en una botella",
+        items: [
+          "Chispas al viento: si conquistas cerca de una colina como fuego, a veces una chispa vuela a una ciudad cercana. Te trae una llave a una brasa de allá.",
+          "Mensaje en una botella: si conquistas en la orilla de un gran río como agua, a veces una botella baja con la corriente hasta otra ciudad, por ejemplo del Neckar a Mannheim o Rin abajo. Te trae una llave a un hielo de allá.",
+          "Las dos cosas son raras, como mucho una vez al día. La llave aparece en «Enlazar …» en una fuente tuya: con ella conquistas tres veces en siete días alrededor de la fuente de allá.",
+        ],
+      },
+      pl: {
+        title: "Nowość: lot iskier i butelka z listem",
+        items: [
+          "Lot iskier: gdy jako ogień zdobywasz blisko wzgórza, iskra czasem leci do pobliskiego miasta. Przynosi ci klucz do tamtejszego żaru.",
+          "Butelka z listem: gdy jako woda zdobywasz nad brzegiem dużej rzeki, butelka czasem płynie z prądem do innego miasta, np. Neckarem do Mannheim albo w dół Renu. Przynosi ci klucz do tamtejszego lodu.",
+          "Jedno i drugie zdarza się rzadko, najwyżej raz dziennie. Klucz znajdziesz pod „Połącz …” przy własnym źródle: z nim zdobywasz trzy razy w ciągu siedmiu dni wokół tamtego źródła.",
+        ],
+      },
+      it: {
+        title: "Novità: volo di scintille e messaggio in bottiglia",
+        items: [
+          "Volo di scintille: se conquisti vicino a un’altura come fuoco, a volte una scintilla vola in una città vicina. Ti porta una chiave per una Brace laggiù.",
+          "Messaggio in bottiglia: se conquisti sulla riva di un grande fiume come acqua, a volte una bottiglia scende con la corrente fino a un’altra città, per esempio dal Neckar a Mannheim o giù per il Reno. Ti porta una chiave per un Ghiaccio laggiù.",
+          "Succede di rado, al massimo una volta al giorno. Trovi la chiave sotto «Collega …» su una tua sorgente: con essa conquisti tre volte in sette giorni intorno alla sorgente laggiù.",
+        ],
+      },
+      pt: {
+        title: "Novo: voo de faíscas e mensagem na garrafa",
+        items: [
+          "Voo de faíscas: quando você conquista perto de um morro como fogo, às vezes uma faísca voa para uma cidade próxima. Ela traz uma chave para uma Brasa de lá.",
+          "Mensagem na garrafa: quando você conquista na margem de um grande rio como água, às vezes uma garrafa desce a correnteza até outra cidade, por exemplo do Neckar para Mannheim ou Reno abaixo. Ela traz uma chave para um Gelo de lá.",
+          "As duas coisas são raras, no máximo uma vez por dia. A chave aparece em «Ligar …» numa fonte sua: com ela você conquista três vezes em sete dias ao redor da fonte de lá.",
+        ],
+      },
+    },
+  },
+  {
     id: "2026-10-30",
     rules: true,
     text: {
