@@ -294,6 +294,7 @@ export const de = {
   "perm.strength": "{p} %",
   "perm.weakest": "schwächste",
   "claim.link": "Drüben erobern",
+  "claim.link.busy": "Drüben: läuft …",
   "claim.linked": "Um die verbundene Quelle ist gerade nichts zu holen",
   "claim.linkfar": "Stell dich näher an deine verbundene Quelle",
   "claim.linkdown": "Drüben ist gerade nicht erreichbar, gleich noch mal",

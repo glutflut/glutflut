@@ -64,6 +64,8 @@ export function setupClaim(d: {
   let peeked: { ticket: string; at: number; far?: Far & { name?: string } } = { ticket: "", at: 0 };
   /** Where the claim just sent through a link goes (the camera shows it when it lands). */
   let flyTo: [number, number] | null = null;
+  /** A claim through a link is on its way (a far region may wake first): the button waits. */
+  let linkBusy = 0;
   /** The region name of the far link just used (for the answer's toast). */
   let farName = "";
   function drawLink() {
@@ -72,8 +74,8 @@ export function setupClaim(d: {
     linkBtn.classList.toggle("idle", !linkTarget);
     linkBtn.className = faction ?? "";
     linkBtn.classList.toggle("idle", !linkTarget);
-    linkBtn.textContent = t("claim.link");
-    linkBtn.disabled = !!wait;
+    linkBtn.textContent = linkBusy ? t("claim.link.busy") : t("claim.link");
+    linkBtn.disabled = !!wait || !!linkBusy;
   }
   function peek() {
     const me = d.me();
@@ -122,7 +124,7 @@ export function setupClaim(d: {
       claimBtn.textContent = label;
     }
     claimBtn.disabled = !(faction && me) || !!wait;
-    linkBtn.disabled = !!wait;
+    linkBtn.disabled = !!wait || !!linkBusy;
   };
   setInterval(() => wait && drawWait(), 200);
   const update = () => {
@@ -141,6 +143,16 @@ export function setupClaim(d: {
     }
     flyTo = linkTarget.ll;
     farName = linkTarget.far?.name ?? "";
+    // Until the answer (or the app's own timeout below) the button waits.
+    clearTimeout(linkBusy);
+    linkBusy = window.setTimeout(
+      () => {
+        linkBusy = 0;
+        drawLink();
+      },
+      linkTarget.far ? 95_000 : 6_000,
+    );
+    drawLink();
     send(linkTarget.node, linkTarget.ticket, linkTarget.far);
   };
 
@@ -318,6 +330,8 @@ export function setupClaim(d: {
       const faction = d.faction();
       clearTimeout(claimWait);
       clearTimeout(waking);
+      clearTimeout(linkBusy);
+      linkBusy = 0;
       // Through a link: show where it landed, and ask again what is left there.
       if (flyTo) {
         // The server picks the junction around B; the peeked one is the fallback.

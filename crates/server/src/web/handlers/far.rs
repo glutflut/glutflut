@@ -23,9 +23,10 @@ const WAIT_S: f64 = 3.0;
 /// A claim into a sleeping region waits for it to load (Berlin: ~45 s).
 const WAKE_WAIT_S: f64 = 90.0;
 
-/// Asks of this region waiting for Y, by id.
+/// Asks of this region waiting for Y, by id; and (as Y) asks that came
+/// before the permanent sources were back on the map, for the next frame.
 #[derive(Default)]
-pub struct Pending(HashMap<u64, Waiting>);
+pub struct Pending(HashMap<u64, Waiting>, Vec<Ask>);
 
 struct Waiting {
     conn: u64,
@@ -104,6 +105,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
             factor: c.rules.keep.link_factor,
             newcomer: power.newcomer,
             look,
+            tries: 0,
         }),
     );
     if sent {
@@ -191,6 +193,15 @@ pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: String, far: Far) {
 /// look) around it with the smaller link factor of both regions.
 pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
     let rules = c.rules;
+    // Just woken: the permanent sources come onto the map after this frame's
+    // inbox; take it up next frame rather than answer `nokey`.
+    if !game.keeps.restored() && a.tries < 100 {
+        game.pending.1.push(Ask {
+            tries: a.tries + 1,
+            ..a
+        });
+        return;
+    }
     let mut ans = Answer {
         id: a.id,
         ..Default::default()
@@ -207,6 +218,14 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         Some(g) => game.keeps.key(&g, c.now).map(|k| k.keep),
         None => hk,
     };
+    debug!(
+        tries = a.tries,
+        restored = game.keeps.restored(),
+        keeps = game.keep_info.iter().count(),
+        gift = gift.is_some(),
+        key_ok = keep.is_some(),
+        "far ask"
+    );
     let b = keep
         .and_then(|hb| game.keep_info.iter().find(|(_, k)| k.ticket == hb))
         .and_then(|(eb, _)| game.sources.get(eb).ok())
@@ -417,6 +436,13 @@ pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
             far: ans.at,
         },
     );
+}
+
+/// Y: asks held back last frame (sources not yet on the map) come up again.
+pub(super) fn later(game: &mut Game, c: &Ctx) {
+    for a in std::mem::take(&mut game.pending.1) {
+        ask(game, c, a);
+    }
 }
 
 /// X: asks Y never answered: `linkdown` (a claim gets its wait back).

@@ -7,6 +7,7 @@
 //   ELEMENTS_RULES_OVERRIDE='claim_cooldown_s=1'
 // Usage: node e2e/far.mjs <x-slug> <y-slug> [base, default http://127.0.0.1:5080]
 // FAR_Z=<slug>: also a third, not yet loaded region of the same cell (sleeping).
+// FAR_EVICT=<slug> (server: ELEMENTS_MAX_REGIONS=2): Y sleeps with its sources, a claim wakes it.
 import { answerPow } from "./pow.mjs";
 
 const [X, Y, BASE = "http://127.0.0.1:5080"] = process.argv.slice(2);
@@ -176,7 +177,26 @@ await sleep(1200);
 const gf = { region: Y, key: gift.key };
 qx.send({ t: "claim", node: 0, via: a2.ticket, far: gf });
 const g1 = await qx.next("claim");
-check(g1.ok, "claim through a gift key", g1.ok ? `+${g1.points}` : g1.reason);
+// "linked": the key was accepted, there's just nothing to take around B now.
+const through = (m) => m.ok || m.reason === "linked";
+check(through(g1), "claim through a gift key", g1.ok ? `+${g1.points}` : g1.reason);
+// Y asleep with its permanent sources (FAR_EVICT: a third region; server with
+// ELEMENTS_MAX_REGIONS=2, so loading it puts Y to sleep): a claim wakes Y
+// and must find the source (not `nokey` before Y has it back on the map).
+if (process.env.FAR_EVICT) {
+  await nodes(process.env.FAR_EVICT);
+  let slept = false;
+  for (let i = 0; i < 60 && !slept; i++) {
+    await sleep(1500);
+    qx.send({ t: "peek", via: a2.ticket, far: gf });
+    slept = (await qx.next("peek")).reason === "asleep";
+  }
+  check(slept, `${Y} asleep after loading ${process.env.FAR_EVICT}`);
+  const t0 = Date.now();
+  qx.send({ t: "claim", node: 0, via: a2.ticket, far: gf });
+  const w = await qx.next("claim", () => true, 100_000);
+  check(through(w), "claim wakes Y and goes through its source (not nokey)", `${w.ok ? `+${w.points}` : w.reason} after ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+}
 qx.close();
 
 console.log(failed ? `${failed} failed` : "all ok");

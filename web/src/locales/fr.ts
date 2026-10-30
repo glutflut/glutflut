@@ -295,6 +295,7 @@ export const fr: Dict = {
   "perm.strength": "{p} %",
   "perm.weakest": "la plus faible",
   "claim.link": "Conquérir là-bas",
+  "claim.link.busy": "Là-bas : en cours …",
   "claim.linked": "Rien à prendre autour de la source reliée pour l’instant",
   "claim.linkfar": "Approche-toi de ta source reliée",
   "claim.linkdown": "L’autre côté est injoignable pour l’instant, réessaie bientôt",

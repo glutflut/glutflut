@@ -218,5 +218,6 @@ pub fn inbox(
             }
         }
     }
+    far::later(g, &c);
     far::expire(g, &c);
 }

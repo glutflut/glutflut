@@ -279,6 +279,11 @@ impl Keeps {
         Some(p.0)
     }
 
+    /// Loaded sources are on the map (a region just woken has them a frame later).
+    pub fn restored(&self) -> bool {
+        self.pending.is_none()
+    }
+
     /// The valid key with this hash (uses left, not expired).
     pub fn key(&self, h: &Hash, now: f64) -> Option<&Key> {
         self.keys.get(h).filter(|k| k.uses > 0 && k.expires > now)

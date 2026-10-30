@@ -26,6 +26,8 @@ pub struct Ask {
     pub factor: f32,
     pub newcomer: bool,
     pub look: bool,
+    /// Frames this ask already waited for Y's permanent sources (just woken).
+    pub tries: u8,
 }
 
 /// Y to X: what fell there, or why nothing did.
