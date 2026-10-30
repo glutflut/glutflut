@@ -41,6 +41,7 @@ pub struct Pending {
 
 struct FoundKey {
     conn: u64,
+    slot: u32,
     until: f64,
     origin: &'static str,
     region: String,
@@ -470,9 +471,9 @@ pub(super) fn later(game: &mut Game, c: &Ctx) {
     }
 }
 
-/// X: after an ordinary claim, rarely a found key: Funkenflug (fire on a
-/// hilltop on a windy day: a region downwind) or Flaschenpost (water at a big
-/// river: a region downstream); at most one a day per player.
+/// X: after an ordinary claim, rarely a found key: Funkenflug (fire near a
+/// hilltop: a region nearby) or Flaschenpost (water at a big river: a region
+/// downstream); at most one a day per player.
 pub(super) fn found(
     game: &mut Game,
     c: &Ctx,
@@ -492,31 +493,31 @@ pub(super) fn found(
     let host = game.peers.0.clone();
     let (origin, chance, cands) = match faction {
         Faction::Fire => {
-            let Some(w) = game
-                .campaign
-                .weather
-                .filter(|w| w.wind_kmh >= r.ember_wind_kmh)
-            else {
-                return;
+            // Near a hilltop (the hilltop itself holds fire's natural source).
+            let at = |e: Entity| {
+                game.nodes.get(e).ok().map(|(g, _)| {
+                    let p = project_enu(g.lat, g.lon, c.region.centroid_lat, c.region.centroid_lon);
+                    Vec2::new(p.x, p.z)
+                })
             };
-            let peak = game
-                .node_by_id
-                .get(&node)
-                .copied()
-                .zip(game.sim.as_deref())
-                .is_some_and(|(e, sim)| sim.gathers(Faction::Fire).any(|p| p == e));
+            let here = game.node_by_id.get(&node).and_then(|&e| at(e));
+            let peak = here.zip(game.sim.as_deref()).is_some_and(|(h, sim)| {
+                sim.gathers(Faction::Fire)
+                    .filter_map(at)
+                    .any(|p| p.distance(h) <= c.rules.claim_radius_m)
+            });
             if !peak {
+                debug!("found: no hilltop near");
                 return;
             }
-            let down = crate::found::downwind(
+            let near = crate::found::nearby(
                 &host,
                 &c.region.slug,
                 c.region.centroid_lat,
                 c.region.centroid_lon,
-                f64::from(w.wind_from),
                 f64::from(r.ember_km),
             );
-            ("ember", r.ember_chance, down)
+            ("ember", r.ember_chance, near)
         }
         Faction::Water => {
             let Some(rv) = game.rivers.as_deref() else {
@@ -525,11 +526,14 @@ pub(super) fn found(
             ("bottle", r.bottle_chance, rv.downstream(node).to_vec())
         }
     };
+    debug!(origin, cands = cands.len(), "found: candidates");
     if cands.is_empty() || rand::random::<f32>() >= chance {
         return;
     }
-    // One of the nearest three.
-    let y = cands[rand::random::<u32>() as usize % cands.len().min(3)].clone();
+    // Nearer regions likelier (downstream: the next ones along the river).
+    let Some(y) = crate::found::pick(&cands).cloned() else {
+        return;
+    };
     game.pending.found_day.insert(slot, day);
     let (key, kh, _) = crate::keep::new_ticket();
     let id = rand::random::<u64>();
@@ -537,6 +541,7 @@ pub(super) fn found(
         id,
         FoundKey {
             conn,
+            slot,
             until: c.now + FOUND_WAIT_S,
             origin,
             region: y.clone(),
@@ -636,6 +641,8 @@ pub(super) fn minted(game: &mut Game, m: Minted) {
         return;
     };
     if !m.ok {
+        // No permanent source of that side there: a later claim may try again.
+        game.pending.found_day.remove(&f.slot);
         return;
     }
     let Some((_, out)) = game.clients.0.get(&f.conn) else {

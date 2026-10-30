@@ -152,8 +152,6 @@ pub struct Day {
     pub sun_h: f64,
     /// Mean daily maximum of the last 30 days.
     pub usual_tmax: f64,
-    pub wind_kmh: f64,
-    pub wind_from: f64,
 }
 
 #[derive(Deserialize)]
@@ -167,18 +165,13 @@ struct Daily {
     temperature_2m_min: Vec<Option<f64>>,
     precipitation_sum: Vec<Option<f64>>,
     sunshine_duration: Vec<Option<f64>>,
-    #[serde(default)]
-    wind_speed_10m_max: Vec<Option<f64>>,
-    #[serde(default)]
-    wind_direction_10m_dominant: Vec<Option<f64>>,
 }
 
 /// Today (last entry) and the 30 days before, from Open-Meteo.
 pub fn fetch(lat: f64, lon: f64) -> Result<Day, Box<dyn std::error::Error>> {
     let url = format!(
         "https://api.open-meteo.com/v1/forecast?latitude={lat:.3}&longitude={lon:.3}\
-         &daily=temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration,\
-         wind_speed_10m_max,wind_direction_10m_dominant\
+         &daily=temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration\
          &models=icon_seamless&timezone=auto&past_days=30&forecast_days=1"
     );
     let agent = ureq::AgentBuilder::new()
@@ -208,9 +201,6 @@ pub fn fetch(lat: f64, lon: f64) -> Result<Day, Box<dyn std::error::Error>> {
         precip_mm: last(&d.precipitation_sum)?,
         sun_h: last(&d.sunshine_duration)? / 3600.0,
         usual_tmax,
-        // Optional: without wind the day still counts.
-        wind_kmh: last(&d.wind_speed_10m_max).unwrap_or(0.0),
-        wind_from: last(&d.wind_direction_10m_dominant).unwrap_or(0.0),
     })
 }
 
@@ -222,8 +212,6 @@ impl From<Day> for elements_shared::weather::WeatherDay {
             precip_mm: d.precip_mm as f32,
             sun_h: d.sun_h as f32,
             usual_tmax: d.usual_tmax as f32,
-            wind_kmh: d.wind_kmh as f32,
-            wind_from: d.wind_from as f32,
         }
     }
 }
@@ -281,8 +269,6 @@ mod tests {
             precip_mm,
             sun_h,
             usual_tmax,
-            wind_kmh: 0.0,
-            wind_from: 0.0,
         }
     }
 

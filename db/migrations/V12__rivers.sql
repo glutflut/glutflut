@@ -1,8 +1,3 @@
--- Funkenflug: the day's strongest wind and where it came from.
-ALTER TABLE game.weather_days
-  ADD COLUMN wind_kmh real,
-  ADD COLUMN wind_from real;
-
 -- Flaschenpost: the big rivers through a region (Natural Earth, public
 -- domain), with where the region lies along each river (0 at the source end,
 -- 1 at the mouth), so a bottle drifts to regions further downstream.

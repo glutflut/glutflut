@@ -1,5 +1,5 @@
 //! Found keys (`[keep] ember_*`, `bottle_*`): Funkenflug (fire, a claim on
-//! a hilltop on a windy day: a region downwind) and Flaschenpost (water, a
+//! a hilltop: a region nearby) and Flaschenpost (water, a
 //! claim at a big river: a region downstream, `geo.river_regions`). The key
 //! opens a permanent source of the player's side there (handlers/far.rs).
 
@@ -54,28 +54,16 @@ pub fn load(c: &mut postgres::Client, slug: &str) -> Result<Rivers, postgres::Er
     Ok(Rivers { at, down })
 }
 
-/// Great-circle distance (km) and initial bearing (degrees, 0 = north).
-fn course(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> (f64, f64) {
+/// Great-circle distance (km).
+fn distance_km(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let (p1, p2) = (lat1.to_radians(), lat2.to_radians());
     let dl = (lon2 - lon1).to_radians();
     let a = ((p2 - p1) / 2.0).sin().powi(2) + p1.cos() * p2.cos() * (dl / 2.0).sin().powi(2);
-    let km = 6371.0 * 2.0 * a.sqrt().asin();
-    let y = dl.sin() * p2.cos();
-    let x = p1.cos() * p2.sin() - p1.sin() * p2.cos() * dl.cos();
-    (km, (y.atan2(x).to_degrees() + 360.0) % 360.0)
+    6371.0 * 2.0 * a.sqrt().asin()
 }
 
-/// Regions of this server downwind of (lat, lon): wind from `from_deg`,
-/// within 40° of where it blows and `max_km`, nearest first.
-pub fn downwind(
-    host: &Host,
-    here: &str,
-    lat: f64,
-    lon: f64,
-    from_deg: f64,
-    max_km: f64,
-) -> Vec<String> {
-    let to = (from_deg + 180.0) % 360.0;
+/// Regions of this server within `max_km` of (lat, lon), nearest first.
+pub fn nearby(host: &Host, here: &str, lat: f64, lon: f64, max_km: f64) -> Vec<String> {
     let mut v: Vec<(f64, String)> = host
         .listings()
         .iter()
@@ -84,13 +72,26 @@ pub fn downwind(
             let b = l.json.get("bounds")?.as_array()?;
             let f = |i: usize| b.get(i).and_then(|x| x.as_f64());
             let (clat, clon) = ((f(1)? + f(3)?) / 2.0, (f(0)? + f(2)?) / 2.0);
-            let (km, deg) = course(lat, lon, clat, clon);
-            let off = ((deg - to + 540.0) % 360.0 - 180.0).abs();
-            (km >= 5.0 && km <= max_km && off <= 40.0).then(|| (km, l.slug.clone()))
+            let km = distance_km(lat, lon, clat, clon);
+            (km >= 5.0 && km <= max_km).then(|| (km, l.slug.clone()))
         })
         .collect();
     v.sort_by(|a, b| a.0.total_cmp(&b.0));
     v.into_iter().map(|(_, s)| s).collect()
+}
+
+/// One of `nearest` (nearest first), the nearer the likelier (1, 1/2, 1/3, … of the first five).
+pub fn pick(nearest: &[String]) -> Option<&String> {
+    let n = nearest.len().min(5);
+    let total: f32 = (1..=n).map(|i| 1.0 / i as f32).sum();
+    let mut x = rand::random::<f32>() * total;
+    for (i, s) in nearest.iter().take(n).enumerate() {
+        x -= 1.0 / (i + 1) as f32;
+        if x <= 0.0 {
+            return Some(s);
+        }
+    }
+    nearest.first()
 }
 
 /// The region's display name from the list.
@@ -120,7 +121,7 @@ pub fn write_key(
     let mut c = crate::db::connect(db)?;
     Ok(c.query_opt(
         "INSERT INTO game.keep_keys (key, region, keep, origin, uses, made, expires) \
-         SELECT $1, $2, k.ticket, $4, $5, now(), now() + make_interval(secs => $6 * 86400) \
+         SELECT $1, $2, k.ticket, $4, $5::int4, now(), now() + make_interval(secs => $6::float8 * 86400) \
          FROM game.keeps k WHERE k.region = $2 AND k.faction = $3 ORDER BY random() LIMIT 1 \
          RETURNING keep",
         &[&key, &region, &faction, &origin, &uses, &days],
@@ -133,10 +134,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn course_konstanz_basel() {
-        // Basel lies west of Konstanz, ~100 km.
-        let (km, deg) = course(47.66, 9.17, 47.56, 7.59);
+    fn distance_konstanz_basel() {
+        let km = distance_km(47.66, 9.17, 47.56, 7.59);
         assert!((100.0..130.0).contains(&km), "{km}");
-        assert!((255.0..275.0).contains(&deg), "{deg}");
+    }
+
+    #[test]
+    fn pick_prefers_the_nearest() {
+        let v: Vec<String> = (0..8).map(|i| i.to_string()).collect();
+        let mut first = 0;
+        for _ in 0..2000 {
+            let p = pick(&v).unwrap();
+            assert!(p.parse::<usize>().unwrap() < 5, "only the nearest five");
+            first += usize::from(p == "0");
+        }
+        // 1 / (1 + 1/2 + 1/3 + 1/4 + 1/5) ≈ 44 %.
+        assert!((700..1050).contains(&first), "{first}");
     }
 }

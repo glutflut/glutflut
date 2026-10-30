@@ -64,9 +64,17 @@ CREATE TEMP TABLE flow AS
 SELECT river, coalesce(corr(frac, e), 0) <= 0 AS along FROM elev GROUP BY river;
 
 DELETE FROM geo.river_regions rr USING geo.regions g WHERE g.slug = rr.region AND g.shard = :'shard';
+-- Rank along the line; where the line has gaps (several regions on one
+-- point of it), the higher region comes first.
 INSERT INTO geo.river_regions (region, river, pos, geom)
-SELECT region, river, CASE WHEN f.along THEN frac ELSE 1 - frac END, geom
-FROM elev JOIN flow f USING (river);
+SELECT region, river,
+       CASE WHEN count(*) OVER w > 1
+            THEN (rank() OVER (w ORDER BY CASE WHEN f.along THEN frac ELSE -frac END, e DESC NULLS LAST) - 1)::real
+                 / (count(*) OVER w - 1)
+            ELSE 0 END,
+       geom
+FROM elev JOIN flow f USING (river)
+WINDOW w AS (PARTITION BY river);
 SELECT 'rivers: ' || count(DISTINCT river) || ' through ' || count(DISTINCT region) || ' regions'
 FROM geo.river_regions rr JOIN geo.regions g ON g.slug = rr.region WHERE g.shard = :'shard';
 SQL

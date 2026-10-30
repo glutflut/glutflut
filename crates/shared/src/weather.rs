@@ -83,10 +83,6 @@ pub struct WeatherDay {
     pub sun_h: f32,
     /// Mean daily maximum of the last 30 days.
     pub usual_tmax: f32,
-    /// Strongest wind of the day (km/h, 10 m) and where it mostly came from
-    /// (degrees, 0 = north): sparks fly downwind (`[keep] ember_*`).
-    pub wind_kmh: f32,
-    pub wind_from: f32,
 }
 
 impl Default for WeatherDay {
@@ -98,8 +94,6 @@ impl Default for WeatherDay {
             precip_mm: 0.0,
             sun_h: 2.0,
             usual_tmax: 5.0,
-            wind_kmh: 0.0,
-            wind_from: 0.0,
         }
     }
 }
@@ -113,7 +107,6 @@ impl WeatherDay {
             precip_mm,
             sun_h,
             usual_tmax: 5.0,
-            ..Self::default()
         };
         Some(match name {
             "mild" => d(6.0, 2.0, 0.5, 2.0),
