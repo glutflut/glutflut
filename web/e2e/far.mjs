@@ -6,6 +6,7 @@
 // Needs ELEMENTS_ALLOW_SIM=1 and a short cooldown, e.g.
 //   ELEMENTS_RULES_OVERRIDE='claim_cooldown_s=1'
 // Usage: node e2e/far.mjs <x-slug> <y-slug> [base, default http://127.0.0.1:5080]
+// FAR_Z=<slug>: also a third, not yet loaded region of the same cell (sleeping).
 import { answerPow } from "./pow.mjs";
 
 const [X, Y, BASE = "http://127.0.0.1:5080"] = process.argv.slice(2);
@@ -95,7 +96,18 @@ class Player {
 // Spread candidates: every 40th junction (keeps want a gap), from a random
 // start, so a rerun doesn't land where an earlier run already took everything.
 const shift = Math.floor(Math.random() * 1000);
-const spread = (ns, from) => ns.filter((_, i) => i % 40 === from % 40).slice(shift % 200, (shift % 200) + 25);
+// Only spots with enough junctions within 80 m (else "nothing to take" is right).
+const distM = (a, b) => {
+  const k = Math.cos((a.lat * Math.PI) / 180) * 111_320;
+  return Math.hypot((a.lon - b.lon) * k, (a.lat - b.lat) * 110_540);
+};
+const dense = (ns, n) => ns.filter((m) => Math.abs(m.lat - n.lat) < 0.001 && distM(m, n) <= 80).length >= 8;
+const spread = (ns, from) =>
+  ns
+    .filter((_, i) => i % 40 === from % 40)
+    .slice(shift % 200)
+    .filter((n) => dense(ns, n))
+    .slice(0, 25);
 
 const [nx, ny] = [await nodes(X), await nodes(Y)];
 console.log(`${X}: ${nx.length} junctions, ${Y}: ${ny.length}`);
@@ -124,7 +136,7 @@ px.send({ t: "claim", node: 0, via: a.ticket, far });
 const cl = await px.next("claim");
 check(cl.ok && Array.isArray(cl.far), "claim through own far link", cl.ok ? `+${cl.points} at ${cl.far}` : cl.reason);
 // Away from A: refused, not an ordinary claim.
-await px.at(nx[(nx.indexOf(a.node) + nx.length / 2) | 0]);
+await px.at(nx[((nx.indexOf(a.node) + nx.length / 2) | 0) % nx.length]);
 await sleep(1200);
 px.send({ t: "claim", node: 0, via: a.ticket, far });
 const away = await px.next("claim");
@@ -137,6 +149,18 @@ check(!bad.ok && bad.reason === "nokey", "wrong key: nokey", bad.reason);
 px.send({ t: "peek", via: a.ticket, far: { region: Y, key: "0".repeat(32) } });
 const pbad = await px.next("peek");
 check(pbad.node === undefined && pbad.reason === "nokey", "peek with a wrong key says nokey", pbad.reason);
+// A sleeping region (FAR_Z, not loaded yet): a peek doesn't wake it, a claim does.
+if (process.env.FAR_Z) {
+  const z = { region: process.env.FAR_Z, key: "0".repeat(32) };
+  await sleep(1200);
+  px.send({ t: "peek", via: a.ticket, far: z });
+  const pz = await px.next("peek");
+  check(pz.reason === "asleep", "peek into a sleeping region: asleep, not woken", pz.reason);
+  const t0 = Date.now();
+  px.send({ t: "claim", node: 0, via: a.ticket, far: z });
+  const cz = await px.next("claim", () => true, 100_000);
+  check(cz.reason === "nokey", "claim wakes it and gets its answer", `${cz.reason} after ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+}
 px.close();
 
 // 2. Gift: another player with their own A2 in X.

@@ -298,6 +298,7 @@ export const fr: Dict = {
   "claim.linked": "Rien à prendre autour de la source reliée pour l’instant",
   "claim.linkfar": "Approche-toi de ta source reliée",
   "claim.linkdown": "L’autre côté est injoignable pour l’instant, réessaie bientôt",
+  "claim.waking": "On réveille l’autre côté, un instant …",
   "claim.nokey": "La source là-bas n’est plus à ton camp",
   "claim.far.ok": "Pris là-bas à {region}{plus}",
   "gift.button": "Offrir une clé",

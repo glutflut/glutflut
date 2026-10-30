@@ -20,6 +20,8 @@ use super::{Ctx, Game};
 
 /// No answer from Y after this long: `linkdown`.
 const WAIT_S: f64 = 3.0;
+/// A claim into a sleeping region waits for it to load (Berlin: ~45 s).
+const WAKE_WAIT_S: f64 = 90.0;
 
 /// Asks of this region waiting for Y, by id.
 #[derive(Default)]
@@ -88,6 +90,8 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
         motion.full_strength(),
     );
     let id = rand::random::<u64>();
+    // A peek never wakes Y (`peek` asks only loaded regions); a claim does.
+    let asleep = game.peers.0.peek(&far.region).is_none();
     let sent = deliver(
         &game.peers.0,
         &far.region,
@@ -107,7 +111,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
             id,
             Waiting {
                 conn,
-                until: c.now + WAIT_S,
+                until: c.now + if asleep { WAKE_WAIT_S } else { WAIT_S },
                 via: look.then(|| via.to_string()),
             },
         );
@@ -160,6 +164,9 @@ pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: String, far: Far) {
         Some("linked")
     } else if !at_a {
         Some("linkfar")
+    } else if game.peers.0.peek(&far.region).is_none() {
+        // Sleeping (or another cell): don't wake it for a look; a claim will.
+        Some("asleep")
     } else if !ask_far(game, c, conn, &far, &via, true) {
         Some("linkdown")
     } else {

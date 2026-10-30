@@ -320,9 +320,13 @@ pub enum ServerMsg<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         node: Option<i64>,
-        /// No target: why (`linked` nothing to take, `nokey`, `linkfar`, `linkdown`).
+        /// No target: why (`linked` nothing to take, `nokey`, `linkfar`,
+        /// `linkdown`; `asleep`: the far region sleeps, a claim wakes it).
         #[serde(skip_serializing_if = "Option::is_none")]
-        #[ts(type = "\"linked\" | \"nokey\" | \"linkfar\" | \"linkdown\"", optional)]
+        #[ts(
+            type = "\"linked\" | \"nokey\" | \"linkfar\" | \"linkdown\" | \"asleep\"",
+            optional
+        )]
         reason: Option<&'static str>,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]

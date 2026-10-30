@@ -297,6 +297,7 @@ export const de = {
   "claim.linked": "Um die verbundene Quelle ist gerade nichts zu holen",
   "claim.linkfar": "Stell dich näher an deine verbundene Quelle",
   "claim.linkdown": "Drüben ist gerade nicht erreichbar, gleich noch mal",
+  "claim.waking": "Drüben wird geweckt, einen Moment …",
   "claim.nokey": "Die Quelle drüben steht nicht mehr für deine Seite",
   "claim.far.ok": "Drüben in {region} erobert{plus}",
   "gift.button": "Schlüssel verschenken",

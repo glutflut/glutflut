@@ -149,12 +149,17 @@ export function setupClaim(d: {
   // A claim always gets an answer; without one the connection is renewed and
   // the player is told to tap again (it used to fail silently after sleep).
   let claimWait = 0;
+  let waking = 0;
   function send(node: number, via?: string, far?: Far) {
     const f = far && { region: far.region, key: far.key };
     if (!net.send({ t: "claim", node, ...(via ? { via } : {}), ...(f ? { far: f } : {}) })) return toast(t("connection.retry"));
     net.check();
     clearTimeout(claimWait);
-    claimWait = window.setTimeout(() => toast(t("connection.retry")), 5_000);
+    // Into another region that may sleep: it loads first (up to ~1.5 min).
+    if (far) {
+      waking = window.setTimeout(() => toast(t("claim.waking"), 90_000), 2_500);
+      claimWait = window.setTimeout(() => toast(t("claim.linkdown")), 95_000);
+    } else claimWait = window.setTimeout(() => toast(t("connection.retry")), 5_000);
   }
 
   /** The last claim sent was a reinforcement; where the server found no front. */
@@ -297,6 +302,11 @@ export function setupClaim(d: {
         m.node !== undefined && m.lon !== undefined && m.lat !== undefined
           ? { ticket: m.via, node: m.node, ll: [m.lon, m.lat], far: peeked.far }
           : null;
+      // The far region sleeps: nothing known, but a claim wakes it.
+      if (!linkTarget && m.reason === "asleep" && peeked.far) {
+        const l = d.links().find((x) => x.ticket === m.via);
+        if (l) linkTarget = { ticket: m.via, node: 0, ll: l.partner, far: peeked.far };
+      }
       linkWhy = linkTarget ? null : (m.reason ?? null);
       drawLink();
     },
@@ -307,6 +317,7 @@ export function setupClaim(d: {
     onClaim(m: Extract<ServerMsg, { t: "claim" }>) {
       const faction = d.faction();
       clearTimeout(claimWait);
+      clearTimeout(waking);
       // Through a link: show where it landed, and ask again what is left there.
       if (flyTo) {
         // The server picks the junction around B; the peeked one is the fallback.

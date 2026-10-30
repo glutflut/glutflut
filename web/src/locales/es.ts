@@ -299,6 +299,7 @@ export const es: Dict = {
   "claim.linked": "Ahora no hay nada que tomar alrededor de la fuente enlazada",
   "claim.linkfar": "Acércate más a tu fuente enlazada",
   "claim.linkdown": "Ahora no se llega al otro lado, inténtalo en un momento",
+  "claim.waking": "Despertando el otro lado, un momento …",
   "claim.nokey": "La fuente de allá ya no es de tu bando",
   "claim.far.ok": "Conquistado allá en {region}{plus}",
   "gift.button": "Regalar una llave",
