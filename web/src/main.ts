@@ -47,6 +47,7 @@ import { setupVideo } from "./video";
 import { setupBoard } from "./board";
 import { setupInvite } from "./invite";
 import { addGift } from "./gift";
+import { setupBeam } from "./beam";
 import { setupInset } from "./inset";
 import { setupNavMore } from "./navmore";
 import { setupRecovery } from "./recovery";
@@ -281,6 +282,7 @@ async function main() {
   const recovery = setupRecovery(net);
   const invite = setupInvite();
   const inset = setupInset(gameView);
+  const beams = setupBeam(map, gameView);
   const progress = setupProgress(net, sound, () => faction, () => player.drawRange());
   const claim = setupClaim({
     net,
@@ -301,7 +303,9 @@ async function main() {
       map.flyTo({ center: ll, zoom: Math.max(map.getZoom(), 16.5), duration: 1500, essential: true });
       setTimeout(() => player.home(), 4000);
     },
-    farShown: (region, name, at, near, streets) => void inset.show(region, name, at, near, streets),
+    farShown: (region, name, at, near, streets, from) => void inset.show(region, name, at, near, streets, from),
+    // Own source A glows; here the spark runs on to B (the server's beam goes on from B).
+    fired: (a, b) => (b ? beams.beam(a, b, faction ?? "fire") : beams.glow(a, faction ?? "fire")),
     tunnel,
     card,
     claimed: () => invite.claimed(),
@@ -490,6 +494,7 @@ async function main() {
       sound.chime();
     },
     near: (m) => finds.onNear(m.c, m.m),
+    beam: (m) => beams.beam(m.from, m.to, m.side),
     badge(m) {
       finds.onBadge(m.badge);
       sound.motif();

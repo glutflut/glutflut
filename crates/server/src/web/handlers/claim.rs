@@ -306,6 +306,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
                 far: None,
                 near: None,
                 streets: None,
+                from: None,
             },
         );
         return;
@@ -335,6 +336,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
                 far: None,
                 near: None,
                 streets: None,
+                from: None,
             },
         );
     };
@@ -375,6 +377,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         },
         None => node,
     };
+    let link_b = link.map(|(_, n)| n);
     let link = link.map(|(b, _)| b);
     // Reinforcing: own ground where no anchor fits but not at the front goes
     // to the nearest own junction without a source at the front, in reach.
@@ -689,6 +692,11 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             send_challenge(out, ev);
         }
     }
+    let from = link_b
+        .filter(|_| res.is_ok())
+        .and_then(|b| game.node_by_id.get(&b))
+        .and_then(|&e| game.nodes.get(e).ok())
+        .map(|(g, _)| [g.lon, g.lat]);
     send(
         out,
         &ServerMsg::Claim {
@@ -704,8 +712,12 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             far: None,
             near: None,
             streets: None,
+            from,
         },
     );
+    if let (true, Some(b)) = (res.is_ok(), link_b) {
+        super::far::beam(game, b, node, faction);
+    }
     // Rarely a key flies or drifts to another region (not through a link or tunnel).
     if res.is_ok() && link.is_none() && !tunnel {
         super::far::found(game, c, conn, slot, node, faction);

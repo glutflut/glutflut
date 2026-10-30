@@ -14,7 +14,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
   | { "t": "cheers", fire: number, water: number, burst: [number, number], }
-  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked" | "linkfar" | "linkdown" | "nokey", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, far?: [number, number], near?: Array<[number, number, number, number]>, streets?: Array<[number, number]>, }
+  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked" | "linkfar" | "linkdown" | "nokey", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, far?: [number, number], near?: Array<[number, number, number, number]>, streets?: Array<[number, number]>, from?: [number, number], }
   | { "t": "rate", ok: boolean, reason?: string, points: number, }
   | { "t": "hotspots", items: Array<HotspotInfo>, }
   | { "t": "score" } & Mine
@@ -51,7 +51,8 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "link", node: number, ok: boolean, reason?: string, }
   | { "t": "info", node: number, fire: number, water: number, source?: NodeSource, take: "ok" | "own" | "mine" | "anchor" | "strong" | "range" | "watch", wait?: number, dist: number, reach: number, elev: number, terrain: "peak" | "sink" | "slope" | "flat", dh: number, lean: "" | Faction, rain?: number, rain_at?: string, }
   | { "t": "rise", node: number, lat: number, lon: number, state: "wait" | "done" | "left" | "strong", secs: number, took: number, }
-  | { "t": "spark", node: number, lat: number, lon: number, m: number, };
+  | { "t": "spark", node: number, lat: number, lon: number, m: number, }
+  | { "t": "beam", from: [number, number], to: [number, number], side: Faction, };
 
 /**
  * What the app sends.

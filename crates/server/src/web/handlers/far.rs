@@ -74,6 +74,7 @@ fn refused(out: &crate::gateway::Outbox, reason: &'static str, wait: f32) {
             far: None,
             near: None,
             streets: None,
+            from: None,
         },
     );
 }
@@ -290,6 +291,7 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
             take(game, c, &a, power, b, node, &mut ans);
             if ans.ok {
                 (ans.near, ans.streets) = near(game, c, node, a.faction);
+                ans.from = beam(game, b_node, node, a.faction);
             }
             // A gift: one use less; its owner gets a share of the points.
             if let (true, Some(g)) = (ans.ok, gift) {
@@ -313,6 +315,27 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
     if !deliver(&game.peers.0, &a.from, FromWeb::FarAnswer(ans)) {
         warn!(from = %a.from, "far answer not delivered");
     }
+}
+
+/// Everyone here sees the claim reach from the permanent source `b_node`
+/// to `node`; its (lon, lat).
+pub(super) fn beam(game: &Game, b_node: i64, node: i64, faction: Faction) -> Option<[f64; 2]> {
+    let ll = |id: i64| {
+        game.node_by_id
+            .get(&id)
+            .and_then(|&e| game.nodes.get(e).ok())
+            .map(|(g, _)| [g.lon, g.lat])
+    };
+    let (from, to) = (ll(b_node)?, ll(node)?);
+    crate::web::to_all(
+        &game.clients,
+        &ServerMsg::Beam {
+            from,
+            to,
+            side: faction.as_str(),
+        },
+    );
+    Some(from)
 }
 
 /// Y: the junctions around `node` as (lon, lat, fire, water) and the
@@ -512,6 +535,7 @@ pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
             far: ans.at,
             near: Some(ans.near),
             streets: Some(ans.streets),
+            from: ans.from,
         },
     );
 }

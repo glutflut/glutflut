@@ -20,6 +20,10 @@ export function setupInset(gameView: boolean) {
   let mapRegion = "";
   let open = "";
   let hide = 0;
+  /** The permanent source it came through: the hexagon of the main map (sources.ts). */
+  const srcEl = document.createElement("div");
+  srcEl.className = "inset-source";
+  let srcMarker: maplibregl.Marker | null = null;
   box.onclick = () => {
     if (!open) return;
     void listRegions().then((rs) => {
@@ -31,6 +35,7 @@ export function setupInset(gameView: boolean) {
   async function mapFor(region: string): Promise<maplibregl.Map> {
     if (map && mapRegion === region) return map;
     map?.remove();
+    srcMarker = null;
     mapRegion = region;
     const m = new maplibregl.Map({
       container: "inset-map",
@@ -72,6 +77,24 @@ export function setupInset(gameView: boolean) {
       layout: round,
       paint: { "line-color": byOwner("rgba(0,0,0,0)", CORE), "line-width": 1.4, "line-opacity": ["case", ["==", o, 0], 0, ["*", 0.9, s]] },
     });
+    // The link: from the permanent source it came through to the claim.
+    m.addSource("link", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    m.addLayer({
+      id: "link-glow",
+      type: "line",
+      source: "link",
+      filter: ["==", ["geometry-type"], "LineString"],
+      layout: round,
+      paint: { "line-color": byOwner(c.neutral), "line-width": 10, "line-blur": 6, "line-opacity": 0.6 },
+    });
+    m.addLayer({
+      id: "link",
+      type: "line",
+      source: "link",
+      filter: ["==", ["geometry-type"], "LineString"],
+      layout: round,
+      paint: { "line-color": "#fff", "line-width": 2, "line-dasharray": [1.5, 1.5] },
+    });
     m.addSource("near", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     m.addLayer({
       id: "near",
@@ -96,11 +119,19 @@ export function setupInset(gameView: boolean) {
     at: [number, number],
     near: [number, number, number, number][],
     streets: [number, number][] = [],
+    from: [number, number] | null = null,
   ) {
     open = region;
     $("inset-name").textContent = name;
     box.classList.remove("out");
     box.hidden = false;
+    // The pulse on the claim runs a few times per show.
+    const pulse = box.querySelector<HTMLElement>(".pulse");
+    if (pulse) {
+      pulse.style.animation = "none";
+      void pulse.offsetWidth;
+      pulse.style.animation = "";
+    }
     clearTimeout(hide);
     hide = window.setTimeout(() => {
       box.classList.add("out");
@@ -117,6 +148,18 @@ export function setupInset(gameView: boolean) {
         geometry: { type: "Point", coordinates: [n[0], n[1]] },
       })),
     });
+    const sp = near.find((n) => spot(n[0], n[1]));
+    const side = owner(sp?.[2] ?? 0, sp?.[3] ?? 0);
+    (m.getSource("link") as maplibregl.GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features: from ? [{ type: "Feature", properties: { o: side }, geometry: { type: "LineString", coordinates: [from, at] } }] : [],
+    });
+    const color = side === 2 ? c.water : c.fire;
+    srcEl.innerHTML =
+      `<svg viewBox="0 0 40 40" width="26" height="26">` +
+      `<path d="M20 6 L32 13 L32 27 L20 34 L8 27 L8 13 Z" fill="${color}" stroke="#fff" stroke-width="3"/></svg>`;
+    srcEl.hidden = !from;
+    if (from) (srcMarker ??= new maplibregl.Marker({ element: srcEl }).setLngLat(from).addTo(m)).setLngLat(from);
     // A street takes the mean of its ends, as on the main map (world.ts).
     (m.getSource("streets") as maplibregl.GeoJSONSource).setData({
       type: "FeatureCollection",
@@ -129,7 +172,20 @@ export function setupInset(gameView: boolean) {
         })),
     });
     m.resize();
-    m.jumpTo({ center: at, zoom: ZOOM });
+    // The claim in the middle (the pulse), the source it came from in view.
+    let zoom = ZOOM;
+    if (from) {
+      const d: [number, number] = [Math.abs(from[0] - at[0]), Math.abs(from[1] - at[1])];
+      const fit = m.cameraForBounds(
+        [
+          [at[0] - d[0], at[1] - d[1]],
+          [at[0] + d[0], at[1] + d[1]],
+        ],
+        { padding: 24 },
+      );
+      if (fit?.zoom !== undefined) zoom = Math.min(ZOOM, fit.zoom);
+    }
+    m.jumpTo({ center: at, zoom });
   }
 
   if (params.has("sim") || params.has("video")) Object.assign(window, { __inset: show });

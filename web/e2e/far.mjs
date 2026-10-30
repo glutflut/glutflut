@@ -8,6 +8,7 @@
 // Usage: node e2e/far.mjs <x-slug> <y-slug> [base, default http://127.0.0.1:5080]
 // FAR_Z=<slug>: also a third, not yet loaded region of the same cell (sleeping).
 // FAR_EVICT=<slug> (server: ELEMENTS_MAX_REGIONS=2): Y sleeps with its sources, a claim wakes it.
+// FAR_WATCH=<s>: after the own far claim, print its build-up in Y every 10 s (fresh connections).
 import { answerPow } from "./pow.mjs";
 
 const [X, Y, BASE = "http://127.0.0.1:5080"] = process.argv.slice(2);
@@ -137,6 +138,21 @@ check((pk.node !== undefined && pk.lon !== undefined) || pk.reason === "linked",
 px.send({ t: "claim", node: 0, via: a.ticket, far });
 const cl = await px.next("claim");
 check((cl.ok && Array.isArray(cl.far)) || cl.reason === "linked", "claim through own far link", cl.ok ? `+${cl.points} at ${cl.far}` : cl.reason);
+check(!cl.ok || (Array.isArray(cl.near) && cl.near.length > 0 && Array.isArray(cl.from)), "answer carries the place and its source", cl.ok ? `${cl.near?.length} junctions, ${cl.streets?.length} streets` : "");
+// FAR_WATCH: the server's build-up of the new source in Y.
+if (cl.ok && process.env.FAR_WATCH) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < Number(process.env.FAR_WATCH) * 1000) {
+    // A fresh connection gets the full list: the server's build-up now.
+    const w = await new Player("W@Y", Y).open();
+    await w.at({ lon: cl.far[0], lat: cl.far[1] });
+    await sleep(2000);
+    const r = w.msgs.flatMap((m) => (m.t === "sources" ? m.items : m.t === "sourcesdiff" ? m.set : [])).filter((r) => r[0] === cl.node).at(-1);
+    console.log(`  +${((Date.now() - t0) / 1000) | 0}s [left ${r?.[2]}, life ${r?.[3]}, build ${r?.[7]}, ramp ${r?.[8]}, kind "${r?.[9]}"]`);
+    w.close();
+    await sleep(8000);
+  }
+}
 // Away from A: refused, not an ordinary claim.
 await px.at(nx[((nx.indexOf(a.node) + nx.length / 2) | 0) % nx.length]);
 await sleep(1200);

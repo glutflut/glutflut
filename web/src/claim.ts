@@ -47,7 +47,16 @@ export function setupClaim(d: {
   /** Show the camera a spot (a claim through a link), then back to the player. */
   look: (ll: [number, number]) => void;
   /** A claim through a link landed in another region: show that place small. */
-  farShown: (region: string, name: string, at: [number, number], near: [number, number, number, number][], streets: [number, number][]) => void;
+  farShown: (
+    region: string,
+    name: string,
+    at: [number, number],
+    near: [number, number, number, number][],
+    streets: [number, number][],
+    from: [number, number] | null,
+  ) => void;
+  /** A claim went through the link of own source A (to B here, or null: another region). */
+  fired: (a: [number, number], b: [number, number] | null) => void;
   /** The tunnel's say on a claim: true if it went through one. */
   tunnel: { onClaim(node: number, ok: boolean): boolean };
   card: { onClaim(node: number): void };
@@ -66,6 +75,8 @@ export function setupClaim(d: {
   let peeked: { ticket: string; at: number; far?: Far & { name?: string } } = { ticket: "", at: 0 };
   /** Where the claim just sent through a link goes (the camera shows it when it lands). */
   let flyTo: [number, number] | null = null;
+  /** The link a claim just went through (until the answer). */
+  let fired: Link | null = null;
   /** A claim through a link is on its way (a far region may wake first): the button waits. */
   let linkBusy = 0;
   /** The region name of the far link just used (for the answer's toast). */
@@ -145,6 +156,8 @@ export function setupClaim(d: {
       return;
     }
     flyTo = linkTarget.ll;
+    const tk = linkTarget.ticket;
+    fired = d.links().find((l) => l.ticket === tk) ?? null;
     farName = linkTarget.far?.name ?? "";
     farRegion = linkTarget.far?.region ?? "";
     // Until the answer (or the app's own timeout below) the button waits.
@@ -341,7 +354,9 @@ export function setupClaim(d: {
         // The server picks the junction around B; the peeked one is the fallback.
         // In another region the map can't go there.
         if (m.ok && !m.far) d.look(nodePos.get(m.node) ?? flyTo);
-        if (m.ok && m.far && farRegion) d.farShown(farRegion, farName, m.far, m.near ?? [], m.streets ?? []);
+        if (m.ok && m.far && farRegion) d.farShown(farRegion, farName, m.far, m.near ?? [], m.streets ?? [], m.from ?? null);
+        if (m.ok && fired) d.fired(fired.ll, fired.far ? null : (m.from ?? fired.partner));
+        fired = null;
         flyTo = null;
         linkTarget = null;
         peeked.at = 0;

@@ -1478,6 +1478,22 @@ figure.media a { color: inherit; }
   100% { transform: scale(3.2); opacity: 0; }
 }
 
+/* A permanent source a claim went through a link from (beam.ts). */
+.link-glow {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 22%, var(--c) 45%, transparent 72%);
+  box-shadow: 0 0 18px 6px var(--c);
+  animation: link-glow 0.8s ease-in-out 3 forwards;
+  pointer-events: none;
+}
+@keyframes link-glow {
+  0% { transform: scale(0.6); opacity: 0.4; }
+  50% { transform: scale(1.5); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
 /* Kiosk (`?kiosk`): the map, the score, the chapter and a QR code; nothing to tap. */
 body.kiosk #actions .row,
 body.kiosk #nav,
@@ -1600,7 +1616,8 @@ body.kiosk #lapse-play, body.kiosk #lapse-close { visibility: hidden; }
   border-radius: 50%;
   border: 3px solid #fff;
   pointer-events: none;
-  animation: inset-pulse 1.2s ease-out infinite;
+  animation: inset-pulse 1.2s ease-out 3;
+  opacity: 0;
 }
 @keyframes inset-pulse {
   from { transform: scale(0.6); opacity: 1; }

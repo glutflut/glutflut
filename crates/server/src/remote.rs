@@ -48,6 +48,8 @@ pub struct Answer {
     /// show the place.
     pub near: Vec<[f64; 4]>,
     pub streets: Vec<[u16; 2]>,
+    /// The permanent source B it reached from (lon, lat).
+    pub from: Option<[f64; 2]>,
 }
 
 /// How far around the claimed junction the answer shows the junctions.

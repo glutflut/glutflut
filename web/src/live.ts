@@ -42,8 +42,9 @@ export function setupLive(map: maplibregl.Map, label: () => string, burst?: (nod
   function flash(ll: [number, number], side: Faction) {
     if (flashes >= FLASH_MAX) return;
     flashes++;
+    // MapLibre places the marker by its transform: the animation goes on a child.
     const el = document.createElement("div");
-    el.className = "live-flash";
+    el.innerHTML = `<div class="live-flash"></div>`;
     el.style.setProperty("--c", COLORS[side]);
     const m = new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map);
     setTimeout(() => {

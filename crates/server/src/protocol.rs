@@ -139,6 +139,11 @@ pub enum ServerMsg<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         streets: Option<Vec<[u16; 2]>>,
+        /// With `far` (or a link here): the permanent source it reached
+        /// from there (lon, lat).
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        from: Option<[f64; 2]>,
     },
     Rate {
         ok: bool,
@@ -428,6 +433,15 @@ pub enum ServerMsg<'a> {
         lat: f64,
         lon: f64,
         m: u32,
+    },
+    /// To everyone here: a claim reached through a link from the permanent
+    /// source at `from` to `to` (lon, lat; which source A it came from stays
+    /// unsaid).
+    Beam {
+        from: [f64; 2],
+        to: [f64; 2],
+        #[ts(as = "Faction")]
+        side: &'static str,
     },
 }
 
