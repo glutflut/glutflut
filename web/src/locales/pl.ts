@@ -296,6 +296,7 @@ export const pl: Dict = {
   "perm.weakest": "najsłabszy",
   "claim.link": "Zdobądź tam",
   "claim.linked": "Wokół połączonego źródła nie ma teraz nic do zdobycia",
+  "claim.linkfar": "Podejdź bliżej do swojego połączonego źródła",
   "perm.link": "Połącz …",
   "perm.unlink": "Rozłącz",
   "perm.link.pick.fire": "Który żar łączysz z tym?",

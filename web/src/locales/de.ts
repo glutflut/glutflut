@@ -295,6 +295,7 @@ export const de = {
   "perm.weakest": "schwächste",
   "claim.link": "Drüben erobern",
   "claim.linked": "Um die verbundene Quelle ist gerade nichts zu holen",
+  "claim.linkfar": "Stell dich näher an deine verbundene Quelle",
   "perm.link": "Verbinden …",
   "perm.unlink": "Verbindung lösen",
   "perm.link.pick.fire": "Welche Glut verbindest du mit dieser?",

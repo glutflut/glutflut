@@ -139,27 +139,88 @@ fn link_partner(
     (sb.kind == SourceKind::Keep).then(|| (at(gb), gb.id))
 }
 
-/// The nearest junction within `radius` of B that isn't `faction`'s (never
-/// B itself): (id, lon, lat).
+/// A claim's strength and reach for this player: level, first day, armed
+/// reach, weaker while the identity is new.
+fn power_of(
+    scores: &crate::score::Scores,
+    abilities: &Query<&mut Abilities>,
+    rules: &elements_shared::rules::Rules,
+    e: Entity,
+    slot: Option<u32>,
+    full_strength: bool,
+) -> actions::Power {
+    let power = match slot.filter(|_| rules.progression.enabled) {
+        Some(s) => actions::Power {
+            mult: rules.progression.strength_factor(scores.xp(s).1),
+            newcomer: scores.newcomer(s),
+            reach_m: if abilities.get(e).is_ok_and(|a| a.armed[REACH]) {
+                rules.progression.reach_m
+            } else {
+                rules.claim_radius_m
+            },
+        },
+        None => actions::Power::plain(rules),
+    };
+    if full_strength {
+        power
+    } else {
+        actions::Power {
+            mult: power.mult * crate::motion::NEW_STRENGTH,
+            ..power
+        }
+    }
+}
+
+/// `power` through a link: `link_factor` of it.
+fn link_power(power: actions::Power, rules: &elements_shared::rules::Rules) -> actions::Power {
+    actions::Power {
+        mult: power.mult * rules.keep.link_factor,
+        ..power
+    }
+}
+
+/// The junction within the claim radius of B a claim through the link takes (never
+/// B itself, nor `faction`'s): the nearest one `power` can take, else the
+/// nearest permanent source it wears down. (id, lon, lat).
+#[allow(clippy::too_many_arguments)]
 fn link_target(
     nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
+    sources: &Query<(&GeoNode, &mut crate::sim::ElementSource)>,
+    node_by_id: &crate::sim::NodeById,
     region: &RegionInfo,
-    radius: f32,
+    rules: &elements_shared::rules::Rules,
+    power: actions::Power,
     b: Vec2,
     b_node: i64,
     faction: Faction,
 ) -> Option<(i64, f64, f64)> {
+    // 0 takes, 1 wears down, None refused (own source, too strong).
+    let rank = |id: i64| -> Option<u8> {
+        let Some((_, ex)) = node_by_id.get(&id).and_then(|&e| sources.get(e).ok()) else {
+            return Some(0);
+        };
+        if ex.faction == faction {
+            None
+        } else if !actions::holds(ex, rules, power) {
+            Some(0)
+        } else if ex.kind == SourceKind::Keep && rules.keep.hit > 0.0 {
+            Some(1)
+        } else {
+            None
+        }
+    };
     nodes
         .iter()
         .filter(|(g, _)| g.id != b_node)
         .filter(|(_, s)| s.owner() != Some(faction))
-        .map(|(g, _)| {
+        .filter_map(|(g, _)| {
             let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
-            (g, Vec2::new(w.x, w.z).distance(b))
+            let d = Vec2::new(w.x, w.z).distance(b);
+            (d <= rules.claim_radius_m).then_some((g, d))
         })
-        .filter(|&(_, d)| d <= radius)
-        .min_by(|a, b| a.1.total_cmp(&b.1))
-        .map(|(g, _)| (g.id, g.lon, g.lat))
+        .filter_map(|(g, d)| rank(g.id).map(|r| (g, r, d)))
+        .min_by(|a, b| a.1.cmp(&b.1).then(a.2.total_cmp(&b.2)))
+        .map(|(g, ..)| (g.id, g.lon, g.lat))
 }
 
 /// What a claim through the link of `via` would take right now (the app's
@@ -168,9 +229,20 @@ pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: &str) {
     let Some((e, out)) = game.clients.0.get(&conn) else {
         return;
     };
-    let Ok((&faction, pos, ..)) = game.players.get(*e) else {
+    let Ok((&faction, pos, _, _, slot, motion)) = game.players.get(*e) else {
         return;
     };
+    let power = link_power(
+        power_of(
+            &game.scores,
+            &game.abilities,
+            c.rules,
+            *e,
+            slot.map(|s| s.0),
+            motion.full_strength(),
+        ),
+        c.rules,
+    );
     let target = c
         .rules
         .keep
@@ -189,8 +261,11 @@ pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: &str) {
         .and_then(|(b, b_node)| {
             link_target(
                 &game.nodes,
+                &game.sources,
+                &game.node_by_id,
                 c.region,
-                c.rules.claim_radius_m,
+                c.rules,
+                power,
                 b,
                 b_node,
                 faction,
@@ -234,60 +309,66 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         return;
     }
     let slot = slot.map(|s| s.0);
+    let power = power_of(
+        &game.scores,
+        &game.abilities,
+        rules,
+        *e,
+        slot,
+        motion.full_strength(),
+    );
+    let refuse = |reason: &'static str| {
+        send(
+            out,
+            &ServerMsg::Claim {
+                node,
+                ok: false,
+                reason: Some(reason),
+                bonus: false,
+                points: 0,
+                wait: 0.0,
+                build: 0.0,
+                doused: false,
+                anchor: false,
+            },
+        );
+    };
     // Through a link (`[keep] link`): standing at own permanent source A
     // (its ticket in `via`), the claim reaches around its partner B: the
-    // range counts from B, the strength is `link_factor` of it.
-    let link = via.filter(|_| rules.keep.link).and_then(|v| {
-        link_partner(
+    // range counts from B, the strength is `link_factor` of it. Not at A
+    // (any more): `linkfar`, never an ordinary claim far away.
+    let link = match via.filter(|_| rules.keep.link) {
+        Some(v) => match link_partner(
             &game.keep_info,
             &game.sources,
             region,
             rules,
             Vec2::new(pos.0.x, pos.0.z),
             v,
-        )
-    });
-    // The app may not know the junctions around B (not in view): asked for
-    // B itself, the server picks the nearest junction around it that isn't
-    // the player's side's. Nothing there: `linked`. The app's target is up
-    // to a peek old: turned the player's side's meanwhile, pick again.
-    let own_now = game
-        .node_by_id
-        .get(&node)
-        .and_then(|&n| game.nodes.get(n).ok())
-        .is_some_and(|(_, s)| s.owner() == Some(faction));
+        ) {
+            Some(l) => Some(l),
+            None => return refuse("linkfar"),
+        },
+        None => None,
+    };
+    // The server always picks the junction around B (the app's is up to a
+    // peek old and may not be in its view). Nothing there: `linked`.
     let node = match link {
-        Some((b, b_node)) if node == b_node || own_now => {
-            let pick = link_target(
-                &game.nodes,
-                region,
-                rules.claim_radius_m,
-                b,
-                b_node,
-                faction,
-            );
-            match pick {
-                Some((id, _, _)) => id,
-                None => {
-                    send(
-                        out,
-                        &ServerMsg::Claim {
-                            node,
-                            ok: false,
-                            reason: Some("linked"),
-                            bonus: false,
-                            points: 0,
-                            wait: 0.0,
-                            build: 0.0,
-                            doused: false,
-                            anchor: false,
-                        },
-                    );
-                    return;
-                }
-            }
-        }
-        _ => node,
+        Some((b, b_node)) => match link_target(
+            &game.nodes,
+            &game.sources,
+            &game.node_by_id,
+            region,
+            rules,
+            link_power(power, rules),
+            b,
+            b_node,
+            faction,
+        ) {
+            Some((id, _, _)) => id,
+            None => return refuse("linked"),
+        },
+        None => node,
     };
     let link = link.map(|(b, _)| b);
     // Reinforcing: own ground where no anchor fits but not at the front goes
@@ -323,28 +404,6 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         .and_then(|&e| game.sources.get(e).ok())
         .map(|(_, s)| *s);
     let bonus = game.hotspots.bonus(pos.0, rules.hotspot_radius_m);
-    // Levels: strength by level, Rückenwind on the first day.
-    let power = match slot.filter(|_| rules.progression.enabled) {
-        Some(s) => actions::Power {
-            mult: rules.progression.strength_factor(game.scores.xp(s).1),
-            newcomer: game.scores.newcomer(s),
-            reach_m: if game.abilities.get(*e).is_ok_and(|a| a.armed[REACH]) {
-                rules.progression.reach_m
-            } else {
-                rules.claim_radius_m
-            },
-        },
-        None => actions::Power::plain(rules),
-    };
-    // New identities claim weaker until they played a while.
-    let power = if motion.full_strength() {
-        power
-    } else {
-        actions::Power {
-            mult: power.mult * crate::motion::NEW_STRENGTH,
-            ..power
-        }
-    };
     // Through an open tunnel: any distance, no cooldown.
     let tunnel = game
         .tunnels
@@ -357,10 +416,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             ..power
         }
     } else if link.is_some() {
-        actions::Power {
-            mult: power.mult * rules.keep.link_factor,
-            ..power
-        }
+        link_power(power, rules)
     } else {
         power
     };

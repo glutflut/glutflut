@@ -296,6 +296,7 @@ export const en: Dict = {
   "perm.weakest": "weakest",
   "claim.link": "Claim over there",
   "claim.linked": "Nothing to take around the linked source right now",
+  "claim.linkfar": "Stand closer to your linked source",
   "perm.link": "Link …",
   "perm.unlink": "Unlink",
   "perm.link.pick.fire": "Which embers do you link with these?",

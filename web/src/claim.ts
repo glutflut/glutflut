@@ -57,7 +57,8 @@ export function setupClaim(d: {
   }
   function peek() {
     const me = d.me();
-    const l = me && d.faction() ? d.links().find((l) => distM(me, l.ll) <= d.claimRadius()) : undefined;
+    // The server's radius around A, not the armed reach (that counts from B).
+    const l = me && d.faction() ? d.links().find((l) => distM(me, l.ll) <= CLAIM_RADIUS_M) : undefined;
     if (!l) {
       linkTarget = null;
       peeked = { ticket: "", at: 0 };
@@ -99,6 +100,7 @@ export function setupClaim(d: {
       claimBtn.textContent = label;
     }
     claimBtn.disabled = !(faction && me) || !!wait;
+    linkBtn.disabled = !!wait;
   };
   setInterval(() => wait && drawWait(), 200);
   const update = () => {
@@ -276,7 +278,8 @@ export function setupClaim(d: {
       clearTimeout(claimWait);
       // Through a link: show where it landed, and ask again what is left there.
       if (flyTo) {
-        if (m.ok) d.look(flyTo);
+        // The server picks the junction around B; the peeked one is the fallback.
+        if (m.ok) d.look(nodePos.get(m.node) ?? flyTo);
         flyTo = null;
         linkTarget = null;
         peeked.at = 0;
@@ -296,6 +299,7 @@ export function setupClaim(d: {
         supplied: "claim.supplied",
         worn: "claim.worn",
         linked: "claim.linked",
+        linkfar: "claim.linkfar",
       };
       // On enemy ground a claim builds up first (rule `claim_ramp_s`).
       const via = d.tunnel.onClaim(m.node, m.ok);
