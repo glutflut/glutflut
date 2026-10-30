@@ -147,7 +147,8 @@ export function locate(timeoutMs: number): Promise<[number, number] | null> {
 
 /** Open the app for `slug`; on another server with a passport, so the
  *  player stays who they are (same side, name, badges). */
-export async function openRegion(r: RegionInfo, watch = false) {
+/** `look`: where the map starts there (an own permanent source; same server only). */
+export async function openRegion(r: RegionInfo, watch = false, look?: [number, number]) {
   const u = new URL(r.url ? `${r.url}${location.pathname}` : location.href);
   u.search = location.search;
   u.searchParams.set("region", r.slug);
@@ -156,7 +157,7 @@ export async function openRegion(r: RegionInfo, watch = false) {
   // From the city list or the globe: only watch there (watch.ts); walking in: play.
   if (watch) u.searchParams.set("watch", "");
   else u.searchParams.delete("watch");
-  u.hash = "";
+  u.hash = look && !r.url ? `keep=${look[0].toFixed(6)},${look[1].toFixed(6)}` : "";
   if (r.url) {
     const p = await passportFor();
     if (p) u.hash = `passport=${p}`;

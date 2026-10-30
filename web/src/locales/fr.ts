@@ -320,6 +320,7 @@ export const fr: Dict = {
   "perm.link.pick.water": "Quelle glace relies-tu à celle-ci ?",
   "perm.link.set": "Reliées : depuis l’une tu atteins les carrefours autour de l’autre, un peu plus faiblement.",
   "perm.link.off": "Liaison rompue",
+  "perm.link.moved": "Reliée. La liaison avec {city} est rompue à la place.",
   "perm.linked": "reliée",
   "perm.linked.there": "délie-la d’abord à {city}",
   "perm.linked.to": "encore reliée à {city}, sera déplacée",

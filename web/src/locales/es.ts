@@ -321,6 +321,7 @@ export const es: Dict = {
   "perm.link.pick.water": "¿Qué hielo enlazas con este?",
   "perm.link.set": "Enlazadas: desde una alcanzas los cruces alrededor de la otra, algo más débil.",
   "perm.link.off": "Enlace quitado",
+  "perm.link.moved": "Enlazada. A cambio se quitó el enlace con {city}.",
   "perm.linked": "enlazada",
   "perm.linked.there": "primero desenlázala en {city}",
   "perm.linked.to": "aún enlazada con {city}, se cambia",

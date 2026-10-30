@@ -320,6 +320,7 @@ export const en: Dict = {
   "perm.link.pick.water": "Which ice do you link with this one?",
   "perm.link.set": "Linked: at one of them you reach the junctions around the other, a bit weaker.",
   "perm.link.off": "Link removed",
+  "perm.link.moved": "Linked. The link to {city} is gone instead.",
   "perm.linked": "linked",
   "perm.linked.there": "unlink it in {city} first",
   "perm.linked.to": "still linked to {city}, will be moved",

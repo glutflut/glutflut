@@ -348,6 +348,13 @@ async function main() {
       hotspots.hint();
     },
   });
+  // Came from the other end of a link (`openRegion` with `look`): start at that source.
+  const keepAt = /[#&]keep=(-?[\d.]+),(-?[\d.]+)/.exec(location.hash);
+  if (keepAt) {
+    player.setFollow(false);
+    map.jumpTo({ center: [+keepAt[1], +keepAt[2]], zoom: 17 });
+    history.replaceState(null, "", location.pathname + location.search);
+  }
   const gps = setupGps(map, player.setMe, tapCard);
   // Recordings only (video.ts): staged claims keep their rings through the server's lists.
   const staged: SourceItems = [];

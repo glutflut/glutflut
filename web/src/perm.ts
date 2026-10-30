@@ -11,7 +11,7 @@ import { COLORS } from "./geo";
 import type { Faction, Net, ServerMsg } from "./net";
 import type { MottoItem } from "./protocol";
 import { $, plus } from "./page";
-import { listRegions, region } from "./region";
+import { listRegions, openRegion, region } from "./region";
 import { loadJson, saveJson, type StoreKey } from "./store";
 import { ask } from "./ask";
 import { mottoText, setMottos } from "./mottos";
@@ -241,6 +241,22 @@ export function setupPerm(
     return lastSources.find((x) => x.node === m.node)?.ll ?? m.ll;
   }
 
+  /** An own source's name here ("Glut 2"): by when it was placed, not by rank. */
+  const label = (m: Stored) => `${name("one")} ${mine.indexOf(m) + 1}`;
+  /** Where `m`'s link goes: an own source here, or one in another city (its name and number there). */
+  function partner(m: Stored): { here: Stored } | { region: string; city: string; n: number; ll?: [number, number] } | null {
+    if (m.link) {
+      const p = mine.find((x) => x.ticket === m.link);
+      return p ? { here: p } : null;
+    }
+    if (!m.far) return null;
+    const there = elsewhere().get(m.far.region) ?? [];
+    const i = there.findIndex((x) => x.ticket === m.far!.key);
+    return { region: m.far.region, city: m.far.name ?? m.far.region, n: i + 1, ll: m.far.ll };
+  }
+  const partnerName = (p: NonNullable<ReturnType<typeof partner>>) =>
+    "here" in p ? label(p.here) : p.n > 0 ? `${p.city} · ${name("one")} ${p.n}` : p.city;
+
   /** Own sources, weakest first (unknown strength last). */
   function ranked() {
     return mine
@@ -331,7 +347,9 @@ export function setupPerm(
     list.replaceChildren(
       ...others.map((r) => {
         const b = document.createElement("button");
-        b.textContent = `${name("one")} ${mine.indexOf(r.m) + 1}` + (line(r) ? ` · ${line(r)}` : "") + (r.m.link ? ` · ${t("perm.linked")}` : "");
+        // Linked already (here or to another city): linking moves that link.
+        const p = partner(r.m);
+        b.textContent = label(r.m) + (line(r) ? ` · ${line(r)}` : "") + (p ? ` · ${t("perm.linked.to", { city: partnerName(p) })}` : "");
         b.onclick = () => {
           box.hidden = true;
           pendingLink = { a, b: r.m };
@@ -418,15 +436,33 @@ export function setupPerm(
     if (el.hidden) return;
     el.querySelector("h3")!.textContent = t(`perm.mine.${faction ?? "fire"}` as Key, { n: Math.max(used, mine.length), max: max() });
     el.querySelector("ul")!.replaceChildren(
-      ...ranked().map((r, i) => {
+      ...ranked().map((r) => {
         const li = document.createElement("li");
         const b = document.createElement("button");
-        b.textContent = `${name("one")} ${i + 1}` + (line(r) ? ` · ${line(r)}` : "");
+        b.textContent = label(r.m) + (line(r) ? ` · ${line(r)}` : "");
         b.onclick = () => {
           ($("board-close") as HTMLButtonElement).click();
           focus(r.m.node);
         };
         li.append(b);
+        // Where its link goes; a tap goes there (another city: opens it there).
+        const p = linkOn ? partner(r.m) : null;
+        if (p) {
+          const pb = document.createElement("button");
+          pb.className = "ghost link partner";
+          pb.textContent = `↔ ${partnerName(p)}`;
+          pb.onclick = () => {
+            if ("here" in p) {
+              ($("board-close") as HTMLButtonElement).click();
+              return focus(p.here.node);
+            }
+            void listRegions().then((rs) => {
+              const there = rs.find((x) => x.slug === p.region);
+              if (there) void openRegion(there, false, p.ll);
+            });
+          };
+          li.append(" ", pb);
+        }
         // Linked permanent sources: link with another own one, or unlink.
         if (linkOn && (mine.length >= 2 || elsewhere().size || gifts().length)) li.append(" ", linkButton(r.m));
         if (linkOn) li.append(" ", giftButton(r.m));
@@ -563,6 +599,7 @@ export function setupPerm(
         pendingLink = null;
         if (m.ok && p) {
           // A far link of either end goes (one link per source).
+          const moved = [p.a, p.b].find((x) => x?.far)?.far?.name;
           for (const x of [p.a, p.b]) {
             if (x?.far) {
               setFarThere(x.far.region, x.far.key, null);
@@ -580,7 +617,7 @@ export function setupPerm(
           }
           save(mine);
           drawLinks();
-          toast(t(p.b ? "perm.link.set" : "perm.link.off"), 6000);
+          toast(p.b && moved ? t("perm.link.moved", { city: moved }) : t(p.b ? "perm.link.set" : "perm.link.off"), 6000);
         } else toast(t("perm.failed"));
       } else if (m.t === "released") {
         if (m.ok) {

@@ -319,6 +319,7 @@ export const de = {
   "perm.link.pick.water": "Welches Eis verbindest du mit diesem?",
   "perm.link.set": "Verbunden: An der einen erreichst du die Kreuzungen um die andere, etwas schwächer.",
   "perm.link.off": "Verbindung gelöst",
+  "perm.link.moved": "Verbunden. Die Verbindung nach {city} ist dafür gelöst.",
   "perm.linked": "verbunden",
   "perm.linked.there": "erst in {city} lösen",
   "perm.linked.to": "noch mit {city} verbunden, wird umgehängt",
