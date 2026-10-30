@@ -315,6 +315,7 @@ export const pl: Dict = {
   "perm.link.set": "Połączone: przy jednym sięgasz skrzyżowań wokół drugiego, nieco słabiej.",
   "perm.link.off": "Połączenie usunięte",
   "perm.linked": "połączone",
+  "perm.linked.there": "najpierw rozłącz w: {city}",
   "perm.mine.fire": "Mój żar ({n} z {max})",
   "perm.mine.water": "Mój lód ({n} z {max})",
   "claim.anchor.go.fire": "Rozpal palenisko",

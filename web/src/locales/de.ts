@@ -314,6 +314,7 @@ export const de = {
   "perm.link.set": "Verbunden: An der einen erreichst du die Kreuzungen um die andere, etwas schwächer.",
   "perm.link.off": "Verbindung gelöst",
   "perm.linked": "verbunden",
+  "perm.linked.there": "erst in {city} lösen",
   "perm.mine.fire": "Meine Glut ({n} von {max})",
   "perm.mine.water": "Mein Eis ({n} von {max})",
   "claim.anchor.go.fire": "Herd entzünden",

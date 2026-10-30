@@ -33,8 +33,16 @@ const valid = (v: Stored) => typeof v?.ticket === "string" && typeof v?.node ===
 function load(): Stored[] {
   const v = loadJson<Stored | Stored[]>(KEY());
   // Before several: one object.
-  const list = Array.isArray(v) ? v : v ? [v] : [];
-  return list.filter(valid);
+  const list = (Array.isArray(v) ? v : v ? [v] : []).filter(valid);
+  // One link per source: a link here (the server's) wins over a far one
+  // (an earlier version could set both).
+  const both = list.filter((m) => m.link && m.far);
+  for (const m of both) {
+    setFarThere(m.far!.region, m.far!.key, null);
+    delete m.far;
+  }
+  if (both.length) save(list);
+  return list;
 }
 
 function save(list: Stored[]) {
@@ -302,6 +310,13 @@ export function setupPerm(
           there.forEach((b, i) => {
             const btn = document.createElement("button");
             btn.textContent = `${r.name} · ${name("one")} ${i + 1}` + (b.far || b.link ? ` · ${t("perm.linked")}` : "");
+            // Linked within its own city: only that city's server can undo it.
+            if (b.link) {
+              btn.disabled = true;
+              btn.textContent += ` (${t("perm.linked.there", { city: r.name })})`;
+              list.append(btn);
+              return;
+            }
             btn.onclick = () => {
               box.hidden = true;
               linkFar(a, { slug: r.slug, name: r.name }, b, hereName);
@@ -544,6 +559,13 @@ export function setupPerm(
         const p = pendingLink;
         pendingLink = null;
         if (m.ok && p) {
+          // A far link of either end goes (one link per source).
+          for (const x of [p.a, p.b]) {
+            if (x?.far) {
+              setFarThere(x.far.region, x.far.key, null);
+              delete x.far;
+            }
+          }
           if (p.b) {
             // Old partners of either end are on their own again.
             for (const x of mine) if (x.link === p.a.ticket || x.link === p.b.ticket) delete x.link;

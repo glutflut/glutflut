@@ -315,6 +315,7 @@ export const en: Dict = {
   "perm.link.set": "Linked: at one of them you reach the junctions around the other, a bit weaker.",
   "perm.link.off": "Link removed",
   "perm.linked": "linked",
+  "perm.linked.there": "unlink it in {city} first",
   "perm.mine.fire": "My embers ({n} of {max})",
   "perm.mine.water": "My ice ({n} of {max})",
   "claim.anchor.go.fire": "Light a hearth",
