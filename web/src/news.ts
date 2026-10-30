@@ -1,5 +1,6 @@
 // What's new (shown once after a deploy that brings an entry the player hasn't
-// seen; settings → "Neuigkeiten" shows them again). Newest first; `rules`:
+// seen, all missed ones: the newest open, older ones folded; settings →
+// "Neuigkeiten" shows them all again). Newest first; `rules`:
 // the game rules changed. New players start with all of it seen.
 import { lang } from "./i18n";
 import { $ } from "./page";
@@ -829,7 +830,7 @@ function seen(id: string) {
 /** Played before: the intro was seen on an earlier visit (main.ts INTRO_KEY), read before this visit's intro. */
 const returning = load(KEYS.intro) !== null;
 
-export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "news.chron") => string) {
+export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "news.chron" | "news.older") => string) {
   const box = $("news");
   const latest = NEWS[0]?.id ?? "";
 
@@ -859,9 +860,11 @@ export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "
         }
         return sec;
       }),
-      ...entries.map((e) => {
+      // The newest open; older ones (missed, or all from the settings)
+      // folded below it, one line each.
+      ...entries.map((e, i) => {
         const x = e.text[lang] ?? e.text.en ?? e.text.de;
-        const sec = document.createElement("section");
+        const sec = document.createElement(i ? "details" : "section");
         const h = document.createElement("h3");
         h.textContent = x.title;
         if (e.rules) {
@@ -877,10 +880,20 @@ export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "
           li.innerHTML = it.replace(/</g, "&lt;");
           ul.append(li);
         }
-        sec.append(h, ul);
+        if (i) {
+          const sum = document.createElement("summary");
+          sum.append(h);
+          sec.append(sum, ul);
+        } else sec.append(h, ul);
         return sec;
       }),
     );
+    if (entries.length > 1) {
+      const older = document.createElement("p");
+      older.className = "news-older";
+      older.textContent = t("news.older");
+      list.querySelector("details")?.before(older);
+    }
     box.hidden = false;
     seen(latest);
   }
@@ -888,7 +901,7 @@ export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "
   $("news-close").onclick = () => (box.hidden = true);
   $("news-open").onclick = () => {
     ($("board-close") as HTMLButtonElement).click();
-    show(NEWS.slice(0, 3));
+    show(NEWS);
   };
 
   let checked = false;
@@ -901,7 +914,7 @@ export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "
       // New here (no game yet): nothing to catch up on.
       if (last === null && !returning) return seen(latest);
       const fresh = last === null ? NEWS.slice(0, 1) : NEWS.filter((e) => e.id > last);
-      show(fresh.slice(0, 3));
+      show(fresh);
     },
   };
 }

@@ -1366,6 +1366,15 @@ body.outside #actions { display: none; }
 #news h3 { margin: 10px 0 4px; font-size: 16px; }
 #news ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.4; }
 #news li + li { margin-top: 6px; }
+#news .news-older { margin: 14px 0 2px; font-size: 13px; color: var(--soft); }
+#news details { border-top: 1px solid var(--line); }
+#news details summary { cursor: pointer; list-style: none; }
+#news details summary::-webkit-details-marker { display: none; }
+#news details summary h3 { display: inline; font-size: 15px; font-weight: 600; }
+#news details summary::before { content: "▸ "; color: var(--soft); }
+#news details[open] summary::before { content: "▾ "; }
+#news details summary { padding: 8px 0; }
+#news details ul { margin-bottom: 8px; }
 .news-rules { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); background: var(--gold); border-radius: 6px; padding: 1px 6px; vertical-align: 2px; }
 
 #news .news-notice { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }

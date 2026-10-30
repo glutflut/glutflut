@@ -78,6 +78,7 @@ export const de = {
   "news.rules": "Spielregeln",
   "news.open": "Neuigkeiten",
   "news.chron": "Chronik: Was in den Kapiteln geschah ›",
+  "news.older": "Ältere Neuigkeiten",
   "feedback.title": "Wie gefällt dir Glut & Flut?",
   "feedback.sad": "nicht gut",
   "feedback.neutral": "geht so",
