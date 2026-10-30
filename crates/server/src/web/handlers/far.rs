@@ -73,6 +73,7 @@ fn refused(out: &crate::gateway::Outbox, reason: &'static str, wait: f32) {
             anchor: false,
             far: None,
             near: None,
+            streets: None,
         },
     );
 }
@@ -288,7 +289,7 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         (Some((_, b_node)), Some((b, (node, lon, lat)))) => {
             take(game, c, &a, power, b, node, &mut ans);
             if ans.ok {
-                ans.near = near(game, c, node, a.faction);
+                (ans.near, ans.streets) = near(game, c, node, a.faction);
             }
             // A gift: one use less; its owner gets a share of the points.
             if let (true, Some(g)) = (ans.ok, gift) {
@@ -314,35 +315,52 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
     }
 }
 
-/// Y: the junctions around `node` with their owner (`node` itself counts
-/// as `faction`'s: its claim may still be building up).
-fn near(game: &Game, c: &Ctx, node: i64, faction: Faction) -> Vec<[f64; 3]> {
+/// Y: the junctions around `node` as (lon, lat, fire, water) and the
+/// streets between them (index pairs; `node` itself counts as `faction`'s:
+/// its claim may still be building up).
+fn near(game: &Game, c: &Ctx, node: i64, faction: Faction) -> (Vec<[f64; 4]>, Vec<[u16; 2]>) {
     let at = |g: &GeoNode| {
         let p = project_enu(g.lat, g.lon, c.region.centroid_lat, c.region.centroid_lon);
         Vec2::new(p.x, p.z)
     };
-    let side = |f: Faction| if f == Faction::Fire { 1.0 } else { 2.0 };
     let Some(here) = game
         .node_by_id
         .get(&node)
         .and_then(|&e| game.nodes.get(e).ok())
         .map(|(g, _)| at(g))
     else {
-        return Vec::new();
+        return Default::default();
     };
-    game.nodes
-        .iter()
-        .filter(|(g, _)| at(g).distance(here) <= crate::remote::NEAR_M)
-        .take(400)
-        .map(|(g, s)| {
-            let owner = if g.id == node {
-                side(faction)
-            } else {
-                s.owner().map_or(0.0, side)
-            };
-            [g.lon, g.lat, owner]
-        })
-        .collect()
+    let round = |x: f32| (f64::from(x) * 100.0).round() / 100.0;
+    // Dense sim index -> position in the list.
+    let mut idx: HashMap<usize, u16> = HashMap::new();
+    let mut pts = Vec::new();
+    for (g, s) in game.nodes.iter() {
+        if pts.len() >= 400 || at(g).distance(here) > crate::remote::NEAR_M {
+            continue;
+        }
+        let Some(i) = game.node_by_id.index(g.id) else {
+            continue;
+        };
+        let (f, w) = match (g.id == node, faction) {
+            (true, Faction::Fire) => (1.0, 0.0),
+            (true, Faction::Water) => (0.0, 1.0),
+            _ => (round(s.fire), round(s.water)),
+        };
+        idx.insert(i, pts.len() as u16);
+        pts.push([g.lon, g.lat, f, w]);
+    }
+    let mut streets = Vec::new();
+    if let Some(sim) = &game.sim {
+        for (&i, &a) in &idx {
+            for j in sim.neighbour_idx(i) {
+                if let Some(&b) = idx.get(&j).filter(|_| j > i) {
+                    streets.push([a, b]);
+                }
+            }
+        }
+    }
+    (pts, streets)
 }
 
 /// Y: the claim itself, from B; a too strong permanent source wears down.
@@ -493,6 +511,7 @@ pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
             anchor: false,
             far: ans.at,
             near: Some(ans.near),
+            streets: Some(ans.streets),
         },
     );
 }

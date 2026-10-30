@@ -14,7 +14,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
   | { "t": "cheers", fire: number, water: number, burst: [number, number], }
-  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked" | "linkfar" | "linkdown" | "nokey", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, far?: [number, number], near?: Array<[number, number, number]>, }
+  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked" | "linkfar" | "linkdown" | "nokey", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, far?: [number, number], near?: Array<[number, number, number, number]>, streets?: Array<[number, number]>, }
   | { "t": "rate", ok: boolean, reason?: string, points: number, }
   | { "t": "hotspots", items: Array<HotspotInfo>, }
   | { "t": "score" } & Mine

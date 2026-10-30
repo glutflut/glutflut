@@ -47,7 +47,7 @@ export function setupClaim(d: {
   /** Show the camera a spot (a claim through a link), then back to the player. */
   look: (ll: [number, number]) => void;
   /** A claim through a link landed in another region: show that place small. */
-  farShown: (region: string, name: string, at: [number, number], near: [number, number, number][]) => void;
+  farShown: (region: string, name: string, at: [number, number], near: [number, number, number, number][], streets: [number, number][]) => void;
   /** The tunnel's say on a claim: true if it went through one. */
   tunnel: { onClaim(node: number, ok: boolean): boolean };
   card: { onClaim(node: number): void };
@@ -341,7 +341,7 @@ export function setupClaim(d: {
         // The server picks the junction around B; the peeked one is the fallback.
         // In another region the map can't go there.
         if (m.ok && !m.far) d.look(nodePos.get(m.node) ?? flyTo);
-        if (m.ok && m.far && farRegion) d.farShown(farRegion, farName, m.far, m.near ?? []);
+        if (m.ok && m.far && farRegion) d.farShown(farRegion, farName, m.far, m.near ?? [], m.streets ?? []);
         flyTo = null;
         linkTarget = null;
         peeked.at = 0;

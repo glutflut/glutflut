@@ -130,11 +130,15 @@ pub enum ServerMsg<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         far: Option<[f64; 2]>,
-        /// With `far`: the junctions around it there as (lon, lat, owner:
-        /// 0 none, 1 fire, 2 water), for the app's small map of that place.
+        /// With `far`: the junctions around it there as (lon, lat, fire,
+        /// water), for the app's small map of that place.
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
-        near: Option<Vec<[f64; 3]>>,
+        near: Option<Vec<[f64; 4]>>,
+        /// With `near`: the streets between those junctions (index pairs).
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        streets: Option<Vec<[u16; 2]>>,
     },
     Rate {
         ok: bool,

@@ -43,9 +43,11 @@ pub struct Answer {
     pub prior: Option<(f32, f32)>,
     pub build: f32,
     pub doused: bool,
-    /// Junctions within `NEAR_M` of it after the claim: (lon, lat, owner
-    /// 0 none / 1 fire / 2 water), for X's app to show the place.
-    pub near: Vec<[f64; 3]>,
+    /// Junctions within `NEAR_M` of it after the claim: (lon, lat, fire,
+    /// water), and the streets between them (index pairs), for X's app to
+    /// show the place.
+    pub near: Vec<[f64; 4]>,
+    pub streets: Vec<[u16; 2]>,
 }
 
 /// How far around the claimed junction the answer shows the junctions.

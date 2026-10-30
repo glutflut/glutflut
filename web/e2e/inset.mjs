@@ -1,18 +1,31 @@
 // Layout check of the small map after a claim into another region
 // (inset.ts): on a small phone it must stay clear of the claim buttons and
 // the top bar. Needs `?sim` (window.__inset).
-//   node e2e/inset.mjs "<app url with ?sim&at=…>" <region> <lon,lat> out.png
+//   node e2e/inset.mjs "<app url with ?sim&at=…>" <region> <lon,lat> out.png [server]
 import { chromium } from "playwright";
 
-const [url, region, at, out = "inset.png"] = process.argv.slice(2);
+const [url, region, at, out = "inset.png", base = "http://127.0.0.1:5080"] = process.argv.slice(2);
 const [lon, lat] = at.split(",").map(Number);
-// Junctions around the spot as the server sends them: a ring of both sides.
-const near = [[lon, lat, 1]];
-for (let i = 0; i < 40; i++) {
-  const a = (i / 40) * 2 * Math.PI;
-  const r = 0.0004 + 0.0012 * ((i * 7) % 10) / 10;
-  near.push([lon + r * Math.cos(a) * 1.5, lat + r * Math.sin(a), i % 3]);
-}
+// Real junctions around the spot, as the server sends them (lon, lat, fire,
+// water): fire to the west, water to the east, the spot claimed by fire;
+// streets to the two nearest junctions each (the server sends real ones).
+const j = await (await fetch(`${base}/api/region?region=${region}`)).json();
+const m = (p) => Math.hypot((p[0] - lon) * 111_320 * Math.cos((lat * Math.PI) / 180), (p[1] - lat) * 110_540);
+const near = j.nodes.features
+  .map((f) => f.geometry.coordinates)
+  .filter((p) => m(p) <= 200 && m(p) > 0.5)
+  .map((p) => [p[0], p[1], p[0] < lon - 0.0004 ? 0.8 : 0, p[0] > lon + 0.0004 ? 0.6 : 0]);
+near.unshift([lon, lat, 1, 0]);
+const streets = [];
+near.forEach((p, a) => {
+  near
+    .map((q, b) => [b, Math.hypot(q[0] - p[0], q[1] - p[1])])
+    .filter(([b]) => b !== a)
+    .sort((x, y) => x[1] - y[1])
+    .slice(0, 2)
+    .forEach(([b]) => streets.push([a, b]));
+});
+console.log(`${near.length} junctions, ${streets.length} streets`);
 
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const page = await browser.newPage({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 2 });
@@ -20,7 +33,7 @@ page.on("pageerror", (e) => console.log(`[pageerror] ${e.message}`));
 await page.goto(url);
 await page.waitForFunction(() => typeof window.__inset === "function", null, { timeout: 30_000 });
 await page.waitForTimeout(3000);
-await page.evaluate(([r, ll, n]) => window.__inset(r, "Calw", ll, n), [region, [lon, lat], near]);
+await page.evaluate(([r, ll, n, st]) => window.__inset(r, "Calw", ll, n, st), [region, [lon, lat], near, streets]);
 await page.waitForTimeout(4000);
 const box = (sel) => page.$eval(sel, (e) => {
   const b = e.getBoundingClientRect();

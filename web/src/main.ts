@@ -301,7 +301,7 @@ async function main() {
       map.flyTo({ center: ll, zoom: Math.max(map.getZoom(), 16.5), duration: 1500, essential: true });
       setTimeout(() => player.home(), 4000);
     },
-    farShown: (region, name, at, near) => void inset.show(region, name, at, near),
+    farShown: (region, name, at, near, streets) => void inset.show(region, name, at, near, streets),
     tunnel,
     card,
     claimed: () => invite.claimed(),
