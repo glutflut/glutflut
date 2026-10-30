@@ -13,6 +13,68 @@ type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
 
 export const NEWS: Entry[] = [
   {
+    id: "2026-10-30",
+    rules: true,
+    text: {
+      de: {
+        title: "Neu: Verbindungen in andere Städte, Schlüssel verschenken",
+        items: [
+          "Eine Glut- bzw. Eisquelle lässt sich jetzt auch mit einer eigenen Quelle in einer anderen Stadt verbinden („Verbinden …“ auf der Karte der Quelle). Stehst du an deiner Quelle hier, eroberst du mit „Drüben erobern“ rund um die dort. Die Kreuzung zählt für die Stadt drüben, die Punkte bekommst du hier.",
+          "Schlüssel verschenken: Zu einer eigenen Quelle kannst du einen Schlüssel als Link oder QR-Code weitergeben, einen pro Woche. Wer ihn bekommt, kann damit von einer eigenen Quelle aus rund um deine erobern, und du bekommst ein Viertel der Punkte.",
+          "„Drüben erobern“ geht jetzt verlässlicher: Das Spiel sucht selbst eine Kreuzung, die sich nehmen lässt, und sagt dir, wenn du zu weit von deiner Quelle weg stehst.",
+        ],
+      },
+      en: {
+        title: "New: links to other cities, give a key",
+        items: [
+          "An ember or ice source can now also be linked with one of your own sources in another city (“Link …” on the source’s card). Standing at your source here, you claim around the one there with “Claim over there”. The junction counts for the city over there; you get the points here.",
+          "Give a key: for one of your own sources you can pass on a key as a link or QR code, one per week. Whoever gets it can claim around your source from one of their own, and you get a quarter of the points.",
+          "“Claim over there” is more reliable now: the game picks a junction that can be taken, and tells you when you are too far from your source.",
+        ],
+      },
+      fr: {
+        title: "Nouveau&nbsp;: liens vers d’autres villes, offrir une clé",
+        items: [
+          "Une braise ou une glace peut maintenant aussi être reliée à une de tes sources dans une autre ville («&nbsp;Relier …&nbsp;» sur la carte de la source). Debout à ta source ici, tu conquiers autour de celle de là-bas avec «&nbsp;Conquérir là-bas&nbsp;». Le carrefour compte pour la ville là-bas&nbsp;; les points, tu les gagnes ici.",
+          "Offrir une clé&nbsp;: pour une de tes sources, tu peux donner une clé sous forme de lien ou de code QR, une par semaine. Qui la reçoit peut conquérir autour de ta source depuis une des siennes, et tu reçois un quart des points.",
+          "«&nbsp;Conquérir là-bas&nbsp;» marche mieux&nbsp;: le jeu choisit un carrefour qui peut être pris, et te dit quand tu es trop loin de ta source.",
+        ],
+      },
+      es: {
+        title: "Nuevo: enlaces a otras ciudades, regalar una llave",
+        items: [
+          "Una brasa o un hielo ahora también se puede enlazar con una fuente propia en otra ciudad («Enlazar …» en la tarjeta de la fuente). Parado en tu fuente de aquí, conquistas alrededor de la de allá con «Conquistar allá». El cruce cuenta para la ciudad de allá; los puntos los recibes aquí.",
+          "Regalar una llave: para una fuente propia puedes dar una llave como enlace o código QR, una por semana. Quien la recibe puede conquistar alrededor de tu fuente desde una suya, y tú recibes una cuarta parte de los puntos.",
+          "«Conquistar allá» funciona mejor: el juego elige un cruce que se pueda tomar y te avisa cuando estás demasiado lejos de tu fuente.",
+        ],
+      },
+      pl: {
+        title: "Nowość: połączenia z innymi miastami, podaruj klucz",
+        items: [
+          "Żar albo lód można teraz połączyć także z własnym źródłem w innym mieście („Połącz …” na karcie źródła). Stojąc przy swoim źródle tutaj, zdobywasz wokół tamtego przyciskiem „Zdobądź tam”. Skrzyżowanie liczy się dla tamtego miasta, punkty dostajesz tutaj.",
+          "Podaruj klucz: do własnego źródła możesz przekazać klucz jako link albo kod QR, jeden na tydzień. Kto go dostanie, może zdobywać wokół twojego źródła ze swojego własnego, a ty dostajesz jedną czwartą punktów.",
+          "„Zdobądź tam” działa pewniej: gra sama wybiera skrzyżowanie, które da się zająć, i mówi ci, gdy stoisz za daleko od swojego źródła.",
+        ],
+      },
+      it: {
+        title: "Novità: collegamenti con altre città, regala una chiave",
+        items: [
+          "Una Brace o un Ghiaccio ora si può collegare anche con una tua sorgente in un’altra città («Collega …» sulla scheda della sorgente). Stando alla tua sorgente qui, conquisti intorno a quella laggiù con «Conquista laggiù». L’incrocio conta per la città laggiù; i punti li ricevi qui.",
+          "Regala una chiave: per una tua sorgente puoi passare una chiave come link o codice QR, una a settimana. Chi la riceve può conquistare intorno alla tua sorgente da una delle sue, e tu ricevi un quarto dei punti.",
+          "«Conquista laggiù» è più affidabile: il gioco sceglie un incrocio che si può prendere e ti avvisa quando sei troppo lontano dalla tua sorgente.",
+        ],
+      },
+      pt: {
+        title: "Novo: ligações com outras cidades, dar uma chave",
+        items: [
+          "Uma Brasa ou um Gelo agora também pode ser ligado a uma fonte sua em outra cidade («Ligar …» no cartão da fonte). Parado na sua fonte aqui, você conquista ao redor da de lá com «Conquistar lá». O cruzamento conta para a cidade de lá; os pontos você recebe aqui.",
+          "Dar uma chave: para uma fonte sua você pode passar uma chave como link ou código QR, uma por semana. Quem a recebe pode conquistar ao redor da sua fonte a partir de uma própria, e você recebe um quarto dos pontos.",
+          "«Conquistar lá» ficou mais confiável: o jogo escolhe um cruzamento que dá para tomar e avisa quando você está longe demais da sua fonte.",
+        ],
+      },
+    },
+  },
+  {
     id: "2026-10-29",
     text: {
       de: {
