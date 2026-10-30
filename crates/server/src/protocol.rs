@@ -320,6 +320,10 @@ pub enum ServerMsg<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         node: Option<i64>,
+        /// No target: why (`linked` nothing to take, `nokey`, `linkfar`, `linkdown`).
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(type = "\"linked\" | \"nokey\" | \"linkfar\" | \"linkdown\"", optional)]
+        reason: Option<&'static str>,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         lon: Option<f64>,

@@ -10,6 +10,19 @@ import { arrow, CLAIM_RADIUS_M, distM, owner } from "./geo";
 import { $, plus, toast } from "./page";
 
 const TOO_FAST = t("too.fast");
+/** Why a claim (or a link's offer) came to nothing. */
+const WHY: Record<string, Key> = {
+  range: "claim.range",
+  cooldown: "claim.cooldown",
+  own: "claim.own",
+  strong: "claim.strong",
+  supplied: "claim.supplied",
+  worn: "claim.worn",
+  linked: "claim.linked",
+  linkfar: "claim.linkfar",
+  linkdown: "claim.linkdown",
+  nokey: "claim.nokey",
+};
 
 type Target = { id: number; anchor: boolean; reinforce?: boolean };
 /** Ask the server again what the link would take, at most this often while in reach. */
@@ -46,6 +59,8 @@ export function setupClaim(d: {
   // The second button: standing at an own linked permanent source, what a
   // claim through the link would take (the server says, `peek`).
   let linkTarget: { ticket: string; node: number; ll: [number, number]; far?: Far & { name?: string } } | null = null;
+  /** Standing at a linked source with nothing offered: why (the button stays, dimmed). */
+  let linkWhy: string | null = null;
   let peeked: { ticket: string; at: number; far?: Far & { name?: string } } = { ticket: "", at: 0 };
   /** Where the claim just sent through a link goes (the camera shows it when it lands). */
   let flyTo: [number, number] | null = null;
@@ -53,8 +68,10 @@ export function setupClaim(d: {
   let farName = "";
   function drawLink() {
     const faction = d.faction();
-    linkBtn.hidden = !linkTarget || !faction;
+    linkBtn.hidden = !(linkTarget || linkWhy) || !faction;
+    linkBtn.classList.toggle("idle", !linkTarget);
     linkBtn.className = faction ?? "";
+    linkBtn.classList.toggle("idle", !linkTarget);
     linkBtn.textContent = t("claim.link");
     linkBtn.disabled = !!wait;
   }
@@ -64,6 +81,7 @@ export function setupClaim(d: {
     const l = me && d.faction() ? d.links().find((l) => distM(me, l.ll) <= CLAIM_RADIUS_M) : undefined;
     if (!l) {
       linkTarget = null;
+      linkWhy = null;
       peeked = { ticket: "", at: 0 };
     } else if (peeked.ticket !== l.ticket || Date.now() - peeked.at > PEEK_EVERY_MS) {
       const far = l.far && { region: l.far.region, key: l.far.key };
@@ -117,7 +135,10 @@ export function setupClaim(d: {
     peek();
   };
   linkBtn.onclick = () => {
-    if (!linkTarget) return;
+    if (!linkTarget) {
+      if (linkWhy) toast(t(WHY[linkWhy] ?? "claim.linked"));
+      return;
+    }
     flyTo = linkTarget.ll;
     farName = linkTarget.far?.name ?? "";
     send(linkTarget.node, linkTarget.ticket, linkTarget.far);
@@ -276,6 +297,7 @@ export function setupClaim(d: {
         m.node !== undefined && m.lon !== undefined && m.lat !== undefined
           ? { ticket: m.via, node: m.node, ll: [m.lon, m.lat], far: peeked.far }
           : null;
+      linkWhy = linkTarget ? null : (m.reason ?? null);
       drawLink();
     },
     onRate(m: Extract<ServerMsg, { t: "rate" }>) {
@@ -301,18 +323,7 @@ export function setupClaim(d: {
         wait = { from: now, until: now + m.wait * 1000, moving: m.reason === "moving" };
         drawWait();
       }
-      const why: Record<string, Key> = {
-        range: "claim.range",
-        cooldown: "claim.cooldown",
-        own: "claim.own",
-        strong: "claim.strong",
-        supplied: "claim.supplied",
-        worn: "claim.worn",
-        linked: "claim.linked",
-        linkfar: "claim.linkfar",
-        linkdown: "claim.linkdown",
-        nokey: "claim.nokey",
-      };
+      const why = WHY;
       // On enemy ground a claim builds up first (rule `claim_ramp_s`).
       // A node of another region means nothing to the map here.
       const via = !m.far && d.tunnel.onClaim(m.node, m.ok);

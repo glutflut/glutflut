@@ -1261,6 +1261,7 @@ body.outside #actions { display: none; }
 #claim-link.fire { background: var(--fire); }
 #claim-link.water { background: var(--water); }
 #claim-link:disabled { opacity: 0.45; }
+#claim-link.idle { opacity: 0.5; }
 
 /* New version after a deploy (update.ts); manual reload in the settings. */
 #update {

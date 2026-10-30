@@ -148,19 +148,30 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, via: &str, far: Far) {
 
 /// X: what a claim through the link of `via` into `far.region` would take.
 pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: String, far: Far) {
-    let Some((_, out)) = game.clients.0.get(&conn) else {
+    let Some((e, out)) = game.clients.0.get(&conn) else {
         return;
     };
-    let out = out.clone();
-    if !c.rules.keep.link
-        || far.region == c.region.slug
-        || !ask_far(game, c, conn, &far, &via, true)
-    {
+    let (e, out) = (*e, out.clone());
+    let at_a = game
+        .players
+        .get(e)
+        .is_ok_and(|(&f, pos, ..)| at_own_source(game, c, pos.0, f, &via));
+    let reason = if !c.rules.keep.link || far.region == c.region.slug {
+        Some("linked")
+    } else if !at_a {
+        Some("linkfar")
+    } else if !ask_far(game, c, conn, &far, &via, true) {
+        Some("linkdown")
+    } else {
+        None
+    };
+    if reason.is_some() {
         send(
             &out,
             &ServerMsg::Peek {
                 via: &via,
                 node: None,
+                reason,
                 lon: None,
                 lat: None,
             },
@@ -357,6 +368,7 @@ pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
             &ServerMsg::Peek {
                 via: &via,
                 node: ans.node.filter(|_| ans.ok),
+                reason: (!ans.ok).then(|| ans.reason.unwrap_or("linked")),
                 lon: at.map(|a| a[0]),
                 lat: at.map(|a| a[1]),
             },
@@ -425,6 +437,7 @@ pub(super) fn expire(game: &mut Game, c: &Ctx) {
                 &ServerMsg::Peek {
                     via: &via,
                     node: None,
+                    reason: Some("linkdown"),
                     lon: None,
                     lat: None,
                 },

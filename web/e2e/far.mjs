@@ -134,6 +134,9 @@ await px.at(a.node);
 px.send({ t: "claim", node: 0, via: a.ticket, far: { region: Y, key: "0".repeat(32) } });
 const bad = await px.next("claim");
 check(!bad.ok && bad.reason === "nokey", "wrong key: nokey", bad.reason);
+px.send({ t: "peek", via: a.ticket, far: { region: Y, key: "0".repeat(32) } });
+const pbad = await px.next("peek");
+check(pbad.node === undefined && pbad.reason === "nokey", "peek with a wrong key says nokey", pbad.reason);
 px.close();
 
 // 2. Gift: another player with their own A2 in X.

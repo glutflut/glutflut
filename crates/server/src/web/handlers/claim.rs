@@ -246,39 +246,35 @@ pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: &str) {
         ),
         c.rules,
     );
-    let target = c
-        .rules
-        .keep
-        .link
-        .then_some(())
-        .and_then(|_| {
-            link_partner(
-                &game.keep_info,
-                &game.sources,
-                c.region,
-                c.rules,
-                Vec2::new(pos.0.x, pos.0.z),
-                via,
-            )
-        })
-        .and_then(|(b, b_node)| {
-            link_target(
-                &game.nodes,
-                &game.sources,
-                &game.node_by_id,
-                c.region,
-                c.rules,
-                power,
-                b,
-                b_node,
-                faction,
-            )
-        });
+    let partner = c.rules.keep.link.then_some(()).and_then(|_| {
+        link_partner(
+            &game.keep_info,
+            &game.sources,
+            c.region,
+            c.rules,
+            Vec2::new(pos.0.x, pos.0.z),
+            via,
+        )
+    });
+    let target = partner.and_then(|(b, b_node)| {
+        link_target(
+            &game.nodes,
+            &game.sources,
+            &game.node_by_id,
+            c.region,
+            c.rules,
+            power,
+            b,
+            b_node,
+            faction,
+        )
+    });
     send(
         out,
         &ServerMsg::Peek {
             via,
             node: target.map(|t| t.0),
+            reason: (partner.is_some() && target.is_none()).then_some("linked"),
             lon: target.map(|t| t.1),
             lat: target.map(|t| t.2),
         },
