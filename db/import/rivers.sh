@@ -89,8 +89,13 @@ water=$(psql "$ELEMENTS_DB" -At -c "SELECT string_agg(format('SELECT kind, geome
 if [[ $# -gt 0 ]]; then
   regions=("$@")
 else
-  mapfile -t regions < <(psql "$ELEMENTS_DB" -At -v shard="$SHARD" \
-    -c "SELECT DISTINCT region FROM geo.river_regions rr JOIN geo.regions g ON g.slug = rr.region WHERE g.shard = :'shard' ORDER BY 1")
+  # Variables only work on stdin (not with -c); a failure stops the job.
+  list=$(psql "$ELEMENTS_DB" -v ON_ERROR_STOP=1 -At -v shard="$SHARD" <<'SQL'
+SELECT DISTINCT region FROM geo.river_regions rr JOIN geo.regions g ON g.slug = rr.region
+WHERE g.shard = :'shard' ORDER BY 1;
+SQL
+)
+  mapfile -t regions <<<"$list"
 fi
 for slug in "${regions[@]}"; do
   [[ "$slug" =~ ^region-[a-z0-9-]+$ ]] || { echo "skip $slug"; continue; }
