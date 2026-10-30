@@ -16,6 +16,18 @@ use crate::tiles::SharedTiles;
 
 /// How often the region list is read again (new regions without a restart).
 const LIST_EVERY: Duration = Duration::from_secs(300);
+/// An unknown region name reads the list again at most this often.
+const UNKNOWN_EVERY: Duration = Duration::from_secs(60);
+
+/// A region's slug as the imports make them (`region-` and lowercase).
+fn valid_slug(s: &str) -> bool {
+    s.len() <= 80
+        && s.strip_prefix("region-").is_some_and(|r| {
+            !r.is_empty()
+                && r.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        })
+}
 
 pub struct HostConfig {
     pub db: Option<String>,
@@ -169,6 +181,8 @@ pub struct Host {
     sizes: Mutex<HashMap<String, u64>>,
     /// Last extra list read for a region of another cell ([`Host::reread`]).
     reread_at: Mutex<Option<Instant>>,
+    /// Last extra list read for a name not on the list ([`Host::fresh`]).
+    unknown_at: Mutex<Option<Instant>>,
     /// Last request that used the list or a region (unix s): the list is
     /// read again only while someone uses this server (scale to zero).
     touched: AtomicU64,
@@ -187,6 +201,7 @@ impl Host {
             loaded: Mutex::default(),
             sizes: Mutex::default(),
             reread_at: Mutex::default(),
+            unknown_at: Mutex::default(),
             touched: AtomicU64::new(now()),
             registered: RwLock::default(),
             marble: crate::marble::Collector::default(),
@@ -381,7 +396,33 @@ impl Host {
         let slug = asked
             .filter(|s| !s.is_empty())
             .or(self.cfg.default_region.as_deref())?;
-        self.listing(slug).map(|l| l.slug)
+        self.fresh(slug).map(|l| l.slug)
+    }
+
+    /// The listing, or, for a name not on it, the list read again first: a
+    /// region added since (a quiet server reads its list only when used, and
+    /// a request for an unknown name alone didn't count). At most once a
+    /// minute, so made-up names can't keep the database awake.
+    fn fresh(&self, slug: &str) -> Option<Listing> {
+        if let Some(l) = self.listing(slug) {
+            return Some(l);
+        }
+        if !valid_slug(slug) {
+            return None;
+        }
+        {
+            let mut last = self.unknown_at.lock().unwrap();
+            if last.is_some_and(|t| t.elapsed() < UNKNOWN_EVERY) {
+                return None;
+            }
+            *last = Some(Instant::now());
+        }
+        if tokio::runtime::Handle::try_current().is_ok() {
+            tokio::task::block_in_place(|| self.refresh_list());
+        } else {
+            self.refresh_list();
+        }
+        self.listing(slug)
     }
 
     /// The region if it runs, without starting it or counting as use.
@@ -409,7 +450,7 @@ impl Host {
 
     pub fn get(self: &Arc<Self>, slug: &str) -> Result<Arc<Region>, Unavailable> {
         self.touch();
-        let listing = self.listing(slug).ok_or(Unavailable::Unknown)?;
+        let listing = self.fresh(slug).ok_or(Unavailable::Unknown)?;
         if listing.shard != self.cfg.shard {
             return Err(self
                 .cfg
@@ -808,7 +849,18 @@ fn etag(body: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{room, Held, Room};
+    use super::{room, valid_slug, Held, Room};
+
+    #[test]
+    fn slugs_worth_a_list_read() {
+        assert!(valid_slug("region-tabor"));
+        assert!(valid_slug("region-baden-baden"));
+        assert!(!valid_slug("region-"));
+        assert!(!valid_slug("tabor"));
+        assert!(!valid_slug("region-Tabor"));
+        assert!(!valid_slug("region-../x"));
+        assert!(!valid_slug(&format!("region-{}", "a".repeat(80))));
+    }
 
     fn h(size: u64, stopping: bool, idle: bool, used: u64) -> Held {
         Held {
