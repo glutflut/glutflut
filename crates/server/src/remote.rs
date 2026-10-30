@@ -43,7 +43,13 @@ pub struct Answer {
     pub prior: Option<(f32, f32)>,
     pub build: f32,
     pub doused: bool,
+    /// Junctions within `NEAR_M` of it after the claim: (lon, lat, owner
+    /// 0 none / 1 fire / 2 water), for X's app to show the place.
+    pub near: Vec<[f64; 3]>,
 }
+
+/// How far around the claimed junction the answer shows the junctions.
+pub const NEAR_M: f32 = 200.0;
 
 /// X to Y: make the found key `key` (made in X) to a random permanent
 /// source of `faction` in Y; answered with [`Minted`].

@@ -46,6 +46,8 @@ export function setupClaim(d: {
   links: () => Link[];
   /** Show the camera a spot (a claim through a link), then back to the player. */
   look: (ll: [number, number]) => void;
+  /** A claim through a link landed in another region: show that place small. */
+  farShown: (region: string, name: string, at: [number, number], near: [number, number, number][]) => void;
   /** The tunnel's say on a claim: true if it went through one. */
   tunnel: { onClaim(node: number, ok: boolean): boolean };
   card: { onClaim(node: number): void };
@@ -68,6 +70,7 @@ export function setupClaim(d: {
   let linkBusy = 0;
   /** The region name of the far link just used (for the answer's toast). */
   let farName = "";
+  let farRegion = "";
   function drawLink() {
     const faction = d.faction();
     linkBtn.hidden = !(linkTarget || linkWhy) || !faction;
@@ -143,6 +146,7 @@ export function setupClaim(d: {
     }
     flyTo = linkTarget.ll;
     farName = linkTarget.far?.name ?? "";
+    farRegion = linkTarget.far?.region ?? "";
     // Until the answer (or the app's own timeout below) the button waits.
     clearTimeout(linkBusy);
     linkBusy = window.setTimeout(
@@ -337,6 +341,7 @@ export function setupClaim(d: {
         // The server picks the junction around B; the peeked one is the fallback.
         // In another region the map can't go there.
         if (m.ok && !m.far) d.look(nodePos.get(m.node) ?? flyTo);
+        if (m.ok && m.far && farRegion) d.farShown(farRegion, farName, m.far, m.near ?? []);
         flyTo = null;
         linkTarget = null;
         peeked.at = 0;

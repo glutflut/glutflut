@@ -1571,3 +1571,50 @@ body.kiosk #lapse-play, body.kiosk #lapse-close { visibility: hidden; }
 #join:disabled { opacity: 0.5; background: var(--neutral); }
 #cities-watch { margin-top: 8px; }
 #cities-watch[hidden] { display: none; }
+
+/* A claim through a link into another region: that place, small (inset.ts). */
+#inset {
+  position: absolute;
+  left: 12px;
+  top: 30%;
+  width: min(44vw, 180px);
+  aspect-ratio: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  background: var(--bg);
+  z-index: 6;
+  cursor: pointer;
+  transition: opacity 0.6s;
+}
+#inset.out { opacity: 0; }
+#inset-map { position: absolute; inset: 0; }
+#inset .pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  pointer-events: none;
+  animation: inset-pulse 1.2s ease-out infinite;
+}
+@keyframes inset-pulse {
+  from { transform: scale(0.6); opacity: 1; }
+  to { transform: scale(2.6); opacity: 0; }
+}
+#inset-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+}

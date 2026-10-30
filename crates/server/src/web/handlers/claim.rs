@@ -304,6 +304,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
                 doused: false,
                 anchor: false,
                 far: None,
+                near: None,
             },
         );
         return;
@@ -331,6 +332,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
                 doused: false,
                 anchor: false,
                 far: None,
+                near: None,
             },
         );
     };
@@ -698,6 +700,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             doused: res.is_ok_and(|c| c.doused),
             anchor: res.is_ok_and(|c| c.anchor),
             far: None,
+            near: None,
         },
     );
     // Rarely a key flies or drifts to another region (not through a link or tunnel).

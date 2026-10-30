@@ -47,6 +47,7 @@ import { setupVideo } from "./video";
 import { setupBoard } from "./board";
 import { setupInvite } from "./invite";
 import { addGift } from "./gift";
+import { setupInset } from "./inset";
 import { setupNavMore } from "./navmore";
 import { setupRecovery } from "./recovery";
 import { onProfile, renderProfiles, sendProfile } from "./profile";
@@ -279,6 +280,7 @@ async function main() {
   );
   const recovery = setupRecovery(net);
   const invite = setupInvite();
+  const inset = setupInset(gameView);
   const progress = setupProgress(net, sound, () => faction, () => player.drawRange());
   const claim = setupClaim({
     net,
@@ -299,6 +301,7 @@ async function main() {
       map.flyTo({ center: ll, zoom: Math.max(map.getZoom(), 16.5), duration: 1500, essential: true });
       setTimeout(() => player.home(), 4000);
     },
+    farShown: (region, name, at, near) => void inset.show(region, name, at, near),
     tunnel,
     card,
     claimed: () => invite.claimed(),

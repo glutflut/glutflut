@@ -72,6 +72,7 @@ fn refused(out: &crate::gateway::Outbox, reason: &'static str, wait: f32) {
             doused: false,
             anchor: false,
             far: None,
+            near: None,
         },
     );
 }
@@ -286,6 +287,9 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         }
         (Some((_, b_node)), Some((b, (node, lon, lat)))) => {
             take(game, c, &a, power, b, node, &mut ans);
+            if ans.ok {
+                ans.near = near(game, c, node, a.faction);
+            }
             // A gift: one use less; its owner gets a share of the points.
             if let (true, Some(g)) = (ans.ok, gift) {
                 game.keeps.use_key(&g);
@@ -308,6 +312,37 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
     if !deliver(&game.peers.0, &a.from, FromWeb::FarAnswer(ans)) {
         warn!(from = %a.from, "far answer not delivered");
     }
+}
+
+/// Y: the junctions around `node` with their owner (`node` itself counts
+/// as `faction`'s: its claim may still be building up).
+fn near(game: &Game, c: &Ctx, node: i64, faction: Faction) -> Vec<[f64; 3]> {
+    let at = |g: &GeoNode| {
+        let p = project_enu(g.lat, g.lon, c.region.centroid_lat, c.region.centroid_lon);
+        Vec2::new(p.x, p.z)
+    };
+    let side = |f: Faction| if f == Faction::Fire { 1.0 } else { 2.0 };
+    let Some(here) = game
+        .node_by_id
+        .get(&node)
+        .and_then(|&e| game.nodes.get(e).ok())
+        .map(|(g, _)| at(g))
+    else {
+        return Vec::new();
+    };
+    game.nodes
+        .iter()
+        .filter(|(g, _)| at(g).distance(here) <= crate::remote::NEAR_M)
+        .take(400)
+        .map(|(g, s)| {
+            let owner = if g.id == node {
+                side(faction)
+            } else {
+                s.owner().map_or(0.0, side)
+            };
+            [g.lon, g.lat, owner]
+        })
+        .collect()
 }
 
 /// Y: the claim itself, from B; a too strong permanent source wears down.
@@ -457,6 +492,7 @@ pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
             doused: ans.doused,
             anchor: false,
             far: ans.at,
+            near: Some(ans.near),
         },
     );
 }
