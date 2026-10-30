@@ -316,6 +316,7 @@ export const it: Dict = {
   "perm.link.off": "Collegamento rimosso",
   "perm.linked": "collegata",
   "perm.linked.there": "prima scollegala a {city}",
+  "perm.linked.to": "ancora collegata a {city}, verrà spostata",
   "perm.mine.fire": "Le mie Braci ({n} su {max})",
   "perm.mine.water": "I miei Ghiacci ({n} su {max})",
   "claim.anchor.go.fire": "Accendi un focolare",

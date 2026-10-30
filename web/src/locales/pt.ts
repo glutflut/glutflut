@@ -316,6 +316,7 @@ export const pt: Dict = {
   "perm.link.off": "Ligação desfeita",
   "perm.linked": "ligada",
   "perm.linked.there": "primeiro desligue em {city}",
+  "perm.linked.to": "ainda ligada a {city}, será trocada",
   "perm.mine.fire": "Minhas Brasas ({n} de {max})",
   "perm.mine.water": "Meus Gelos ({n} de {max})",
   "claim.anchor.go.fire": "Acender uma fogueira",

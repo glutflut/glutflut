@@ -317,6 +317,7 @@ export const es: Dict = {
   "perm.link.off": "Enlace quitado",
   "perm.linked": "enlazada",
   "perm.linked.there": "primero desenlázala en {city}",
+  "perm.linked.to": "aún enlazada con {city}, se cambia",
   "perm.mine.fire": "Mis brasas ({n} de {max})",
   "perm.mine.water": "Mi hielo ({n} de {max})",
   "claim.anchor.go.fire": "Encender un hogar",

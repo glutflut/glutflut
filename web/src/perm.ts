@@ -309,7 +309,10 @@ export function setupPerm(
           if (!there || r.url) continue;
           there.forEach((b, i) => {
             const btn = document.createElement("button");
-            btn.textContent = `${r.name} · ${name("one")} ${i + 1}` + (b.far || b.link ? ` · ${t("perm.linked")}` : "");
+            btn.textContent = `${r.name} · ${name("one")} ${i + 1}`;
+            // Linked to another city: picking it moves that link here.
+            if (b.far && !b.link) btn.textContent += ` · ${t("perm.linked.to", { city: b.far.name ?? b.far.region })}`;
+            else if (b.link) btn.textContent += ` · ${t("perm.linked")}`;
             // Linked within its own city: only that city's server can undo it.
             if (b.link) {
               btn.disabled = true;
