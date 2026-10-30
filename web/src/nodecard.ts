@@ -30,7 +30,7 @@ export function setupNodeCard(
   claimWait: () => { s: number; moving: boolean } | null,
   me: () => [number, number] | null,
   /** The link button for an own permanent source (perm.ts), if any. */
-  linkControl: (node: number) => HTMLElement | null,
+  linkControl: (node: number, leave: () => void) => HTMLElement | null,
 ) {
   const card = $("node-card");
   let node: number | null = null;
@@ -140,7 +140,7 @@ export function setupNodeCard(
     // Own permanent source: link it from here (or unlink).
     const slot = $("node-link");
     const own = s?.kind === "keep" && ownKeep().has(m.node);
-    const lb = own ? linkControl(m.node) : null;
+    const lb = own ? linkControl(m.node, close) : null;
     const key = lb ? `${m.node}:${lb.textContent}` : "";
     if (key !== linkShown) {
       linkShown = key;

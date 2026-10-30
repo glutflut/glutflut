@@ -36,6 +36,7 @@ Links into another region (own far link, gift keys) on raw sockets, against one 
 
 ```sh
 node e2e/far.mjs region-goerlitz region-baden-baden http://127.0.0.1:5080
+node e2e/linkcard.mjs card.png        # junction card of an own source linked elsewhere (vite on 5173 too)
 ```
 
 `ELEMENTS_RULES_OVERRIDE='claim_ttl_s=10'` shortens claim lifetime for testing.

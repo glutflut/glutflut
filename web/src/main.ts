@@ -255,6 +255,8 @@ async function main() {
     }
     return best?.[0] ?? null;
   };
+  // Layout checks (`?sim`): open a junction's card directly.
+  if (params.has("sim")) Object.assign(window, { __card: (id: number) => nodePos.has(id) && card.open(id, nodePos.get(id)!) });
   const tapCard = (p: maplibregl.Point) => {
     const id = pickNode(p);
     if (id === null) return card.close();

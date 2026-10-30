@@ -215,6 +215,26 @@ export function setupPerm(
     };
     return lb;
   }
+  /** Where `m`'s link goes, as a button that goes there (another city:
+   *  opens it there); `leave` closes what it sits in first. */
+  function partnerButton(m: Stored, leave: () => void): HTMLButtonElement | null {
+    const p = partner(m);
+    if (!p) return null;
+    const pb = document.createElement("button");
+    pb.className = "ghost link partner";
+    pb.textContent = `↔ ${partnerName(p)}`;
+    pb.onclick = () => {
+      if ("here" in p) {
+        leave();
+        return focus(p.here.node);
+      }
+      void listRegions().then((rs) => {
+        const there = rs.find((x) => x.slug === p.region);
+        if (there) void openRegion(there, false, p.ll);
+      });
+    };
+    return pb;
+  }
   /** "Schlüssel verschenken": a key for someone else (server `gift`). */
   function giftButton(m: Stored): HTMLButtonElement {
     const gb = document.createElement("button");
@@ -445,26 +465,10 @@ export function setupPerm(
           focus(r.m.node);
         };
         li.append(b);
-        // Where its link goes; a tap goes there (another city: opens it there).
-        const p = linkOn ? partner(r.m) : null;
-        if (p) {
-          const pb = document.createElement("button");
-          pb.className = "ghost link partner";
-          pb.textContent = `↔ ${partnerName(p)}`;
-          pb.onclick = () => {
-            if ("here" in p) {
-              ($("board-close") as HTMLButtonElement).click();
-              return focus(p.here.node);
-            }
-            void listRegions().then((rs) => {
-              const there = rs.find((x) => x.slug === p.region);
-              if (there) void openRegion(there, false, p.ll);
-            });
-          };
-          li.append(" ", pb);
-        }
+        const pb = linkOn ? partnerButton(r.m, () => ($("board-close") as HTMLButtonElement).click()) : null;
+        if (pb) li.append(" ", pb);
         // Linked permanent sources: link with another own one, or unlink.
-        if (linkOn && (mine.length >= 2 || elsewhere().size || gifts().length)) li.append(" ", linkButton(r.m));
+        if (linkOn && (mine.length >= 2 || elsewhere().size || gifts().length || r.m.link || r.m.far)) li.append(" ", linkButton(r.m));
         if (linkOn) li.append(" ", giftButton(r.m));
         // A tag line from level 2 (without levels: always); the city's for everyone.
         if (mottoOpen()) {
@@ -508,11 +512,16 @@ export function setupPerm(
     /** The nodes of this device's permanent sources here. */
     nodes,
     links,
-    /** The link button for the junction card of an own source, if linking is on. */
-    linkControl(node: number): HTMLButtonElement | null {
-      if (!linkOn || (mine.length < 2 && !elsewhere().size && !gifts().length)) return null;
+    /** For the junction card of an own source: where its link goes, and link / unlink. */
+    linkControl(node: number, leave: () => void): HTMLElement | null {
       const m = mine.find((x) => x.node === node);
-      return m ? linkButton(m) : null;
+      // Something to link with, or a link to show (and undo).
+      if (!m || !linkOn || (mine.length < 2 && !elsewhere().size && !gifts().length && !m.link && !m.far)) return null;
+      const box = document.createElement("span");
+      box.className = "link-ctl";
+      const pb = partnerButton(m, leave);
+      box.append(...(pb ? [pb, " "] : []), linkButton(m));
+      return box;
     },
     drawList,
     onWelcome(
