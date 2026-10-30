@@ -43,6 +43,11 @@ impl RegionTx {
         }
     }
 
+    /// The app runs (messages are handled now, not after loading).
+    pub fn running(&self) -> bool {
+        self.at.get().is_some()
+    }
+
     pub fn send(&self, msg: FromWeb) -> Result<(), Closed> {
         self.tx.send(msg).map_err(|_| Closed)?;
         if let Some((w, id)) = self.at.get() {

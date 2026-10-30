@@ -158,7 +158,13 @@ if (process.env.FAR_Z) {
   check(pz.reason === "asleep", "peek into a sleeping region: asleep, not woken", pz.reason);
   const t0 = Date.now();
   px.send({ t: "claim", node: 0, via: a.ticket, far: z });
-  const cz = await px.next("claim", () => true, 100_000);
+  const waitClaim = px.next("claim", () => true, 100_000);
+  // While it loads, a look still says asleep (no 3 s timeout).
+  await sleep(1500);
+  px.send({ t: "peek", via: a.ticket, far: z });
+  const pl = await px.next("peek");
+  check(pl.reason === "asleep", "peek while it loads: asleep", pl.reason);
+  const cz = await waitClaim;
   check(cz.reason === "nokey", "claim wakes it and gets its answer", `${cz.reason} after ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 px.close();

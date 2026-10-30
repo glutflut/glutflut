@@ -91,7 +91,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
     );
     let id = rand::random::<u64>();
     // A peek never wakes Y (`peek` asks only loaded regions); a claim does.
-    let asleep = game.peers.0.peek(&far.region).is_none();
+    let asleep = !crate::remote::awake(&game.peers.0, &far.region);
     let sent = deliver(
         &game.peers.0,
         &far.region,
@@ -164,8 +164,9 @@ pub(super) fn peek(game: &mut Game, c: &Ctx, conn: u64, via: String, far: Far) {
         Some("linked")
     } else if !at_a {
         Some("linkfar")
-    } else if game.peers.0.peek(&far.region).is_none() {
-        // Sleeping (or another cell): don't wake it for a look; a claim will.
+    } else if !crate::remote::awake(&game.peers.0, &far.region) {
+        // Sleeping or still loading (or another cell): don't wait for a
+        // look; a claim wakes it and waits.
         Some("asleep")
     } else if !ask_far(game, c, conn, &far, &via, true) {
         Some("linkdown")

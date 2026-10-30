@@ -43,6 +43,11 @@ pub struct Answer {
     pub doused: bool,
 }
 
+/// Region `to` runs here now (not asleep, not still loading).
+pub fn awake(host: &Arc<Host>, to: &str) -> bool {
+    host.peek(to).is_some_and(|r| r.tx.running())
+}
+
 /// Hand `msg` to region `to`; false if it can't be reached from here.
 pub fn deliver(host: &Arc<Host>, to: &str, msg: FromWeb) -> bool {
     match host.get(to) {
