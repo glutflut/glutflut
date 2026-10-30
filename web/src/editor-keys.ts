@@ -21,7 +21,9 @@ let batches: Batch[] = [];
 /** The app's link for a key (gift.ts reads `.city`). */
 const link = (key: string) => `${location.origin}/#gift=${region}.${key}.city`;
 
-function open() {
+async function open() {
+  // The hotspot sites as they are now (one may have just been added under "Orte").
+  await loadKeys(region);
   const sel = $<HTMLSelectElement>("keys-site");
   sel.replaceChildren(...sites.map((s) => Object.assign(document.createElement("option"), { value: String(s.id), textContent: s.name })));
   $("keys-error").textContent = sites.length ? "" : t("ky.nosites");
@@ -102,7 +104,7 @@ function drawList() {
 
 export function initKeys(apiFn: Api) {
   api = apiFn;
-  $("keys-new").onclick = open;
+  $("keys-new").onclick = () => void open();
   $("keys-cancel").onclick = () => ($("keys-form").hidden = true);
   $("keys-make").onclick = () => void make();
   $("keys-done").onclick = () => ($("keys-out").hidden = true);
