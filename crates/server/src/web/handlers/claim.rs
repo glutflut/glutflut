@@ -182,9 +182,10 @@ pub(super) fn link_power(
     }
 }
 
-/// The junction within the claim radius of B a claim through the link takes (never
-/// B itself, nor `faction`'s): the nearest one `power` can take, else the
-/// nearest permanent source it wears down. (id, lon, lat).
+/// The junction within `power`'s reach of B (Weitblick counts) a claim
+/// through the link takes (never B itself, nor `faction`'s): the nearest one
+/// `power` can take, else the nearest permanent source it wears down.
+/// (id, lon, lat).
 #[allow(clippy::too_many_arguments)]
 pub(super) fn link_target(
     nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
@@ -219,7 +220,7 @@ pub(super) fn link_target(
         .filter_map(|(g, _)| {
             let w = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
             let d = Vec2::new(w.x, w.z).distance(b);
-            (d <= rules.claim_radius_m).then_some((g, d))
+            (d <= power.reach_m).then_some((g, d))
         })
         .filter_map(|(g, d)| rank(g.id).map(|r| (g, r, d)))
         .min_by(|a, b| a.1.cmp(&b.1).then(a.2.total_cmp(&b.2)))

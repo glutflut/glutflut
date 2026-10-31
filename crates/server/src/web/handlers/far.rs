@@ -15,6 +15,7 @@ use crate::remote::{deliver, AddKey, Answer, Ask, Mint, Minted};
 use crate::sim::SourceKind;
 use crate::web::{send, ServerMsg};
 
+use super::ability::{ABILITIES, REACH};
 use super::claim::{at_front, link_target, power_of};
 use super::{Ctx, Game};
 
@@ -155,6 +156,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
             mult: power.mult,
             factor: c.rules.keep.link_factor,
             newcomer: power.newcomer,
+            reach_m: power.reach_m,
             look,
             tries: 0,
             player: slot.and_then(|s| game.scores.get(s.0)).map(|r| r.id),
@@ -300,7 +302,10 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
     let power = actions::Power {
         mult: a.mult * a.factor.min(rules.keep.link_factor),
         newcomer: a.newcomer,
-        reach_m: rules.claim_radius_m,
+        reach_m: a.reach_m.clamp(
+            rules.claim_radius_m,
+            rules.claim_radius_m.max(rules.progression.reach_m),
+        ),
     };
     let target = b.and_then(|(b, b_node)| {
         link_target(
@@ -572,6 +577,23 @@ pub(super) fn answer(game: &mut Game, c: &Ctx, ans: Answer) {
         }
         _ => 0,
     };
+    // An armed Weitblick reached over there (Welle stays armed: no neighbour
+    // claims in Y).
+    if let Ok(mut ab) = game.abilities.get_mut(e) {
+        if ab.armed[REACH] {
+            ab.use_up(REACH, c.now, &c.rules.progression);
+            send(
+                &out,
+                &ServerMsg::Ability {
+                    name: ABILITIES[REACH].0,
+                    ok: true,
+                    reason: None,
+                    armed: false,
+                    ready_in: (ab.ready[REACH] - c.now).max(0.0) as u32,
+                },
+            );
+        }
+    }
     send(
         &out,
         &ServerMsg::Claim {

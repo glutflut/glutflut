@@ -25,6 +25,8 @@ pub struct Ask {
     /// X's `link_factor`; Y takes the smaller of both.
     pub factor: f32,
     pub newcomer: bool,
+    /// The player's reach in X (Weitblick armed or not); Y caps it.
+    pub reach_m: f32,
     pub look: bool,
     /// Frames this ask already waited for Y's permanent sources (just woken).
     pub tries: u8,
