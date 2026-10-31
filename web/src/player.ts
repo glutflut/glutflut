@@ -24,6 +24,8 @@ export function setupPlayer(d: {
   const marker = new maplibregl.Marker({ element: Object.assign(document.createElement("div"), { className: "me-marker" }) });
 
   let follow = !params.has("sim");
+  /** Arrived through a link (`#keep=`): the first fix places the dot, not the camera. */
+  let hold = false;
   const setFollow = (on: boolean) => {
     follow = on;
     $("nav-me").classList.toggle("follow", on);
@@ -51,8 +53,9 @@ export function setupPlayer(d: {
 
   /** `speed`: the device's own speed in m/s (GPS Doppler), for the driving check. */
   function setMe(p: [number, number], accuracy?: number, speed?: number) {
-    if (!me) map.jumpTo({ center: p, zoom: 16.5 });
-    else if (follow) map.easeTo({ center: p, duration: 600 });
+    if (!me) {
+      if (!hold) map.jumpTo({ center: p, zoom: 16.5 });
+    } else if (follow) map.easeTo({ center: p, duration: 600 });
     me = p;
     marker.setLngLat(p).addTo(map);
     drawRange();
@@ -87,6 +90,11 @@ export function setupPlayer(d: {
     drawRange,
     follow: () => follow,
     setFollow,
+    /** Keep the camera where it is (a link's far end) until the player asks to go home. */
+    holdView() {
+      hold = true;
+      setFollow(false);
+    },
     /** Back to the player (after a tunnel, a flight elsewhere, the globe). */
     center() {
       goHome();

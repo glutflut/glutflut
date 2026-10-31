@@ -358,7 +358,7 @@ async function main() {
   // Came from the other end of a link (`openRegion` with `look`): start at that source.
   const keepAt = /[#&]keep=(-?[\d.]+),(-?[\d.]+)/.exec(location.hash);
   if (keepAt) {
-    player.setFollow(false);
+    player.holdView();
     map.jumpTo({ center: [+keepAt[1], +keepAt[2]], zoom: 17 });
     history.replaceState(null, "", location.pathname + location.search);
   }
