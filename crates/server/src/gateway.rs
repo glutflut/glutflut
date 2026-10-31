@@ -579,6 +579,12 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                             .delete(editor_notices::delete),
                     )
                     .route(
+                        "/api/ops/questions",
+                        get(editor_questions::list)
+                            .post(editor_questions::save)
+                            .delete(editor_questions::delete),
+                    )
+                    .route(
                         "/api/ops/keys",
                         get(editor_keys::list)
                             .post(editor_keys::make)
@@ -2479,6 +2485,9 @@ mod editor_notices;
 /// Authoring tools stage 2 (places).
 #[path = "editor_places.rs"]
 mod editor_places;
+/// The city's questions (editor).
+#[path = "editor_questions.rs"]
+mod editor_questions;
 /// The mood map (public).
 #[path = "mood.rs"]
 mod mood;

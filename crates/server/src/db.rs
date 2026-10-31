@@ -741,7 +741,7 @@ pub fn analytics_summary(
                    SELECT node_id, category, sum(count)::bigint n, \
                           sum(sum(count)) OVER (PARTITION BY node_id) total \
                    FROM analytics.perception \
-                   WHERE region = $1 AND {} AND synthetic = ANY($3) AND category NOT LIKE '#%' \
+                   WHERE region = $1 AND {} AND synthetic = ANY($3) AND category !~ '^[#q]' \
                    GROUP BY node_id, category) t WHERE total >= {MIN_RATINGS}",
                 period.date("day", rel)
             ),
@@ -768,7 +768,7 @@ pub fn analytics_summary(
                    SELECT node_id, category, {LOCAL_HOUR} h, sum(count)::bigint n, \
                           sum(sum(count)) OVER (PARTITION BY node_id, {LOCAL_HOUR}) total \
                    FROM analytics.perception \
-                   WHERE region = $1 AND {} AND synthetic = ANY($3) AND category NOT LIKE '#%' AND hour >= 0 \
+                   WHERE region = $1 AND {} AND synthetic = ANY($3) AND category !~ '^[#q]' AND hour >= 0 \
                    GROUP BY node_id, category, h) t WHERE total >= {MIN_RATINGS}",
                 period.date("day", rel)
             ),
@@ -791,7 +791,7 @@ pub fn analytics_summary(
                    SELECT {LOCAL_HOUR} h, category, sum(count)::bigint n, \
                           sum(sum(count)) OVER (PARTITION BY {LOCAL_HOUR}) total \
                    FROM analytics.perception \
-                   WHERE region = $1 AND {} AND synthetic = ANY($3) AND category NOT LIKE '#%' AND hour >= 0 \
+                   WHERE region = $1 AND {} AND synthetic = ANY($3) AND category !~ '^[#q]' AND hour >= 0 \
                    GROUP BY h, category) t WHERE total >= {MIN_RATINGS} ORDER BY 1",
                 period.date("day", rel)
             ),
@@ -1093,7 +1093,7 @@ pub fn export(
                      FROM (SELECT node_id, category, sum(count)::int cnt, \
                                   sum(sum(count)) OVER (PARTITION BY node_id) total \
                            FROM analytics.perception \
-                           WHERE region = $1 AND {} AND synthetic = ANY($3) AND category NOT LIKE '#%' \
+                           WHERE region = $1 AND {} AND synthetic = ANY($3) AND category !~ '^[#q]' \
                            GROUP BY 1, 2) p JOIN geo.nodes n ON n.id = p.node_id \
                      WHERE p.total >= {MIN_RATINGS}",
                     period.date("day", rel)

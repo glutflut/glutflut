@@ -216,6 +216,14 @@ pub(super) fn hello(
             },
         );
     }
+    if !game.campaign.questions.is_empty() {
+        send(
+            &out,
+            &ServerMsg::Questions {
+                items: &game.campaign.questions,
+            },
+        );
+    }
     let live = game.live_rain.as_ref().is_some_and(|l| l.on);
     let sun = game.live_sun.as_ref().is_some_and(|l| l.on);
     if let Some(w) = crate::weather::shown(rules, game.campaign.weather, live, sun) {

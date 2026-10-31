@@ -29,6 +29,7 @@
         <button type="button" role="tab" data-tab="kapitel" data-i18n="tab.kapitel">Kapitel</button>
         <button type="button" role="tab" data-tab="inschriften" data-i18n="tab.inschriften">Inschriften</button>
         <button type="button" role="tab" data-tab="aktuelles" data-i18n="tab.aktuelles">Aktuelles</button>
+        <button type="button" role="tab" data-tab="fragen" data-i18n="tab.fragen">Fragen</button>
         <button type="button" role="tab" data-tab="orte" data-i18n="tab.orte">Orte</button>
         <button type="button" role="tab" data-tab="bilder"><span data-i18n="tab.bilder">Bilder</span> <span class="badge"></span></button>
       </nav>
@@ -139,6 +140,37 @@
           <p id="notice-error" class="ed-error"></p>
         </div>
         <div id="notices-list"></div>
+      </section>
+      </div>
+
+      <div data-panel="fragen" role="tabpanel" hidden>
+      <section class="card" id="questions-card" hidden>
+        <div class="map-head"><h2 data-i18n="qu.title">Fragen der Stadt</h2><button type="button" id="question-new" data-i18n="qu.new">Neue Frage</button></div>
+        <details class="help"><summary data-i18n="qu.help.sum"></summary>
+          <p data-i18n="qu.help.more"></p></details>
+        <div id="question-form" class="ed-form place-form" hidden>
+          <h3 id="question-title" data-i18n="qu.new">Neue Frage</h3>
+          <p><small data-i18n="qu.f.hint">Frage höchstens 120 Zeichen, zwei bis vier Antworten mit höchstens 40 Zeichen.</small></p>
+          <div id="question-main" class="q-langs"></div>
+          <details class="motto-langs">
+            <summary><span data-i18n="mo.f.more">Weitere Sprachen</span></summary>
+            <div id="question-langs" class="q-langs"></div>
+          </details>
+          <div class="ed-row">
+            <label><span data-i18n="qu.f.site">Wo</span> <select id="question-site"></select></label>
+            <label><span data-i18n="qu.f.radius">Umkreis (m)</span> <input id="question-radius" type="number" min="50" max="2000" step="50" /></label>
+          </div>
+          <div class="ed-row">
+            <label><span data-i18n="ch.f.starts">Beginn</span> <input id="question-starts" type="datetime-local" required /></label>
+            <label><span data-i18n="ch.f.ends">Ende</span> <input id="question-ends" type="datetime-local" required /></label>
+          </div>
+          <div class="ed-row">
+            <button type="button" id="question-save" class="primary" data-i18n="ui.save">Speichern</button>
+            <button type="button" id="question-cancel" data-i18n="ui.cancel">Abbrechen</button>
+          </div>
+          <p id="question-error" class="ed-error"></p>
+        </div>
+        <div id="questions-list"></div>
       </section>
       </div>
 

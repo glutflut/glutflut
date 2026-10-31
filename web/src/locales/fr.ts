@@ -144,6 +144,8 @@ export const fr: Dict = {
   "rate.title": "Donner un avis sur le lieu",
   "rate.sheet": "C’est comment ici en ce moment ?",
   "rate.ask.sub": "Un seul geste suffit. La ville apprend ainsi comment ses lieux sont vécus.",
+  "rate.city": "La ville demande",
+  "rate.general": "Et en général :",
   "rate.thanks": "Merci !{plus}",
   "rate.cooldown": "Tu viens de donner un avis",
   "rate.nothere": "Pas possible ici",

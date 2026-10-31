@@ -3,7 +3,8 @@
 //! latest of the week before with data. A cell shows only if at least k
 //! different persons rated in it that day (`analytics::RATERS`), and only
 //! shares in steps of 10 %, no counts and no hours. Real players only; a
-//! demo region shows its synthetic ones.
+//! demo region shows its synthetic ones. Answers to the city's questions
+//! (`q<id>.<n>`) are the city's, not shown here.
 
 use std::collections::HashMap;
 
@@ -46,7 +47,7 @@ fn load(
         "SELECT p.day::text, ST_Y(n.geom), ST_X(n.geom), p.category, sum(p.count)::int8 \
          FROM analytics.perception p JOIN geo.nodes n ON n.id = p.node_id \
          WHERE p.region = $1 AND p.synthetic = $2 \
-           AND p.day BETWEEN (now() AT TIME ZONE 'UTC')::date - $3 \
+           AND p.day BETWEEN (now() AT TIME ZONE 'UTC')::date - $3::int \
                          AND (now() AT TIME ZONE 'UTC')::date - 1 \
          GROUP BY 1, 2, 3, 4",
         &[&slug, &demo, &DAYS],
@@ -60,7 +61,7 @@ fn load(
         let (cat, n): (String, i64) = (r.get(3), r.get(4));
         if cat == crate::analytics::RATERS {
             e.0 += n;
-        } else if !cat.starts_with('#') {
+        } else if !cat.starts_with('#') && !cat.starts_with('q') {
             *e.1.entry(cat).or_default() += n;
         }
     }

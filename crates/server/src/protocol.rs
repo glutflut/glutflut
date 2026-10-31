@@ -167,6 +167,10 @@ pub enum ServerMsg<'a> {
     Notices {
         items: &'a [campaign::Notice],
     },
+    /// The city's questions running now (all of them, each time).
+    Questions {
+        items: &'a [campaign::Question],
+    },
     /// Uncovered by a claim: `n` of `of` in its collection; `stored` only
     /// when collecting.
     Find {
@@ -814,6 +818,7 @@ fn typescript() -> String {
         HotspotInfo,
         campaign::Goal,
         campaign::Notice,
+        campaign::Question,
         weather::Shown,
         crate::tide::Shown,
         challenge::View,

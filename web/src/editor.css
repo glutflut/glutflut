@@ -119,3 +119,12 @@ button.danger { background: #c92a2a; color: #fff; border-color: #c92a2a; font-we
 /* Places: a search field in the heading of each list (all three in step). */
 h3.with-search { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 h3.with-search input { flex: 0 1 240px; font-size: 14px; font-weight: 400; }
+
+/* City questions: one row per language (question, then answers); results as bars. */
+.q-langs { display: grid; grid-template-columns: max-content 1fr; gap: 6px 10px; align-items: start; margin: 8px 0 4px; }
+.q-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.q-row input:first-child { grid-column: 1 / -1; }
+.q-results { min-width: 160px; }
+.q-bar { position: relative; margin: 2px 0; padding: 2px 6px; font-size: 13px; }
+.q-bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent, #ffd43b); opacity: 0.35; border-radius: 4px; z-index: -1; }
+.q-bar span { position: relative; }

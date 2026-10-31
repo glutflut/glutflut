@@ -97,6 +97,23 @@ pub struct Notice {
     pub url: Option<String>,
 }
 
+/// A question of the city (`game.questions`), asked while it runs.
+#[derive(Clone, PartialEq, Serialize, Debug, ts_rs::TS)]
+pub struct Question {
+    pub id: i64,
+    /// `{lang: question}`
+    #[ts(type = "Record<string, string>")]
+    pub names: serde_json::Value,
+    /// `[{lang: answer}]`, 2 to 4.
+    #[ts(type = "Record<string, string>[]")]
+    pub answers: serde_json::Value,
+    /// Only near here (lon, lat), within `radius_m`; absent: anywhere.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub at: Option<[f64; 2]>,
+    pub radius_m: i32,
+}
+
 /// First side to its target wins; if neither got there, after the end the
 /// one closer to its target (cross-multiplied); a tie has no winner.
 pub(crate) fn decide(
@@ -169,6 +186,7 @@ struct Loaded {
     campaigns: Vec<(String, f64, f64)>,
     /// Notices running now.
     notices: Vec<Notice>,
+    questions: Vec<Question>,
 }
 
 struct Save {
@@ -206,6 +224,9 @@ pub struct Campaign {
     pub notices: Vec<Notice>,
     /// The notices changed: send them to the apps.
     pub notices_changed: bool,
+    /// The city's questions running now.
+    pub questions: Vec<Question>,
+    pub questions_changed: bool,
     /// The chapter whose end was handled (winner badges).
     finished: Option<String>,
     dirty: bool,
@@ -231,6 +252,8 @@ impl Campaign {
             campaigns: Vec::new(),
             notices: Vec::new(),
             notices_changed: false,
+            questions: Vec::new(),
+            questions_changed: false,
             finished: None,
             dirty: false,
             changed: false,
@@ -380,6 +403,10 @@ impl Campaign {
             if self.notices != l.notices {
                 self.notices = l.notices;
                 self.notices_changed = true;
+            }
+            if self.questions != l.questions {
+                self.questions = l.questions;
+                self.questions_changed = true;
             }
             self.changed = true;
         }
@@ -701,6 +728,25 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
             url: r.get(2),
         })
         .collect();
+    let questions = c
+        .query(
+            "SELECT q.id, q.names::text, q.answers::text, s.lon, s.lat, q.radius_m FROM game.questions q \
+             LEFT JOIN geo.hotspot_sites s ON s.id = q.site \
+             WHERE q.region = $1 AND q.starts <= now() AND q.ends > now() ORDER BY q.starts DESC, q.id DESC",
+            &[&region],
+        )?
+        .into_iter()
+        .map(|r| Question {
+            id: r.get(0),
+            names: serde_json::from_str(r.get(1)).unwrap_or_default(),
+            answers: serde_json::from_str(r.get(2)).unwrap_or_default(),
+            at: r
+                .get::<_, Option<f64>>(3)
+                .zip(r.get::<_, Option<f64>>(4))
+                .map(|(lon, lat)| [lon, lat]),
+            radius_m: r.get(5),
+        })
+        .collect();
     Ok(Loaded {
         chapter,
         progress,
@@ -713,6 +759,7 @@ fn load(c: &mut postgres::Client, region: &str) -> Result<Loaded, postgres::Erro
         periods,
         campaigns,
         notices,
+        questions,
     })
 }
 

@@ -386,6 +386,14 @@ pub fn campaign_tick(
             }
         }
     }
+    if std::mem::take(&mut campaign.questions_changed) {
+        to_all(
+            &clients,
+            &ServerMsg::Questions {
+                items: &campaign.questions,
+            },
+        );
+    }
     if std::mem::take(&mut campaign.notices_changed) {
         to_all(
             &clients,

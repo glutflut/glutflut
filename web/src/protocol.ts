@@ -20,6 +20,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "score" } & Mine
   | { "t": "finds", collect: boolean, items: Array<FindItem>, totals: Record<string, number>, }
   | { "t": "notices", items: Array<Notice>, }
+  | { "t": "questions", items: Array<Question>, }
   | { "t": "find", n: number, of: number, stored: boolean, id: number, c: string, name: string, lat: number, lon: number, text?: Record<string, string>, }
   | { "t": "near", c: string, m: number, }
   | { "t": "tunnel", node: number, lat: number, lon: number, kind: "peak" | "sink", m: number, secs: number, }
@@ -146,6 +147,11 @@ export type ChapterGoal = "claims" | "fronts" | "finds" | "points" | "area" | "h
  * A news flash of the region (`game.notices`), shown while it runs.
  */
 export type Notice = { id: number, names: Record<string, { title: string; text: string }>, url?: string, };
+
+/**
+ * A question of the city (`game.questions`), asked while it runs.
+ */
+export type Question = { id: number, names: Record<string, string>, answers: Record<string, string>[], at?: [number, number], radius_m: number, };
 
 /**
  * What the app shows: today's main effect (`None`: calm) and the day.

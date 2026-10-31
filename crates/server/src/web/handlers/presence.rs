@@ -90,6 +90,7 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cat: &str) {
         &game.node_by_id,
         &game.nodes,
         c.region,
+        &game.campaign.questions,
     );
     let mut points = 0;
     if let Ok((category, cell)) = reason {
@@ -116,6 +117,20 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cat: &str) {
     );
 }
 
+/// `q<id>.<n>`: answer `n` of the running question `id`, as an analytics
+/// category, with where the question is asked (lon, lat, radius).
+fn question_answer(
+    cat: &str,
+    questions: &[crate::campaign::Question],
+) -> Option<(&'static str, Option<[f64; 2]>, f32)> {
+    let (id, n) = cat.strip_prefix('q')?.split_once('.')?;
+    let (id, n): (i64, usize) = (id.parse().ok()?, n.parse().ok()?);
+    let q = questions.iter().find(|q| q.id == id)?;
+    (n < q.answers.as_array()?.len())
+        .then(|| (crate::analytics::intern(cat), q.at, q.radius_m as f32))
+}
+
+#[allow(clippy::too_many_arguments)]
 fn rate_check(
     cat: &str,
     node: i64,
@@ -125,8 +140,13 @@ fn rate_check(
     node_by_id: &NodeById,
     nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
     region: &RegionInfo,
+    questions: &[crate::campaign::Question],
 ) -> Result<(&'static str, u64), &'static str> {
-    let category = *CATEGORIES.iter().find(|c| **c == cat).ok_or("category")?;
+    let question = question_answer(cat, questions);
+    let category = match CATEGORIES.iter().find(|c| **c == cat) {
+        Some(c) => *c,
+        None => question.ok_or("category")?.0,
+    };
     if now - t.last_rate < RATE_COOLDOWN_S {
         return Err("cooldown");
     }
@@ -137,6 +157,13 @@ fn rate_check(
     let p = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
     if p.distance(pos) > RATE_RADIUS_M {
         return Err("range");
+    }
+    // A question near a site: only there.
+    if let Some((_, Some([lon, lat]), r)) = question {
+        let at = project_enu(lat, lon, region.centroid_lat, region.centroid_lon);
+        if at.distance(pos) > r {
+            return Err("range");
+        }
     }
     Ok((category, crate::analytics::mood_cell(g.lat, g.lon)))
 }

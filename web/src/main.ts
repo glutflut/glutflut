@@ -547,6 +547,7 @@ async function main() {
     },
     chapter: (m) => campaign.onChapter(m),
     notices: (m) => onNotices(m.items),
+    questions: (m) => rate.onQuestions(m.items),
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
     info: (m) => card.onInfo(m),

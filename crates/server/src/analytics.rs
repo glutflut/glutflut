@@ -862,12 +862,25 @@ impl Standing {
 }
 
 /// Perception category that counts persons, not ratings (left out of the
-/// shares; [`crate::db`] queries skip categories starting with `#`): once
+/// shares; [`crate::db`] queries skip categories starting with `#` or `q`): once
 /// per pseudonym, [`MOOD_RES`] cell and day, at the first junction rated
 /// there. Summed over a cell's junctions: the persons who rated in it.
 pub const RATERS: &str = "#persons";
 /// H3 resolution of the mood map (`/api/mood`), cells of about 170 m.
 pub const MOOD_RES: h3o::Resolution = h3o::Resolution::Nine;
+
+/// A category made at run time (an answer to a city question, `q<id>.<n>`),
+/// kept once for good: at most a few per question.
+pub fn intern(s: &str) -> &'static str {
+    static SEEN: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+    let mut seen = SEEN.lock().unwrap();
+    if let Some(&x) = seen.iter().find(|x| **x == s) {
+        return x;
+    }
+    let x: &'static str = Box::leak(s.to_string().into_boxed_str());
+    seen.push(x);
+    x
+}
 
 /// The mood map's cell of a junction.
 pub fn mood_cell(lat: f64, lon: f64) -> u64 {
@@ -886,6 +899,8 @@ pub struct Aggregator {
     perception: HashMap<(i64, i64, i16, &'static str, bool), i32>,
     /// (UTC day, pseudonym, mood cell) already counted in [`RATERS`] (memory only).
     raters: HashSet<(i64, u64, u64)>,
+    /// (UTC day, pseudonym, question id) already counted in `#q<id>`.
+    answered: HashSet<(i64, u64, i64)>,
     /// Zones (id, ENU centre, own radius or `ZONE_R_M`).
     zones: Vec<(String, Vec2, Option<f32>)>,
     /// Last zone per pseudonym.
@@ -936,6 +951,7 @@ impl Aggregator {
             dwell: HashMap::new(),
             perception: HashMap::new(),
             raters: HashSet::new(),
+            answered: HashSet::new(),
             zones,
             zone_of: HashMap::new(),
             flows: HashMap::new(),
@@ -1124,6 +1140,19 @@ impl Aggregator {
             .perception
             .entry((node, day, hour, category, synthetic))
             .or_default() += 1;
+        // An answer to a city question: its persons too, once a day each.
+        if let Some(id) = category
+            .strip_prefix('q')
+            .and_then(|q| q.split_once('.'))
+            .and_then(|(id, _)| id.parse::<i64>().ok())
+        {
+            if self.answered.insert((day, pseudo, id)) {
+                *self
+                    .perception
+                    .entry((node, day, hour, intern(&format!("#q{id}")), synthetic))
+                    .or_default() += 1;
+            }
+        }
         if self.raters.insert((day, pseudo, cell)) {
             *self
                 .perception
@@ -1502,6 +1531,7 @@ impl Aggregator {
         self.flagged.retain(|&day, _| day >= today);
         let utc_day = (now as i64).div_euclid(86_400) * 86_400;
         self.raters.retain(|&(day, ..)| day >= utc_day);
+        self.answered.retain(|&(day, ..)| day >= utc_day);
         self.starts.retain(|&day, _| day >= today);
         for ((node, day, hour, category, synthetic), add) in self.perception.drain() {
             rows.push(Row::Perception {

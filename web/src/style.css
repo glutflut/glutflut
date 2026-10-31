@@ -215,6 +215,10 @@ body.watching #board .you { display: none; }
 }
 .sheet-title { font-weight: 600; margin-bottom: 8px; }
 .sheet-sub { font-size: 13px; opacity: 0.8; margin: -4px 0 10px; }
+.sheet-kicker { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold); margin: 2px 0 4px; }
+.sheet-q-title { font-weight: 600; font-size: 16px; margin-bottom: 8px; }
+.chips.q { margin-bottom: 10px; }
+.chips.q button { border-color: var(--gold); }
 /* Asked by the app after a claim: slides up, gold edge, a line runs out. */
 #sheet.asked {
   border: 1px solid var(--gold);

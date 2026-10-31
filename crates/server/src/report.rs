@@ -146,7 +146,7 @@ pub fn period(
         "SELECT category, sum(count)::int8 FROM analytics.perception pc \
            JOIN geo.nodes n ON n.id = pc.node_id, z \
          WHERE pc.region = $1 AND pc.synthetic = ANY($5) AND pc.day BETWEEN $3::text::date AND $4::text::date \
-           AND pc.category NOT LIKE '#%' \
+           AND pc.category !~ '^[#q]' \
            AND n.geom && ST_Expand(z.p, z.r / 111000.0 * 2) \
            AND ST_DWithin(n.geom::geography, z.p::geography, z.r) \
          GROUP BY 1 ORDER BY 1",
