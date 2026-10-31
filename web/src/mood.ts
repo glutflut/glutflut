@@ -12,12 +12,12 @@ type Mood = { day: string | null; k: number; cells: [string, Record<string, numb
 const LOOK: Record<string, [string, string]> = {
   einladend: ["#69db7c", "✨"],
   ruhig: ["#3bc9db", "🍃"],
-  leer: ["#a5d8ff", "○"],
+  leer: ["#a5d8ff", "🪑"],
   voll: ["#ffa94d", "👥"],
   laut: ["#ff6b6b", "🔊"],
-  unangenehm: ["#e64980", "✖"],
+  unangenehm: ["#e64980", "😖"],
   dunkel: ["#7048e8", "🌑"],
-  kalt: ["#74c0fc", "❄"],
+  kalt: ["#74c0fc", "❄️"],
   verkehr: ["#fab005", "🚗"],
   schmutzig: ["#868e96", "🗑"],
 };
@@ -30,12 +30,29 @@ export function setupMood(map: maplibregl.Map, slug: () => string) {
   const top = (s: Record<string, number>) => Object.entries(s).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
   const label = (c: string) => t(`cat.${c}` as Key);
 
+  /** The map's own font has no colour emoji: each sign as an image, from the device's emoji font. */
+  function signImage(c: string) {
+    const id = `mood-${c}`;
+    if (map.hasImage(id) || !LOOK[c]) return;
+    const px = 96;
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = px;
+    const g = cv.getContext("2d");
+    if (!g) return;
+    g.font = `${px * 0.72}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText(LOOK[c][1], px / 2, px / 2 + px * 0.04);
+    map.addImage(id, g.getImageData(0, 0, px, px), { pixelRatio: 3 });
+  }
+
   function draw(m: Mood) {
     const features: GeoJSON.Feature[] = m.cells.map(([h3, shares]) => {
       const c = top(shares);
+      signImage(c);
       return {
         type: "Feature",
-        properties: { h3, color: LOOK[c]?.[0] ?? "#adb5bd", sign: LOOK[c]?.[1] ?? "" },
+        properties: { h3, color: LOOK[c]?.[0] ?? "#adb5bd", sign: LOOK[c] ? `mood-${c}` : "" },
         geometry: { type: "Polygon", coordinates: [cellToBoundary(h3, true)] },
       };
     });
@@ -49,7 +66,7 @@ export function setupMood(map: maplibregl.Map, slug: () => string) {
       id: "mood-sign",
       type: "symbol",
       source: "mood",
-      layout: { "text-field": ["get", "sign"], "text-size": 18, "text-allow-overlap": true },
+      layout: { "icon-image": ["get", "sign"], "icon-allow-overlap": true },
     });
     map.on("click", "mood", (e) => {
       const h3 = e.features?.[0]?.properties?.h3 as string | undefined;
