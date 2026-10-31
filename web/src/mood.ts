@@ -74,7 +74,9 @@ export function setupMood(map: maplibregl.Map, slug: () => string) {
     on = !on;
     if (!on) return show(false);
     try {
-      mood = await fetch(`/api/mood?region=${encodeURIComponent(slug())}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
+      // `?mooddemo` (pitch): the region's simulated demo day instead of real players.
+      const demo = new URLSearchParams(location.search).has("mooddemo") ? "&demo=1" : "";
+      mood = await fetch(`/api/mood?region=${encodeURIComponent(slug())}${demo}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
     } catch {
       mood = null;
     }

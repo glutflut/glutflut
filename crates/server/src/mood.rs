@@ -3,7 +3,8 @@
 //! latest of the week before with data. A cell shows only if at least k
 //! different persons rated in it that day (`analytics::RATERS`), and only
 //! shares in steps of 10 %, no counts and no hours. Real players only;
-//! `?demo=1` shows a demo region's synthetic ones (pitch, dashboard demo). Answers to the city's questions
+//! `?demo=1` shows the synthetic ones of the region's demo day instead
+//! (`elements-server demo`, as in the dashboard; for the pitch). Answers to the city's questions
 //! (`q<id>.<n>`) are the city's, not shown here.
 
 use std::collections::HashMap;
@@ -33,7 +34,13 @@ pub(super) async fn mood(State(s): State<AppState>, Query(q): Query<MoodQ>) -> R
         Ok(v) => v,
         Err(e) => return e,
     };
-    let demo = q.demo == Some(1) && s.host.listing(&slug).is_some_and(|l| l.demo_day.is_some());
+    let demo = (q.demo == Some(1)).then(|| {
+        s.host
+            .listing(&slug)
+            .and_then(|l| l.demo_day)
+            .or_else(|| s.host.demo_day().map(String::from))
+            .unwrap_or_else(|| crate::db::DEFAULT_DEMO_DAY.into())
+    });
     let k = crate::analytics::k_min() as i64;
     let st = s.clone();
     let out = tokio::task::spawn_blocking(move || st.with_db(|db| load(db, &slug, demo, k)))
@@ -49,18 +56,27 @@ pub(super) async fn mood(State(s): State<AppState>, Query(q): Query<MoodQ>) -> R
 fn load(
     db: &mut postgres::Client,
     slug: &str,
-    demo: bool,
+    demo: Option<String>,
     k: i64,
 ) -> Result<Value, postgres::Error> {
-    let rows = db.query(
-        "SELECT p.day::text, ST_Y(n.geom), ST_X(n.geom), p.category, sum(p.count)::int8 \
-         FROM analytics.perception p JOIN geo.nodes n ON n.id = p.node_id \
-         WHERE p.region = $1 AND p.synthetic = $2 \
-           AND p.day BETWEEN (now() AT TIME ZONE 'UTC')::date - $3::int \
-                         AND (now() AT TIME ZONE 'UTC')::date - 1 \
-         GROUP BY 1, 2, 3, 4",
-        &[&slug, &demo, &DAYS],
-    )?;
+    let rows = match &demo {
+        Some(day) => db.query(
+            "SELECT p.day::text, ST_Y(n.geom), ST_X(n.geom), p.category, sum(p.count)::int8 \
+             FROM analytics.perception p JOIN geo.nodes n ON n.id = p.node_id \
+             WHERE p.region = $1 AND p.synthetic AND p.day = $2::text::date \
+             GROUP BY 1, 2, 3, 4",
+            &[&slug, day],
+        )?,
+        None => db.query(
+            "SELECT p.day::text, ST_Y(n.geom), ST_X(n.geom), p.category, sum(p.count)::int8 \
+             FROM analytics.perception p JOIN geo.nodes n ON n.id = p.node_id \
+             WHERE p.region = $1 AND NOT p.synthetic \
+               AND p.day BETWEEN (now() AT TIME ZONE 'UTC')::date - $2::int \
+                             AND (now() AT TIME ZONE 'UTC')::date - 1 \
+             GROUP BY 1, 2, 3, 4",
+            &[&slug, &DAYS],
+        )?,
+    };
     // day -> cell -> (persons, category -> ratings)
     type Cell = (i64, HashMap<String, i64>);
     let mut days: HashMap<String, HashMap<u64, Cell>> = HashMap::new();

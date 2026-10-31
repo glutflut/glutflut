@@ -198,31 +198,78 @@ fn parse_day(s: &str) -> Result<i64, Box<dyn Error>> {
     Ok(days_from_civil(p(0..4)?, p(5..7)?, p(8..10)?) * 86_400)
 }
 
-/// Rating category from place and local hour.
-fn category(rng: &mut StdRng, near_attractor: bool, hour: i64) -> &'static str {
+/// One "Wie ist es hier?" card from place and local hour: one of each pair
+/// (most of the time) and now and then what stands out.
+fn card(rng: &mut StdRng, near_attractor: bool, hour: i64) -> Vec<&'static str> {
     let evening = hour >= 16;
     let dark = !(8..17).contains(&hour);
-    // voll, ruhig, laut, dunkel, kalt, einladend
-    let w: [f64; 6] = if near_attractor {
-        [
-            if evening { 5.0 } else { 2.0 },
-            0.3,
-            if evening { 2.5 } else { 1.2 },
-            0.3,
-            if dark { 1.5 } else { 0.8 },
-            2.0,
-        ]
-    } else {
-        [
-            0.3,
-            3.0,
-            0.5,
-            if dark { 3.0 } else { 0.3 },
-            if dark { 1.5 } else { 0.8 },
-            1.0,
-        ]
+    let pair = |rng: &mut StdRng, p: f64, a: &'static str, wa: f64, b: &'static str, wb: f64| {
+        (rng.random::<f64>() < p).then(|| {
+            if pick_weighted(rng, &[wa, wb]) == 0 {
+                a
+            } else {
+                b
+            }
+        })
     };
-    CATEGORIES[pick_weighted(rng, &w)]
+    let mut out: Vec<&'static str> = Vec::new();
+    let (crowd, noise, feel) = if near_attractor {
+        (
+            pair(
+                rng,
+                0.8,
+                "voll",
+                if evening { 5.0 } else { 2.0 },
+                "leer",
+                0.4,
+            ),
+            pair(
+                rng,
+                0.7,
+                "laut",
+                if evening { 2.5 } else { 1.2 },
+                "ruhig",
+                0.6,
+            ),
+            pair(
+                rng,
+                0.7,
+                "einladend",
+                2.5,
+                "unangenehm",
+                if evening { 1.0 } else { 0.5 },
+            ),
+        )
+    } else {
+        (
+            pair(rng, 0.8, "voll", 0.3, "leer", 2.0),
+            pair(rng, 0.7, "laut", 0.4, "ruhig", 3.0),
+            pair(
+                rng,
+                0.7,
+                "einladend",
+                1.0,
+                "unangenehm",
+                if dark { 1.2 } else { 0.4 },
+            ),
+        )
+    };
+    out.extend([crowd, noise, feel].into_iter().flatten());
+    for (tag, p) in [
+        ("dunkel", if dark { 0.35 } else { 0.02 }),
+        ("kalt", 0.25),
+        ("verkehr", if near_attractor { 0.15 } else { 0.1 }),
+        ("schmutzig", 0.05),
+    ] {
+        if rng.random::<f64>() < p {
+            out.push(tag);
+        }
+    }
+    if out.is_empty() {
+        out.push(if near_attractor { "voll" } else { "ruhig" });
+    }
+    debug_assert!(out.iter().all(|c| CATEGORIES.contains(c)));
+    out
 }
 
 pub fn run(db: &str, slug: &str, day: &str, a: &DemoArgs) -> Result<(), Box<dyn Error>> {
@@ -396,10 +443,12 @@ pub fn run(db: &str, slug: &str, day: &str, a: &DemoArgs) -> Result<(), Box<dyn 
                         let near = attractors
                             .iter()
                             .any(|&c| c.distance(w.pos) < NEAR_ATTRACTOR_M);
-                        let cat = category(&mut rng, near, hour);
+                        let cats = card(&mut rng, near, hour);
                         let n = &graph.nodes[w.node];
                         let cell = crate::analytics::mood_cell(n.lat, n.lon);
-                        agg.rate(n.id, cell, cat, w.t.pseudo, true, now);
+                        for cat in cats {
+                            agg.rate(n.id, cell, cat, w.t.pseudo, true, now);
+                        }
                         w.t.last_rate = now;
                         ratings += 1;
                     }
