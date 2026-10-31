@@ -86,7 +86,7 @@ pub enum FromWeb {
     Rate {
         conn: u64,
         node: i64,
-        cat: String,
+        cats: Vec<String>,
     },
     OpsHotspot {
         node: i64,
@@ -1478,7 +1478,16 @@ async fn handle_socket(
                 tiles.truncate(MAX_VIEW_TILES);
                 FromWeb::View { conn, tiles }
             }
-            ClientMsg::Rate { node, cat } => FromWeb::Rate { conn, node, cat },
+            ClientMsg::Rate { node, cat, more } => {
+                let mut more = more.unwrap_or_default();
+                more.truncate(8);
+                more.insert(0, cat);
+                FromWeb::Rate {
+                    conn,
+                    node,
+                    cats: more,
+                }
+            }
             ClientMsg::Pos { lat, lon, spd, acc } => FromWeb::Pos {
                 conn,
                 lat,

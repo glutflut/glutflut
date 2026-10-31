@@ -56,7 +56,16 @@ const bar = await page.locator("#actions").boundingBox();
 console.log("card", box, "actions", bar);
 const btns = await page.locator("#claim").boundingBox();
 check(box && box.y >= 0 && box.y + box.height <= btns.y, "card fits above the buttons", `${Math.round(box.y + box.height)} <= ${Math.round(btns.y)}`);
-await page.click(q ? "#sheet-q-chips button" : "#sheet button[data-cat]");
+if (q) await page.click("#sheet-q-chips button");
+await page.click(".pair:nth-child(1) button:nth-child(1)");
+await page.click(".pair:nth-child(3) button:nth-child(2)");
+await page.click("#sheet button[data-tag]");
+check(await page.isVisible("#sheet-done"), "Fertig shows after a choice");
+await page.screenshot({ path: `${out}/rate-chosen.png` });
+const card = await page.locator("#sheet").boundingBox();
+const claimBox = await page.locator("#claim").boundingBox();
+check(card.y >= 0 && card.y + card.height <= claimBox.y, "chosen card fits above the buttons", `${Math.round(card.y)}..${Math.round(card.y + card.height)} <= ${Math.round(claimBox.y)}`);
+await page.click("#sheet-done");
 await page.waitForTimeout(800);
 // The thanks may give way to a streak note at once; the server's rows are checked by the caller.
 console.log("after the answer:", await page.textContent("#toast"));

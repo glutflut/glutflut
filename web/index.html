@@ -405,14 +405,19 @@
         <div class="sheet-kicker" data-i18n="rate.general">Und allgemein:</div>
       </div>
       <div class="sheet-sub" id="sheet-sub" data-i18n="rate.ask.sub" hidden>Ein Tipp genügt. Daraus lernt die Stadt, wie sich Orte anfühlen.</div>
-      <div class="chips">
-        <button data-cat="voll" data-i18n="cat.voll">voll</button>
-        <button data-cat="ruhig" data-i18n="cat.ruhig">ruhig</button>
-        <button data-cat="laut" data-i18n="cat.laut">laut</button>
-        <button data-cat="dunkel" data-i18n="cat.dunkel">dunkel</button>
-        <button data-cat="kalt" data-i18n="cat.kalt">kalt</button>
-        <button data-cat="einladend" data-i18n="cat.einladend">einladend</button>
+      <div class="pairs">
+        <div class="pair"><button data-cat="voll" data-i18n="cat.voll">voll</button><button data-cat="leer" data-i18n="cat.leer">leer</button></div>
+        <div class="pair"><button data-cat="laut" data-i18n="cat.laut">laut</button><button data-cat="ruhig" data-i18n="cat.ruhig">ruhig</button></div>
+        <div class="pair"><button data-cat="unangenehm" data-i18n="cat.unangenehm">unangenehm</button><button data-cat="einladend" data-i18n="cat.einladend">einladend</button></div>
       </div>
+      <div class="sheet-kicker" data-i18n="rate.tags">Was fällt auf?</div>
+      <div class="chips tags">
+        <button data-cat="dunkel" data-tag data-i18n="cat.dunkel">dunkel</button>
+        <button data-cat="kalt" data-tag data-i18n="cat.kalt">kalt</button>
+        <button data-cat="verkehr" data-tag data-i18n="cat.verkehr">Verkehr</button>
+        <button data-cat="schmutzig" data-tag data-i18n="cat.schmutzig">schmutzig</button>
+      </div>
+      <button id="sheet-done" data-i18n="rate.done" hidden>Fertig</button>
     </div>
 
     <footer id="actions">

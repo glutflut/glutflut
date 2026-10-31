@@ -1,8 +1,10 @@
-// "Wie ist es hier?" (web.rs `Rate`): the button opens the chips; after
-// claims the app also asks by itself now and then, a card that goes away on
-// its own. A question of the city (editor, `questions`) comes first where it
-// runs: in its area the card asks it at the next claim. What is asked where
-// lives only in memory (this visit).
+// "Wie ist es hier?" (web.rs `Rate`): three pairs (voll/leer, laut/ruhig,
+// unangenehm/einladend), what stands out, and a question of the city
+// (editor, `questions`) on top where one runs. One tap per row; the card
+// sends all of it as one rating when done, closed or timed out. The button
+// opens it; after claims the app also asks by itself now and then (in the
+// area of a city question at the next claim). What is asked where lives only
+// in memory (this visit).
 import { lang, t } from "./i18n";
 import type { Net, ServerMsg } from "./net";
 import type { Question } from "./protocol";
@@ -30,6 +32,7 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
   const sheet = $("sheet");
   const sub = $("sheet-sub");
   const close = $("sheet-close") as HTMLButtonElement;
+  const done = $("sheet-done") as HTMLButtonElement;
   const qBox = $("sheet-q");
   const qTitle = $("sheet-q-title");
   const qChips = $("sheet-q-chips");
@@ -40,6 +43,9 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
   let asks = 0;
   const places: { ll: [number, number]; at: number }[] = [];
   let timer = 0;
+  /** This card's choices: per pair, per tag, the city's answer. */
+  const picked = new Map<string, string>();
+  let shownQ: Question | null = null;
 
   /** The city's question for where `me` stands, if any not answered yet. */
   function cityQuestion(me: [number, number] | null): Question | null {
@@ -47,6 +53,7 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
     return questions.find((q) => !answered.has(q.id) && (!q.at || distM(me, q.at) <= q.radius_m)) ?? null;
   }
   function drawQuestion(q: Question | null) {
+    shownQ = q;
     qBox.hidden = !q;
     qChips.replaceChildren();
     if (!q) return;
@@ -54,15 +61,30 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
     q.answers.forEach((a, i) => {
       const b = document.createElement("button");
       b.textContent = pickLang(a, lang) ?? "";
-      b.onclick = () => {
-        answered.add(q.id);
-        pick(`q${q.id}.${i}`);
-      };
+      b.dataset.cat = `q${q.id}.${i}`;
+      b.onclick = () => choose("city", b);
       qChips.append(b);
     });
   }
+  /** One choice per group (a pair, the city's question); a tag is a group of its own. */
+  function choose(group: string, b: HTMLButtonElement) {
+    const cat = b.dataset.cat!;
+    if (picked.get(group) === cat) picked.delete(group);
+    else picked.set(group, cat);
+    const chosen = new Set(picked.values());
+    for (const x of sheet.querySelectorAll<HTMLButtonElement>("button[data-cat]")) x.classList.toggle("on", chosen.has(x.dataset.cat!));
+    done.hidden = !picked.size;
+    // Still answering: the card stays a while longer.
+    if (sheet.classList.contains("asked")) {
+      clearTimeout(timer);
+      timer = window.setTimeout(finish, ASK_SHOW_MS);
+    }
+  }
   function show(asked: boolean) {
     clearTimeout(timer);
+    picked.clear();
+    for (const x of sheet.querySelectorAll<HTMLButtonElement>("button[data-cat]")) x.classList.remove("on");
+    done.hidden = true;
     const q = cityQuestion(d.me());
     drawQuestion(q);
     sheet.classList.toggle("asked", asked);
@@ -70,20 +92,16 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
     // Just above the buttons (the footer grows with its hints).
     sheet.style.bottom = `${Math.max(0, innerHeight - row.getBoundingClientRect().top) + 8}px`;
     sheet.hidden = false;
-    if (asked) timer = window.setTimeout(hide, ASK_SHOW_MS);
+    if (asked) timer = window.setTimeout(finish, ASK_SHOW_MS);
   }
-  function hide() {
+  /** Close the card; what was chosen goes out as one rating. */
+  function finish() {
     clearTimeout(timer);
     sheet.hidden = true;
     sheet.classList.remove("asked");
-  }
-  const near = (me: [number, number]) => places.some((p) => Date.now() - p.at < ASK_GAP_MS && distM(me, p.ll) < ASK_GAP_M);
-
-  btn.onclick = () => (sheet.hidden ? show(false) : hide());
-  close.onclick = hide;
-  /** Send an answer for the junction nearest to the player. */
-  function pick(cat: string) {
-    hide();
+    const cats = [...picked.values()];
+    picked.clear();
+    if (!cats.length) return;
     const me = d.me();
     if (!me) return;
     let best: [number, number] | null = null;
@@ -92,12 +110,21 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
       if (!best || dist < best[1]) best = [id, dist];
     }
     if (!best || best[1] > CLAIM_RADIUS_M) return toast(t("rate.noplace"));
+    const q = shownQ;
+    if (q && cats.some((c) => c.startsWith(`q${q.id}.`))) answered.add(q.id);
     places.push({ ll: me, at: Date.now() });
-    d.net.send({ t: "rate", node: best[0], cat });
+    const [cat, ...more] = cats;
+    d.net.send({ t: "rate", node: best[0], cat, ...(more.length ? { more } : {}) });
   }
-  for (const b of sheet.querySelectorAll<HTMLButtonElement>("button[data-cat]")) {
-    b.onclick = () => pick(b.dataset.cat!);
-  }
+  const near = (me: [number, number]) => places.some((p) => Date.now() - p.at < ASK_GAP_MS && distM(me, p.ll) < ASK_GAP_M);
+
+  btn.onclick = () => (sheet.hidden ? show(false) : finish());
+  close.onclick = finish;
+  done.onclick = finish;
+  sheet.querySelectorAll<HTMLElement>(".pair").forEach((p, i) => {
+    for (const b of p.querySelectorAll<HTMLButtonElement>("button[data-cat]")) b.onclick = () => choose(`pair${i}`, b);
+  });
+  for (const b of sheet.querySelectorAll<HTMLButtonElement>("button[data-tag]")) b.onclick = () => choose(`tag:${b.dataset.cat}`, b);
 
   return {
     /** A claim of this player took here: maybe ask how it is. */

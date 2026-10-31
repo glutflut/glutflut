@@ -24,7 +24,19 @@ use crate::sim::{ElementSim, ElementSource, SourceKind};
 use crate::tiles::{SharedTiles, TileKey, TileSet};
 
 /// Place-rating categories the client may send.
-pub const CATEGORIES: [&str; 6] = ["voll", "ruhig", "laut", "dunkel", "kalt", "einladend"];
+/// Ratings: three pairs, then what stands out ("warum?").
+pub const CATEGORIES: [&str; 10] = [
+    "voll",
+    "leer",
+    "laut",
+    "ruhig",
+    "unangenehm",
+    "einladend",
+    "dunkel",
+    "kalt",
+    "verkehr",
+    "schmutzig",
+];
 /// Ratings: max distance to the node and min seconds between two.
 pub const RATE_RADIUS_M: f32 = 80.0;
 pub const RATE_COOLDOWN_S: f64 = 15.0;

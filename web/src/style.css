@@ -218,6 +218,33 @@ body.watching #board .you { display: none; }
 .sheet-kicker { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold); margin: 2px 0 4px; }
 .sheet-q-title { font-weight: 600; font-size: 16px; margin-bottom: 8px; }
 .chips.q { margin-bottom: 10px; }
+/* Three pairs, one choice each; then what stands out. */
+.pairs { display: grid; gap: 6px; margin-bottom: 10px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pair button,
+#sheet .chips button {
+  padding: 9px 12px;
+  font-size: 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--fg);
+  background: transparent;
+}
+#sheet button[data-cat].on { background: var(--fg); color: var(--ink); border-color: var(--fg); font-weight: 600; }
+#sheet .chips.q button.on { background: var(--gold); border-color: var(--gold); }
+#sheet-done {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  background: var(--gold);
+  color: var(--ink);
+}
+#sheet-done[hidden] { display: none; }
 .chips.q button { border-color: var(--gold); }
 /* Asked by the app after a claim: slides up, gold edge, a line runs out. */
 #sheet.asked {

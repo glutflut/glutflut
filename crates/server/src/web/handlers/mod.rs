@@ -147,7 +147,7 @@ pub fn inbox(
                 lon,
                 radius_m,
             } => presence::presence(g, &c, conn, code, lat, lon, radius_m),
-            FromWeb::Rate { conn, node, cat } => presence::rate(g, &c, conn, node, &cat),
+            FromWeb::Rate { conn, node, cats } => presence::rate(g, &c, conn, node, &cats),
             FromWeb::Stats { conn, on } => presence::stats(g, &c, conn, on),
             FromWeb::Profile { conn, age, local } => presence::profile(g, conn, age, local),
             FromWeb::Rename { conn } => account::rename(g, conn),

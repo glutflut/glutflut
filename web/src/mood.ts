@@ -18,6 +18,8 @@ const LOOK: Record<string, [string, string]> = {
   unangenehm: ["#e64980", "✖"],
   dunkel: ["#7048e8", "🌑"],
   kalt: ["#74c0fc", "❄"],
+  verkehr: ["#fab005", "🚗"],
+  schmutzig: ["#868e96", "🗑"],
 };
 
 export function setupMood(map: maplibregl.Map, slug: () => string) {

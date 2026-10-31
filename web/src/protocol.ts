@@ -67,7 +67,7 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "redeem", ticket: string, }
   | { "t": "release", tickets: Array<string>, }
   | { "t": "info", node: number, }
-  | { "t": "rate", node: number, cat: string, }
+  | { "t": "rate", node: number, cat: string, more?: Array<string>, }
   | { "t": "rename" }
   | { "t": "hide", on: boolean, }
   | { "t": "forget" }

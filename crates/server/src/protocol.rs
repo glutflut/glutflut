@@ -699,9 +699,13 @@ pub enum ClientMsg {
     Info {
         node: i64,
     },
+    /// One card: `cat`, and more answers of the same card in `more`.
     Rate {
         node: i64,
         cat: String,
+        #[serde(default)]
+        #[ts(optional)]
+        more: Option<Vec<String>>,
     },
     Rename,
     Hide {

@@ -62,7 +62,7 @@ pub(super) fn presence(
     );
 }
 
-pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cat: &str) {
+pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cats: &[String]) {
     let (now, rules) = (c.now, c.rules);
     let Some((e, out)) = game.clients.0.get(&conn) else {
         return;
@@ -82,7 +82,7 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cat: &str) {
         return;
     }
     let reason = rate_check(
-        cat,
+        cats,
         node,
         pos.0,
         &t,
@@ -93,11 +93,13 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cat: &str) {
         &game.campaign.questions,
     );
     let mut points = 0;
-    if let Ok((category, cell)) = reason {
+    if let Ok((categories, cell)) = &reason {
         t.last_rate = now;
         if t.counted {
-            game.agg
-                .rate(node, cell, category, t.pseudo, t.synthetic, now);
+            for category in categories {
+                game.agg
+                    .rate(node, *cell, category, t.pseudo, t.synthetic, now);
+            }
         }
         if let Some(s) = slot {
             points = game.scores.rated(s.0);
@@ -130,9 +132,15 @@ fn question_answer(
         .then(|| (crate::analytics::intern(cat), q.at, q.radius_m as f32))
 }
 
+/// At most this many answers in one card (three pairs, the tags, the city's question).
+const ANSWERS_MAX: usize = 9;
+
+/// One card's answers: each a known category or an answer to a running city
+/// question (one per question), the player near the junction (and in the
+/// question's area), not too soon after the last card.
 #[allow(clippy::too_many_arguments)]
 fn rate_check(
-    cat: &str,
+    cats: &[String],
     node: i64,
     pos: Vec3,
     t: &Tracked,
@@ -141,12 +149,38 @@ fn rate_check(
     nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
     region: &RegionInfo,
     questions: &[crate::campaign::Question],
-) -> Result<(&'static str, u64), &'static str> {
-    let question = question_answer(cat, questions);
-    let category = match CATEGORIES.iter().find(|c| **c == cat) {
-        Some(c) => *c,
-        None => question.ok_or("category")?.0,
-    };
+) -> Result<(Vec<&'static str>, u64), &'static str> {
+    if cats.is_empty() || cats.len() > ANSWERS_MAX {
+        return Err("category");
+    }
+    let mut out: Vec<&'static str> = Vec::new();
+    let mut asked: Vec<Option<[f64; 2]>> = Vec::new();
+    let mut seen_q: Vec<&str> = Vec::new();
+    for cat in cats {
+        let category = match CATEGORIES.iter().find(|c| **c == cat) {
+            Some(c) => *c,
+            None => {
+                let (c, at, r) = question_answer(cat, questions).ok_or("category")?;
+                // One answer per question.
+                let q = cat.split_once('.').map_or("", |(q, _)| q);
+                if seen_q.contains(&q) {
+                    return Err("category");
+                }
+                seen_q.push(q);
+                if let Some([lon, lat]) = at {
+                    let p = project_enu(lat, lon, region.centroid_lat, region.centroid_lon);
+                    if p.distance(pos) > r {
+                        return Err("range");
+                    }
+                }
+                asked.push(at);
+                c
+            }
+        };
+        if !out.contains(&category) {
+            out.push(category);
+        }
+    }
     if now - t.last_rate < RATE_COOLDOWN_S {
         return Err("cooldown");
     }
@@ -158,14 +192,7 @@ fn rate_check(
     if p.distance(pos) > RATE_RADIUS_M {
         return Err("range");
     }
-    // A question near a site: only there.
-    if let Some((_, Some([lon, lat]), r)) = question {
-        let at = project_enu(lat, lon, region.centroid_lat, region.centroid_lon);
-        if at.distance(pos) > r {
-            return Err("range");
-        }
-    }
-    Ok((category, crate::analytics::mood_cell(g.lat, g.lon)))
+    Ok((out, crate::analytics::mood_cell(g.lat, g.lon)))
 }
 
 /// Count in the analytics for the city, or not (objection, Art. 21 GDPR).

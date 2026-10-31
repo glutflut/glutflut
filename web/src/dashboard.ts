@@ -14,7 +14,7 @@ maplibregl.setWorkerUrl(workerUrl);
 
 // Sequential blue ramp (steps 200..650), light -> dark = low -> high.
 const RAMP = ["#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#104281"];
-const CATS = ["voll", "ruhig", "laut", "dunkel", "kalt", "einladend"];
+const CATS = ["voll", "leer", "laut", "ruhig", "unangenehm", "einladend", "dunkel", "kalt", "verkehr", "schmutzig"];
 const catLabel = (c: string) => (CATS.includes(c) ? t(`cat.${c}` as Key) : c);
 
 interface Summary {
