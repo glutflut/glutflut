@@ -7,7 +7,7 @@ use elements_shared::prelude::*;
 
 use crate::analytics::{Profile, Tracked};
 use crate::sim::NodeById;
-use crate::web::{send, ServerMsg, CATEGORIES, RATE_COOLDOWN_S, RATE_RADIUS_M};
+use crate::web::{send, send_challenge, ServerMsg, CATEGORIES, RATE_COOLDOWN_S, RATE_RADIUS_M};
 
 use super::{Ctx, Game};
 
@@ -67,7 +67,7 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cats: &[Strin
     let Some((e, out)) = game.clients.0.get(&conn) else {
         return;
     };
-    let Ok((_, pos, _, Some(mut t), slot, motion)) = game.players.get_mut(*e) else {
+    let Ok((&faction, pos, _, Some(mut t), slot, motion)) = game.players.get_mut(*e) else {
         return;
     };
     if motion.locked(now) {
@@ -107,6 +107,18 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cats: &[Strin
                 game.scores
                     .add_xp(s.0, elements_shared::progression::Goal::Rating);
             }
+            if let Some(ch) = game.challenges.as_deref_mut() {
+                for ev in ch.on_rate(conn, *cell, now, &rules.progression, &mut game.scores) {
+                    send_challenge(out, ev);
+                }
+            }
+        }
+        // A chapter that asks for moods: one per card, the chapter's badge too.
+        let key = game
+            .campaign
+            .add(faction, crate::campaign::Goal::Moods, 1, now);
+        if let (Some(key), Some(s)) = (key, slot) {
+            game.scores.grant(s.0, &format!("chapter:{key}"));
         }
     }
     send(

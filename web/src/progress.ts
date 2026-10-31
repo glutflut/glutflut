@@ -150,7 +150,11 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
       ? t("ch.done", { xp: ch.xp })
       : ch.hint
         ? t("ch.discover.hint", { hint: ch.hint })
-        : "";
+        : ch.kind === "feel"
+          ? t("ch.feel.hint")
+          : "";
+    // Stadtfühler: the button it needs glows.
+    $("rate").classList.toggle("hot", ch.kind === "feel" && !ch.done);
     (el.querySelector(".ch-bar span") as HTMLElement).style.width = `${(100 * Math.min(ch.progress, ch.goal)) / ch.goal}%`;
   }
   setInterval(drawChallenge, 1000);

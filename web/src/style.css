@@ -1709,3 +1709,6 @@ body.kiosk #lapse-play, body.kiosk #lapse-close { visibility: hidden; }
 }
 /* Where an own source's link goes (perm.ts); a tap goes there. */
 #my-keeps button.partner { width: auto; margin: 2px 0 2px 10px; padding: 4px 10px; font-size: 13px; color: var(--soft); }
+
+/* The "Wie ist es hier?" button while the Stadtfühler challenge runs. */
+#rate.hot { border: 2px solid var(--gold); box-shadow: 0 0 12px rgba(255, 212, 59, 0.5); }

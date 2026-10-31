@@ -27,6 +27,8 @@ pub struct Run {
     hint: Option<String>,
     /// Round over, waiting for the next one (`challenge_gap_s`).
     wait: bool,
+    /// Feel: the mood cells answered at in this round.
+    felt: Vec<u64>,
 }
 
 /// What the player sees.
@@ -196,6 +198,7 @@ impl Challenges {
             zones_at_start: visited,
             hint,
             wait: false,
+            felt: Vec::new(),
         };
         let v = Self::view(&run, now);
         self.runs.insert(conn, run);
@@ -258,7 +261,7 @@ impl Challenges {
             Challenge::Discover => zone.is_some_and(|z| run.zones_at_start & (1 << z) == 0),
             Challenge::Front => info.front,
             Challenge::Retake => info.retake,
-            Challenge::Hold | Challenge::Quiet | Challenge::Team => false,
+            Challenge::Hold | Challenge::Quiet | Challenge::Team | Challenge::Feel => false,
         };
         if hit {
             run.progress = run.kind.goal();
@@ -364,6 +367,33 @@ impl Challenges {
         vec![done, Event::Update(Self::view(run, now))]
     }
 
+    /// A "Wie ist es hier?" card answered in mood cell `cell`: Feel counts
+    /// each place once.
+    pub fn on_rate(
+        &mut self,
+        conn: u64,
+        cell: u64,
+        now: f64,
+        p: &Progression,
+        scores: &mut Scores,
+    ) -> Vec<Event> {
+        let Some(run) = self.runs.get_mut(&conn) else {
+            return Vec::new();
+        };
+        if run.kind != Challenge::Feel || run.done || run.wait || run.felt.contains(&cell) {
+            return Vec::new();
+        }
+        run.felt.push(cell);
+        run.claims += 1;
+        run.progress = run.felt.len() as u32;
+        let mut ev = Vec::new();
+        if run.progress >= run.kind.goal() {
+            ev.push(Self::finish(run, scores, p));
+        }
+        ev.push(Event::Update(Self::view(run, now)));
+        ev
+    }
+
     pub fn forget(&mut self, conn: u64) {
         self.runs.remove(&conn);
     }
@@ -458,6 +488,39 @@ mod tests {
     }
 
     #[test]
+    fn feel_counts_each_place_once() {
+        let (mut ch, mut scores, slot, p) = setup();
+        let t0 = 1_000_000.0;
+        ch.runs.insert(
+            1,
+            Run {
+                slot,
+                kind: Challenge::Feel,
+                until: t0 + 600.0,
+                progress: 0,
+                done: false,
+                claims: 0,
+                zones_at_start: 0,
+                hint: None,
+                wait: false,
+                felt: Vec::new(),
+            },
+        );
+        ch.on_rate(1, 7, t0, &p, &mut scores);
+        assert!(ch.on_rate(1, 7, t0 + 1.0, &p, &mut scores).is_empty());
+        ch.on_rate(1, 8, t0 + 2.0, &p, &mut scores);
+        let ev = ch.on_rate(1, 9, t0 + 3.0, &p, &mut scores);
+        assert!(matches!(
+            ev.first(),
+            Some(Event::Done {
+                kind: Challenge::Feel,
+                ..
+            })
+        ));
+        assert!(ch.runs[&1].done);
+    }
+
+    #[test]
     fn hold_needs_minutes_in_a_row() {
         let (mut ch, mut scores, slot, p) = setup();
         let t0 = 1_000_000.0;
@@ -473,6 +536,7 @@ mod tests {
                 zones_at_start: 0,
                 hint: None,
                 wait: false,
+                felt: Vec::new(),
             },
         );
         for (i, n) in [25, 25, 5, 25, 25, 25].into_iter().enumerate() {

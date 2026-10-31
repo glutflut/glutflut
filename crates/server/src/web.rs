@@ -293,7 +293,7 @@ mod handlers;
 pub use handlers::inbox;
 use handlers::Abilities;
 
-fn send_challenge(out: &Outbox, ev: challenge::Event) {
+pub(crate) fn send_challenge(out: &Outbox, ev: challenge::Event) {
     match ev {
         challenge::Event::Update(v) => send(out, &ServerMsg::Challenge(v)),
         challenge::Event::Done { kind, xp } => send(out, &ServerMsg::ChallengeDone { kind, xp }),

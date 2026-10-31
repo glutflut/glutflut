@@ -16,7 +16,7 @@ import type { Lang } from "./lang";
 import { authHeaders, getAccess, regionsWith, roleIn, type Access } from "./opsauth";
 
 const TOKEN_KEY = "elements.ops"; // shared with the dashboard
-const GOALS = ["claims", "fronts", "finds", "points", "area", "hold"] as const;
+const GOALS = ["claims", "fronts", "finds", "points", "area", "hold", "moods"] as const;
 const goalName = (g: string) => ((GOALS as readonly string[]).includes(g) ? t(`goal.n.${g as (typeof GOALS)[number]}`) : g);
 const num = (n: number) => n.toLocaleString(document.documentElement.lang || "de");
 

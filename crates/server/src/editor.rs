@@ -16,7 +16,9 @@ use super::{who, AppState, Client, RegionQ, Role};
 /// Languages a chapter may have; the city's own (`geo.regions.language`) is required.
 pub(super) const LANGS: [&str; 7] = ["de", "en", "fr", "es", "pl", "it", "pt"];
 // "hold" only keeps an existing one: its junctions are set by SQL.
-const GOALS: [&str; 6] = ["claims", "fronts", "finds", "points", "area", "hold"];
+const GOALS: [&str; 7] = [
+    "claims", "fronts", "finds", "points", "area", "hold", "moods",
+];
 const TITLE_MAX: usize = 60;
 const TEXT_MAX: usize = 240;
 /// A story text (intro, an ending): paragraphs allowed.

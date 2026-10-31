@@ -141,7 +141,7 @@ export type FindItem = { id: number, c: string, name: string, lat: number, lon: 
 
 export type HotspotInfo = { node: number, ends_in: number, manual: boolean, ll: [number, number], };
 
-export type ChapterGoal = "claims" | "fronts" | "finds" | "points" | "area" | "hold";
+export type ChapterGoal = "claims" | "fronts" | "finds" | "points" | "area" | "hold" | "moods";
 
 /**
  * A news flash of the region (`game.notices`), shown while it runs.
@@ -176,4 +176,4 @@ export type NodeSource = { kind: "natural" | "claim" | "anchor" | "spark" | "kee
 /**
  * Challenges the game proposes (no choice), unlocked by level.
  */
-export type ChallengeKind = "claim3" | "discover" | "front" | "quiet" | "hold" | "retake" | "team";
+export type ChallengeKind = "claim3" | "discover" | "front" | "quiet" | "hold" | "retake" | "team" | "feel";

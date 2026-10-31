@@ -174,10 +174,12 @@ pub enum Challenge {
     Retake,
     /// Boost a teammate's source (needs abilities; not on the server yet).
     Team,
+    /// "Stadtfühler": answer "Wie ist es hier?" at 3 different places.
+    Feel,
 }
 
 impl Challenge {
-    pub const ALL: [Challenge; 7] = [
+    pub const ALL: [Challenge; 8] = [
         Challenge::Claim3,
         Challenge::Discover,
         Challenge::Front,
@@ -185,11 +187,12 @@ impl Challenge {
         Challenge::Hold,
         Challenge::Retake,
         Challenge::Team,
+        Challenge::Feel,
     ];
 
     pub fn level(self) -> u8 {
         match self {
-            Challenge::Claim3 | Challenge::Discover => 1,
+            Challenge::Claim3 | Challenge::Discover | Challenge::Feel => 1,
             Challenge::Front | Challenge::Quiet => 2,
             Challenge::Hold | Challenge::Retake => 3,
             Challenge::Team => 4,
@@ -199,16 +202,16 @@ impl Challenge {
     /// Round length: longer for challenges that send you somewhere.
     pub fn round_s(self, p: &Progression) -> f32 {
         match self {
-            Challenge::Discover | Challenge::Quiet => p.challenge_long_s,
+            Challenge::Discover | Challenge::Quiet | Challenge::Feel => p.challenge_long_s,
             _ => p.challenge_s,
         }
     }
 
     /// Target: claims for Claim3, minutes in a row with `hold_junctions` for
-    /// Hold, else one success.
+    /// Hold, places for Feel, else one success.
     pub fn goal(self) -> u32 {
         match self {
-            Challenge::Claim3 | Challenge::Hold => 3,
+            Challenge::Claim3 | Challenge::Hold | Challenge::Feel => 3,
             _ => 1,
         }
     }

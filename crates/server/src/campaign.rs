@@ -33,6 +33,8 @@ pub enum Goal {
     /// Hold the chapter's junctions (`nodes`): progress is how many a side
     /// holds now; who holds more at the end wins.
     Hold,
+    /// "Wie ist es hier?" cards answered by the side.
+    Moods,
 }
 
 impl Goal {
@@ -44,6 +46,7 @@ impl Goal {
             "points" => Self::Points,
             "area" => Self::Area,
             "hold" => Self::Hold,
+            "moods" => Self::Moods,
             _ => return None,
         })
     }
