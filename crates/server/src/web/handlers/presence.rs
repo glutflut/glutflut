@@ -95,7 +95,7 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cat: &str) {
     if let Ok(category) = reason {
         t.last_rate = now;
         if t.counted {
-            game.agg.rate(node, category, t.synthetic, now);
+            game.agg.rate(node, category, t.pseudo, t.synthetic, now);
         }
         if let Some(s) = slot {
             points = game.scores.rated(s.0);

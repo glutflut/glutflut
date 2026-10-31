@@ -142,6 +142,7 @@ export const de = {
   "rate.button": "Wie ist es hier?",
   "rate.title": "Ort bewerten",
   "rate.sheet": "Wie ist es hier gerade?",
+  "rate.ask.sub": "Ein Tipp genügt. Daraus lernt die Stadt, wie sich Orte anfühlen.",
   "rate.thanks": "Danke!{plus}",
   "rate.cooldown": "Gerade erst bewertet",
   "rate.nothere": "Hier nicht möglich",

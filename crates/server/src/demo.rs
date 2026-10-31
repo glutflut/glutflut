@@ -397,7 +397,7 @@ pub fn run(db: &str, slug: &str, day: &str, a: &DemoArgs) -> Result<(), Box<dyn 
                             .iter()
                             .any(|&c| c.distance(w.pos) < NEAR_ATTRACTOR_M);
                         let cat = category(&mut rng, near, hour);
-                        agg.rate(graph.nodes[w.node].id, cat, true, now);
+                        agg.rate(graph.nodes[w.node].id, cat, w.t.pseudo, true, now);
                         w.t.last_rate = now;
                         ratings += 1;
                     }

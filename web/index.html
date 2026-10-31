@@ -391,7 +391,11 @@
     </div>
 
     <div id="sheet" role="dialog" aria-labelledby="sheet-title" hidden>
-      <div class="sheet-title" id="sheet-title" data-i18n="rate.sheet">Wie ist es hier gerade?</div>
+      <div class="sheet-head">
+        <div class="sheet-title" id="sheet-title" data-i18n="rate.sheet">Wie ist es hier gerade?</div>
+        <button id="sheet-close" data-i18n-aria="ar.close" data-i18n-title="ar.close">×</button>
+      </div>
+      <div class="sheet-sub" id="sheet-sub" data-i18n="rate.ask.sub" hidden>Ein Tipp genügt. Daraus lernt die Stadt, wie sich Orte anfühlen.</div>
       <div class="chips">
         <button data-cat="voll" data-i18n="cat.voll">voll</button>
         <button data-cat="ruhig" data-i18n="cat.ruhig">ruhig</button>

@@ -1,5 +1,4 @@
-// The claim and rate buttons (web.rs `Claim`, `Rate`): what the claim button
-// takes (`target`), the wait after a claim or while moving, the answer's toast.
+// The claim button (web.rs `Claim`): what it takes (`target`), the wait after a claim or while moving, the answer's toast.
 import { t, type Key } from "./i18n";
 import type { Faction, Net, ServerMsg } from "./net";
 import type { Sound } from "./sound";
@@ -62,6 +61,8 @@ export function setupClaim(d: {
   card: { onClaim(node: number): void };
   /** A claim of this player took (invite nudge). */
   claimed: () => void;
+  /** "Wie ist es hier?" asks now and then after a claim (rate.ts). */
+  rate: { onClaimed(): void };
 }) {
   const { net, sound, nodePos, state } = d;
   const claimBtn = $("claim") as HTMLButtonElement;
@@ -289,23 +290,6 @@ export function setupClaim(d: {
     return msg;
   }
 
-  const sheet = $("sheet");
-  rateBtn.onclick = () => (sheet.hidden = !sheet.hidden);
-  for (const b of sheet.querySelectorAll<HTMLButtonElement>("button[data-cat]")) {
-    b.onclick = () => {
-      sheet.hidden = true;
-      const me = d.me();
-      if (!me) return;
-      let best: [number, number] | null = null;
-      for (const [id, c] of nodePos) {
-        const dist = distM(me, c);
-        if (!best || dist < best[1]) best = [id, dist];
-      }
-      if (!best || best[1] > CLAIM_RADIUS_M) return toast(t("rate.noplace"));
-      net.send({ t: "rate", node: best[0], cat: b.dataset.cat! });
-    };
-  }
-
   claimBtn.onclick = () => {
     const me = d.me();
     if (!me) return;
@@ -339,10 +323,6 @@ export function setupClaim(d: {
       linkWhy = linkTarget ? null : (m.reason ?? null);
       drawLink();
     },
-    onRate(m: Extract<ServerMsg, { t: "rate" }>) {
-      const why = m.reason === "cooldown" ? t("rate.cooldown") : m.reason === "moving" ? TOO_FAST : t("rate.nothere");
-      toast(m.ok ? t("rate.thanks", { plus: plus(m.points) }) : why);
-    },
     onClaim(m: Extract<ServerMsg, { t: "claim" }>) {
       const faction = d.faction();
       clearTimeout(claimWait);
@@ -374,6 +354,7 @@ export function setupClaim(d: {
       const via = !m.far && d.tunnel.onClaim(m.node, m.ok);
       if (m.ok && faction) {
         d.claimed();
+        if (!m.far) d.rate.onClaimed();
         if (m.doused) sound.steam();
         else sound.claim(faction);
         if (m.build && m.build >= 2) sound.building(faction, m.build);

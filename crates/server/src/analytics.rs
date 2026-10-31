@@ -861,6 +861,10 @@ impl Standing {
     }
 }
 
+/// Perception category that counts persons, not ratings (left out of the
+/// shares; [`crate::db`] queries skip categories starting with `#`).
+pub const RATERS: &str = "#persons";
+
 #[derive(Resource)]
 pub struct Aggregator {
     k: usize,
@@ -868,8 +872,11 @@ pub struct Aggregator {
     salt: (i64, u64),
     last_seen: HashMap<u64, (f64, Option<i64>)>,
     dwell: HashMap<(i64, i64, bool), Bucket>,
-    /// (node, day, UTC hour, category, synthetic) -> ratings.
+    /// (node, day, UTC hour, category, synthetic) -> ratings. Category
+    /// [`RATERS`] counts persons: once per pseudonym, junction and day.
     perception: HashMap<(i64, i64, i16, &'static str, bool), i32>,
+    /// (UTC day, pseudonym, node) already counted in [`RATERS`] (memory only).
+    raters: HashSet<(i64, u64, i64)>,
     /// Zones (id, ENU centre, own radius or `ZONE_R_M`).
     zones: Vec<(String, Vec2, Option<f32>)>,
     /// Last zone per pseudonym.
@@ -919,6 +926,7 @@ impl Aggregator {
             last_seen: HashMap::new(),
             dwell: HashMap::new(),
             perception: HashMap::new(),
+            raters: HashSet::new(),
             zones,
             zone_of: HashMap::new(),
             flows: HashMap::new(),
@@ -1092,13 +1100,26 @@ impl Aggregator {
         b.add(t.pseudo, dt, hot);
     }
 
-    pub fn rate(&mut self, node: i64, category: &'static str, synthetic: bool, now: f64) {
+    pub fn rate(
+        &mut self,
+        node: i64,
+        category: &'static str,
+        pseudo: u64,
+        synthetic: bool,
+        now: f64,
+    ) {
         let day = (now as i64).div_euclid(86_400) * 86_400;
         let hour = (now as i64).div_euclid(3600).rem_euclid(24) as i16;
         *self
             .perception
             .entry((node, day, hour, category, synthetic))
             .or_default() += 1;
+        if self.raters.insert((day, pseudo, node)) {
+            *self
+                .perception
+                .entry((node, day, hour, RATERS, synthetic))
+                .or_default() += 1;
+        }
     }
 
     /// Start (unix s) of the local day of `now`.
@@ -1469,6 +1490,8 @@ impl Aggregator {
         }
         self.daily.retain(|&(day, _), _| day >= today);
         self.flagged.retain(|&day, _| day >= today);
+        let utc_day = (now as i64).div_euclid(86_400) * 86_400;
+        self.raters.retain(|&(day, ..)| day >= utc_day);
         self.starts.retain(|&day, _| day >= today);
         for ((node, day, hour, category, synthetic), add) in self.perception.drain() {
             rows.push(Row::Perception {

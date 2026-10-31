@@ -37,6 +37,7 @@ import { setupOverview } from "./overview";
 import { setupSources, type SourceItems } from "./sources";
 import { setupProgress } from "./progress";
 import { setupClaim } from "./claim";
+import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
 import { setupPlayer } from "./player";
 import { setupCheer } from "./cheer";
@@ -286,6 +287,7 @@ async function main() {
   const inset = setupInset(gameView);
   const beams = setupBeam(map, gameView);
   const progress = setupProgress(net, sound, () => faction, () => player.drawRange());
+  const rate = setupRate({ net, nodePos, me: () => player.me() });
   const claim = setupClaim({
     net,
     sound,
@@ -311,6 +313,7 @@ async function main() {
     tunnel,
     card,
     claimed: () => invite.claimed(),
+    rate,
   });
   const lapse = setupTimelapse(map, () => meta.region.slug);
   // Far out the globe, for players too; another city opens for watching there.
@@ -628,7 +631,7 @@ async function main() {
     },
     recover: (m) => toast(t(m.reason === "wait" ? "keep.redeem.wait" : "keep.redeem.unknown")),
     rate(m) {
-      claim.onRate(m);
+      rate.onRate(m);
       if (m.ok) floaters.earned(m.points);
     },
     claim(m) {

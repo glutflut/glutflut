@@ -203,7 +203,38 @@ body.watching #board .you { display: none; }
   z-index: 8;
 }
 
+.sheet-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.sheet-head .sheet-title { flex: 1; margin: 0; }
+#sheet-close {
+  border: none;
+  background: transparent;
+  color: var(--muted, var(--fg));
+  font-size: 22px;
+  line-height: 1;
+  padding: 0 4px;
+}
 .sheet-title { font-weight: 600; margin-bottom: 8px; }
+.sheet-sub { font-size: 13px; opacity: 0.8; margin: -4px 0 10px; }
+/* Asked by the app after a claim: slides up, gold edge, a line runs out. */
+#sheet.asked {
+  border: 1px solid var(--gold);
+  animation: sheet-in 0.35s ease-out;
+  overflow: hidden;
+}
+#sheet.asked::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--gold);
+  transform-origin: left;
+  animation: sheet-time 15s linear forwards;
+}
+#sheet.asked .sheet-title { font-size: 17px; }
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-time { to { transform: scaleX(0); } }
 
 .chips {
   display: flex;

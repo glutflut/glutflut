@@ -143,6 +143,7 @@ export const pt: Dict = {
   "rate.button": "Como está aqui?",
   "rate.title": "Avaliar o lugar",
   "rate.sheet": "Como está aqui agora?",
+  "rate.ask.sub": "Basta um toque. Assim a cidade aprende como os lugares são sentidos.",
   "rate.thanks": "Valeu!{plus}",
   "rate.cooldown": "Você acabou de avaliar",
   "rate.nothere": "Aqui não dá",
