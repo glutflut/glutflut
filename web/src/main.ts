@@ -59,6 +59,7 @@ import { KEYS, blocked, load, save } from "./store";
 import { joinGate, kiosk, tryJoin, watching } from "./watch";
 import { freshSources, setupLive, startKiosk } from "./live";
 import { setupTimelapse } from "./timelapse";
+import { setupMood } from "./mood";
 import { lookFromHash, setupGlobe } from "./globe";
 import { openRegion } from "./region";
 
@@ -316,6 +317,7 @@ async function main() {
     rate,
   });
   const lapse = setupTimelapse(map, () => meta.region.slug);
+  setupMood(map, () => meta.region.slug);
   // Far out the globe, for players too; another city opens for watching there.
   // From the globe: players back to where they stand, watchers to the city.
   setupGlobe(map, knownRegions, meta.region.slug, (r) => void openRegion(r, true), () => !document.body.classList.contains("watching") && player.home());

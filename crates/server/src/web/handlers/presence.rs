@@ -92,10 +92,11 @@ pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cat: &str) {
         c.region,
     );
     let mut points = 0;
-    if let Ok(category) = reason {
+    if let Ok((category, cell)) = reason {
         t.last_rate = now;
         if t.counted {
-            game.agg.rate(node, category, t.pseudo, t.synthetic, now);
+            game.agg
+                .rate(node, cell, category, t.pseudo, t.synthetic, now);
         }
         if let Some(s) = slot {
             points = game.scores.rated(s.0);
@@ -124,7 +125,7 @@ fn rate_check(
     node_by_id: &NodeById,
     nodes: &Query<(&GeoNode, &mut ElementState), Without<Player>>,
     region: &RegionInfo,
-) -> Result<&'static str, &'static str> {
+) -> Result<(&'static str, u64), &'static str> {
     let category = *CATEGORIES.iter().find(|c| **c == cat).ok_or("category")?;
     if now - t.last_rate < RATE_COOLDOWN_S {
         return Err("cooldown");
@@ -137,7 +138,7 @@ fn rate_check(
     if p.distance(pos) > RATE_RADIUS_M {
         return Err("range");
     }
-    Ok(category)
+    Ok((category, crate::analytics::mood_cell(g.lat, g.lon)))
 }
 
 /// Count in the analytics for the city, or not (objection, Art. 21 GDPR).

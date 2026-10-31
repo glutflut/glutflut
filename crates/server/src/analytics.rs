@@ -862,8 +862,17 @@ impl Standing {
 }
 
 /// Perception category that counts persons, not ratings (left out of the
-/// shares; [`crate::db`] queries skip categories starting with `#`).
+/// shares; [`crate::db`] queries skip categories starting with `#`): once
+/// per pseudonym, [`MOOD_RES`] cell and day, at the first junction rated
+/// there. Summed over a cell's junctions: the persons who rated in it.
 pub const RATERS: &str = "#persons";
+/// H3 resolution of the mood map (`/api/mood`), cells of about 170 m.
+pub const MOOD_RES: h3o::Resolution = h3o::Resolution::Nine;
+
+/// The mood map's cell of a junction.
+pub fn mood_cell(lat: f64, lon: f64) -> u64 {
+    h3o::LatLng::new(lat, lon).map_or(0, |ll| u64::from(ll.to_cell(MOOD_RES)))
+}
 
 #[derive(Resource)]
 pub struct Aggregator {
@@ -875,8 +884,8 @@ pub struct Aggregator {
     /// (node, day, UTC hour, category, synthetic) -> ratings. Category
     /// [`RATERS`] counts persons: once per pseudonym, junction and day.
     perception: HashMap<(i64, i64, i16, &'static str, bool), i32>,
-    /// (UTC day, pseudonym, node) already counted in [`RATERS`] (memory only).
-    raters: HashSet<(i64, u64, i64)>,
+    /// (UTC day, pseudonym, mood cell) already counted in [`RATERS`] (memory only).
+    raters: HashSet<(i64, u64, u64)>,
     /// Zones (id, ENU centre, own radius or `ZONE_R_M`).
     zones: Vec<(String, Vec2, Option<f32>)>,
     /// Last zone per pseudonym.
@@ -1103,6 +1112,7 @@ impl Aggregator {
     pub fn rate(
         &mut self,
         node: i64,
+        cell: u64,
         category: &'static str,
         pseudo: u64,
         synthetic: bool,
@@ -1114,7 +1124,7 @@ impl Aggregator {
             .perception
             .entry((node, day, hour, category, synthetic))
             .or_default() += 1;
-        if self.raters.insert((day, pseudo, node)) {
+        if self.raters.insert((day, pseudo, cell)) {
             *self
                 .perception
                 .entry((node, day, hour, RATERS, synthetic))

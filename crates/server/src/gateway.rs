@@ -585,6 +585,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                             .delete(editor_keys::withdraw),
                     )
                     .route("/api/chronicle", get(chronicle::chronicle))
+                    .route("/api/mood", get(mood::mood))
                     .route("/api/media", get(editor_media::public))
                     .route("/api/media/{id}", get(editor_media::file));
                 for code in LINKS {
@@ -2478,6 +2479,9 @@ mod editor_notices;
 /// Authoring tools stage 2 (places).
 #[path = "editor_places.rs"]
 mod editor_places;
+/// The mood map (public).
+#[path = "mood.rs"]
+mod mood;
 /// Before/after report per focus place.
 #[path = "report.rs"]
 mod report;
