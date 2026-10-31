@@ -522,7 +522,8 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         }
         _ => 0,
     };
-    // Finds near the claimed junction.
+    // Finds near the claimed junction; not through a tunnel or a link (the
+    // player has to be there).
     let at = game
         .node_by_id
         .get(&node)
@@ -531,9 +532,13 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             let p = project_enu(g.lat, g.lon, region.centroid_lat, region.centroid_lon);
             Vec2::new(p.x, p.z)
         });
-    if let (true, false, Some(s), Some(at), Some(f)) =
-        (res.is_ok(), tunnel, slot, at, game.finds.as_deref())
-    {
+    if let (true, false, Some(s), Some(at), Some(f)) = (
+        res.is_ok(),
+        tunnel || link.is_some(),
+        slot,
+        at,
+        game.finds.as_deref(),
+    ) {
         uncover_near(
             f,
             rules.finds.uncover_m,
