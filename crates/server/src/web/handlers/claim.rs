@@ -551,8 +551,13 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             now,
         );
     }
-    // Rarely a tunnel opens (not from a tunnel claim).
-    if let (true, false, Some(s), Some(sim)) = (res.is_ok(), tunnel, slot, game.sim.as_deref()) {
+    // Rarely a tunnel opens (not from a tunnel or link claim).
+    if let (true, false, Some(s), Some(sim)) = (
+        res.is_ok(),
+        tunnel || link.is_some(),
+        slot,
+        game.sim.as_deref(),
+    ) {
         let t = &rules.tunnel;
         let last = game.tunnels.last.get(&s).copied();
         if t.chance > 0.0
