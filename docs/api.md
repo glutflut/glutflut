@@ -24,7 +24,7 @@ Common conventions:
 | `GET /api/leaderboard` | See below. `max-age=10`; 503 `no scores yet`. |
 | `GET /api/media`, `/api/media/{id}` | Approved images (finds, zones, chapters). |
 | `GET /api/chronicle` | The campaigns' chronicle: published chapters grouped by campaign (newest first) with titles, story, dates, goal, progress, `state` (`over`, `live`, `soon`) and `winner`. `max-age=120`. Page: `/chronik.html`. |
-| `GET /api/mood` | Mood map: shares of the "Wie ist es hier?" answers per H3 cell (res 9) for one past day (yesterday, else the latest of the week before), only cells where at least k different persons rated that day; shares in steps of 10 %. `{day, k, cells: [[h3, {category: percent}]]}`. `max-age=600`. |
+| `GET /api/mood` | Mood map: shares of the "Wie ist es hier?" answers per H3 cell (res 9) for one past day (yesterday, else the latest of the week before), only cells where at least k different persons rated that day; shares in steps of 10 %. Real players; `&demo=1` shows a demo region's synthetic ones. `{day, k, cells: [[h3, {category: percent}]]}`. `max-age=600`. |
 | `GET /api/marble/manifest.json`, `shards.json`, `{slug}/{file}` | Globe files (`docs/data-files.md`). |
 | `GET /api/world[?scope=shard]`, `GET /api/marble/world.json` | World ranking: season points of the best players over all regions and shards (`world.rs`; `scope=shard` is one shard's part, what the shards exchange). `max-age=300`, CORS as for the globe files. |
 | `POST /api/wish` `{lat, lon}` | "I want to play here"; counts the H3 res-6 cell. 204. |

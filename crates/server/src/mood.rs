@@ -2,8 +2,8 @@
 //! hier?"), per H3 cell of about 170 m, for one past day: yesterday, or the
 //! latest of the week before with data. A cell shows only if at least k
 //! different persons rated in it that day (`analytics::RATERS`), and only
-//! shares in steps of 10 %, no counts and no hours. Real players only; a
-//! demo region shows its synthetic ones. Answers to the city's questions
+//! shares in steps of 10 %, no counts and no hours. Real players only;
+//! `?demo=1` shows a demo region's synthetic ones (pitch, dashboard demo). Answers to the city's questions
 //! (`q<id>.<n>`) are the city's, not shown here.
 
 use std::collections::HashMap;
@@ -14,17 +14,26 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::{json, Value};
 
-use super::{AppState, RegionQ};
+use serde::Deserialize;
+
+use super::AppState;
 
 /// Look back this many days for a day with data.
 const DAYS: i32 = 7;
 
-pub(super) async fn mood(State(s): State<AppState>, Query(q): Query<RegionQ>) -> Response {
+#[derive(Deserialize)]
+pub(super) struct MoodQ {
+    region: Option<String>,
+    #[serde(default)]
+    demo: Option<u8>,
+}
+
+pub(super) async fn mood(State(s): State<AppState>, Query(q): Query<MoodQ>) -> Response {
     let slug = match s.slug(q.region.as_deref()) {
         Ok(v) => v,
         Err(e) => return e,
     };
-    let demo = s.host.listing(&slug).is_some_and(|l| l.demo_day.is_some());
+    let demo = q.demo == Some(1) && s.host.listing(&slug).is_some_and(|l| l.demo_day.is_some());
     let k = crate::analytics::k_min() as i64;
     let st = s.clone();
     let out = tokio::task::spawn_blocking(move || st.with_db(|db| load(db, &slug, demo, k)))
