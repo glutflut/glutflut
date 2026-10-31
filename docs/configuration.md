@@ -68,6 +68,7 @@ They date from one container per city. The region's own settings win; sites only
 | `ELEMENTS_CELL` | server | `main` | Cell within the shard: only regions with this `geo.regions.cell` load here; `main` also runs the shard-wide jobs (outbox, globe index). See `docs/deploy.md`, Cells. |
 | `ELEMENTS_SHARDS` | server | empty | Other shards: `sa=https://sa.glutflut.com,na=https://na.glutflut.com`. Drives region links, CSP and the globe's shard index. |
 | `ELEMENTS_SHARD_KEY` | server | none | **Secret, in `.env`.** Same value on all shards of one setup (dev has its own). Signs passports and calls between shards. |
+| `ELEMENTS_CELL_URL` | server | `ELEMENTS_PUBLIC_URL` | Base URL that reaches every cell of this shard by `?region=` (the proxy). Links into a region of another cell go there as signed `POST /api/cell/far` (needs `ELEMENTS_SHARD_KEY`). |
 
 ### Analytics and privacy
 

@@ -11,7 +11,7 @@ use elements_shared::prelude::*;
 use crate::actions;
 use crate::gateway::FromWeb;
 use crate::protocol::Far;
-use crate::remote::{deliver, AddKey, Answer, Ask, Mint, Minted};
+use crate::remote::{deliver, Answer, Ask, Mint, Minted};
 use crate::sim::SourceKind;
 use crate::web::{send, ServerMsg};
 
@@ -144,7 +144,9 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
     );
     let id = rand::random::<u64>();
     // A peek never wakes Y (`peek` asks only loaded regions); a claim does.
-    let asleep = !crate::remote::awake(&game.peers.0, &far.region);
+    // In another cell: maybe asleep there, a claim waits as long.
+    let asleep = !crate::remote::awake(&game.peers.0, &far.region)
+        || crate::remote::other_cell(&game.peers.0, &far.region);
     let sent = deliver(
         &game.peers.0,
         &far.region,
@@ -688,7 +690,7 @@ pub(super) fn found(
         return;
     };
     game.pending.found_day.insert(slot, day);
-    let (key, kh, _) = crate::keep::new_ticket();
+    let (key, ..) = crate::keep::new_ticket();
     let id = rand::random::<u64>();
     game.pending.found.insert(
         id,
@@ -701,51 +703,23 @@ pub(super) fn found(
             key: key.clone(),
         },
     );
-    let from = c.region.slug.clone();
-    if host.peek(&y).is_some() {
-        // Running or loading: Y makes it (messages wait for the load).
-        deliver(
-            &host,
-            &y,
-            FromWeb::FarMint(Mint {
-                from,
-                id,
-                key,
-                faction,
-                origin,
-            }),
-        );
+    let m = Mint {
+        from: c.region.slug.clone(),
+        id,
+        key,
+        faction,
+        origin,
+        uses: r.found_uses,
+        days: r.found_days,
+    };
+    if host.peek(&y).is_some() || crate::remote::other_cell(&host, &y) {
+        // Running or loading: Y makes it (messages wait for the load). In
+        // another cell: that cell decides.
+        deliver(&host, &y, FromWeb::FarMint(m));
         return;
     }
     // Asleep: straight into the database, without waking it.
-    let Some(db) = host.db().map(String::from) else {
-        return;
-    };
-    let (uses, days, now) = (r.found_uses, f64::from(r.found_days), c.now);
-    std::thread::spawn(move || {
-        let res =
-            crate::found::write_key(&db, &y, faction.as_str(), origin, &kh, uses as i32, days);
-        if let Err(e) = &res {
-            warn!(error = %e, "found key: write failed");
-        }
-        let keep = res.ok().flatten();
-        // Woke meanwhile: it read its keys before this one.
-        if let (Some(k), Some(_)) = (&keep, host.peek(&y)) {
-            if let Ok(keep) = crate::keep::Hash::try_from(k.as_slice()) {
-                let key = crate::keep::Key {
-                    keep,
-                    origin,
-                    uses,
-                    made: now,
-                    expires: now + days * 86_400.0,
-                    ..Default::default()
-                };
-                deliver(&host, &y, FromWeb::FarKey(AddKey { hash: kh, key }));
-            }
-        }
-        let ok = keep.is_some();
-        deliver(&host, &from, FromWeb::FarMinted(Minted { id, ok }));
-    });
+    crate::remote::write_found(host, y, m);
 }
 
 /// Y: make a found key to a random permanent source of the asker's side.

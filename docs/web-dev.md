@@ -39,6 +39,8 @@ node e2e/far.mjs region-goerlitz region-baden-baden http://127.0.0.1:5080
 node e2e/linkcard.mjs card.png        # junction card of an own source linked elsewhere (vite on 5173 too)
 ```
 
+Across cells: two servers (`ELEMENTS_CELL`, own `ELEMENTS_WEB_BIND`, same `ELEMENTS_SHARD_KEY`, `ELEMENTS_CELL_URL` = a proxy routing by `?region=`), X and Y in those cells in `geo.regions.cell`; run far.mjs against the proxy with `FAR_FLUSH_S=35`.
+
 `ELEMENTS_RULES_OVERRIDE='claim_ttl_s=10'` shortens claim lifetime for testing.
 
 The scripts take `E2E_REGION` and `E2E_AT` ("lat,lon", `e2e/where.mjs`; default Konstanz) and need a server with `ELEMENTS_ALLOW_SIM=1`. They play as real players on that database: use a test database, and a region no other server of it is running (each writes back its own permanent sources per region).

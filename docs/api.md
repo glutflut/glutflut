@@ -31,6 +31,7 @@ Common conventions:
 | `POST /api/session` | Body: the 32-hex token; sets the token cookie (empty body deletes it). Same origin only. |
 | `GET /ws` | The game socket. Same origin only. |
 | `POST /api/passport`, `/api/shard/event`, `/api/shard/recover` | Between shards (signed); not for tools. |
+| `POST /api/cell/far?region=` | Between cells of a shard (signed): link messages for a region of that cell. |
 
 `/api/leaderboard`:
 

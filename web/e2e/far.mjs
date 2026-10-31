@@ -10,6 +10,8 @@
 // FAR_EVICT=<slug> (server: ELEMENTS_MAX_REGIONS=2): Y sleeps with its sources, a claim wakes it.
 // FAR_CITY=<key>: also claim through that city key into Y.
 // FAR_WATCH=<s>: after the own far claim, print its build-up in Y every 10 s (fresh connections).
+// FAR_FLUSH_S=35: X and Y in different cells (base = a proxy routing by ?region=): wait for X
+//   to write its new player before Q comes to Y (another process knows the token only then).
 import { answerPow } from "./pow.mjs";
 
 const [X, Y, BASE = "http://127.0.0.1:5080"] = process.argv.slice(2);
@@ -61,6 +63,8 @@ class Player {
     this.send(hello);
     const w = await this.next("welcome", () => true, 20_000);
     this.token = w.token;
+    // The switch reaches the stored player only once the entity is spawned.
+    await sleep(300);
     this.send({ t: "side", faction: process.env.FAR_SIDE ?? "water" });
     await this.next("side");
     return this;
@@ -209,7 +213,10 @@ const g1 = await qx.next("claim");
 const through = (m) => m.ok || m.reason === "linked";
 check(through(g1), "claim through a gift key", g1.ok ? `+${g1.points}` : g1.reason);
 // Q was never in Y: the claim becomes theirs once they come.
-if (g1.ok) check(await ownIn(qx.token, g1.node), "a newcomer's far claim is theirs on arrival in Y");
+if (g1.ok) {
+  await sleep(Number(process.env.FAR_FLUSH_S ?? 0) * 1000);
+  check(await ownIn(qx.token, g1.node), "a newcomer's far claim is theirs on arrival in Y");
+}
 // FAR_CITY=<key>: a city key to a junction of Y (editor_keys.rs), either side.
 if (process.env.FAR_CITY) {
   await sleep(1200);

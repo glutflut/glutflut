@@ -537,6 +537,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/session", post(session_handler))
                     .route("/api/passport", post(passport_handler))
                     .route("/api/shard/event", post(shard_event_handler))
+                    .route("/api/cell/far", post(cell_far_handler))
                     .route("/api/shard/recover", post(shard_recover_handler))
                     .route("/ws", get(ws_handler))
                     .route("/api/analytics", get(analytics_handler))
@@ -1198,6 +1199,29 @@ async fn shard_event_handler(
             StatusCode::NO_CONTENT.into_response()
         }
         None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+/// `POST /api/cell/far?region=Y` (signed): a link message from another cell
+/// of this shard for region Y here (`remote.rs`).
+async fn cell_far_handler(State(s): State<AppState>, headers: HeaderMap, body: String) -> Response {
+    if shard_body(&headers, &body).is_none() {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    let Ok(env) = serde_json::from_str::<crate::remote::Envelope>(&body) else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    if !s.host.listing(&env.to).is_some_and(|l| s.host.here(&l)) {
+        return StatusCode::MISDIRECTED_REQUEST.into_response();
+    }
+    let host = s.host.clone();
+    let ok = tokio::task::spawn_blocking(move || crate::remote::receive(&host, &env.to, env.msg))
+        .await
+        .unwrap_or(false);
+    if ok {
+        StatusCode::NO_CONTENT.into_response()
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE.into_response()
     }
 }
 

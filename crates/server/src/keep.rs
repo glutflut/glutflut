@@ -89,7 +89,7 @@ struct Row {
 }
 
 /// A key to a permanent source for someone else (`game.keep_keys`).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Key {
     /// The source's ticket hash (zero for a city key).
     pub keep: Hash,
@@ -99,7 +99,8 @@ pub struct Key {
     pub batch: Option<String>,
     pub label: Option<String>,
     /// `gift`, `bottle`, `ember`, `city`.
-    pub origin: &'static str,
+    #[serde(deserialize_with = "crate::remote::de_origin")]
+    pub origin: crate::remote::Fixed,
     pub uses: u32,
     /// Unix s.
     pub made: f64,
