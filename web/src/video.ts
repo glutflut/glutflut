@@ -59,6 +59,10 @@ export function setupVideo(d: {
        *  coarse while zoomed out, `slug` fine closer in, gone by zoom `until`. */
       hexes: ([slug, until = 13.6]: [string, number?]) => hexes(map, slug, until),
       fly: (o: maplibregl.FlyToOptions) => map.flyTo({ ...o, essential: true }),
+      ease: (o: maplibregl.EaseToOptions) => map.easeTo({ ...o, essential: true }),
+      /** Set a paint value of loaded layers (fades in recordings); how many took. */
+      paint: ([ids, prop, v]: [string[], string, number | string]) =>
+        ids.filter((id) => map.getLayer(id) && (map.setPaintProperty(id, prop as keyof maplibregl.AllPaintProperties, v), true)).length,
       qr: (url: string) => {
         const q = qrcode(0, "M");
         q.addData(url);
