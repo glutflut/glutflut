@@ -1087,7 +1087,9 @@ impl Scores {
             return;
         }
         self.flush();
-        let [(f, _), (w, _)] = self.fac;
+        // The day goes to the side with more points (territory traces favour
+        // natural water over claims, so it's no fair measure).
+        let [(_, f), (_, w)] = self.fac;
         if f != w {
             self.wins[if f > w { 0 } else { 1 }] += 1;
         }
@@ -1357,7 +1359,7 @@ fn load(conn: &str, region: &str, today: i64) -> Result<Loaded, Box<dyn std::err
             fac[i] = (r.get(2), r.get(3));
             fac_claims[i] = r.get(4);
         } else {
-            days.entry(day).or_default()[i] = r.get(2);
+            days.entry(day).or_default()[i] = r.get(3);
         }
     }
     let mut wins = [0; 2];
@@ -2313,10 +2315,10 @@ mod tests {
     #[test]
     fn day_roll_books_winner() {
         let mut s = scores();
-        s.fac = [(50, 0), (20, 0)];
+        s.fac = [(50, 10), (20, 30)];
         let d = s.today + 1;
         s.roll_day(d);
-        assert_eq!(s.wins, [1, 0]);
+        assert_eq!(s.wins, [0, 1]);
         assert_eq!(s.fac, [(0, 0); 2]);
     }
 }

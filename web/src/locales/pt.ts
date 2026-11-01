@@ -95,7 +95,7 @@ export const pt: Dict = {
   "board.hidden": "Você está oculto · {pts} pontos",
   "board.rank": "Você: {rank}º lugar · {pts} pontos",
   "board.points": "Você: {pts} pontos",
-  "board.duel.note": "· área marcada pelos jogadores",
+  "board.duel.note": "· por pontos",
   "board.duel.fire": "Fogo {share} % · {pts} pt",
   "board.duel.water": "{pts} pt · {share} % Água",
   "board.wins": "Dias vencidos: Fogo {fire} : {water} Água",

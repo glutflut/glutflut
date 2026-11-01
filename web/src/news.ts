@@ -14,6 +14,19 @@ type Entry = { id: string; rules?: boolean; text: Record<string, Text> };
 
 export const NEWS: Entry[] = [
   {
+    id: "2026-11-01",
+    rules: true,
+    text: {
+      de: { title: "Der Tag zählt nach Punkten", items: ["Der Balken „Heute“ und die gewonnenen Tage zählen jetzt die Punkte beider Seiten. Bisher zählte das gehaltene Gebiet, und dabei kam Wasser am See und am Fluss zu kurz.", "Die „Wie ist es hier?“-Karte fragt seltener."] },
+      en: { title: "The day counts by points", items: ["The “Today” bar and the days won now count both sides’ points. Before, held ground counted, and water by the lake and the river lost out.", "The “How is it here?” card asks less often."] },
+      fr: { title: "La journée se compte aux points", items: ["La barre « Aujourd’hui » et les journées gagnées comptent désormais les points des deux camps. Avant, c’était le terrain tenu, et l’eau près du lac et du fleuve était désavantagée.", "La carte « C’est comment ici ? » demande moins souvent."] },
+      es: { title: "El día se cuenta por puntos", items: ["La barra «Hoy» y los días ganados cuentan ahora los puntos de ambos bandos. Antes contaba el terreno mantenido, y el agua junto al lago y al río salía perdiendo.", "La tarjeta «¿Cómo está aquí?» pregunta con menos frecuencia."] },
+      it: { title: "La giornata si conta a punti", items: ["La barra «Oggi» e le giornate vinte ora contano i punti delle due squadre. Prima contava il territorio tenuto, e l’acqua vicino al lago e al fiume ne usciva svantaggiata.", "La scheda «Com’è qui?» chiede meno spesso."] },
+      pl: { title: "Dzień liczy się w punktach", items: ["Pasek „Dziś” i wygrane dni liczą teraz punkty obu stron. Wcześniej liczył się utrzymany teren, a woda przy jeziorze i rzece była stratna.", "Karta „Jak tu jest?” pyta rzadziej."] },
+      pt: { title: "O dia conta por pontos", items: ["A barra «Hoje» e os dias ganhos agora contam os pontos dos dois times. Antes contava o território mantido, e a água perto do lago e do rio saía perdendo.", "O cartão «Como está aqui?» pergunta menos vezes."] },
+    },
+  },
+  {
     id: "2026-10-30b",
     rules: true,
     text: {

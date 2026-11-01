@@ -64,7 +64,8 @@ export function setupBoard(net: Net) {
       );
     }
     if (!data) return;
-    const f = data.fire.node_minutes, w = data.water.node_minutes;
+    // Today's points (the territory measure favours natural water over claims).
+    const f = data.fire.points, w = data.water.points;
     const share = f + w > 0 ? f / (f + w) : 0.5;
     $("duel-fire").style.width = `${share * 100}%`;
     $("duel-water").style.width = `${(1 - share) * 100}%`;

@@ -94,7 +94,7 @@ export const de = {
   "board.hidden": "Du bist ausgeblendet · {pts} Punkte",
   "board.rank": "Du: Platz {rank} · {pts} Punkte",
   "board.points": "Du: {pts} Punkte",
-  "board.duel.note": "· von Spielenden geprägtes Gebiet",
+  "board.duel.note": "· nach Punkten",
   "board.duel.fire": "Feuer {share} % · {pts} P.",
   "board.duel.water": "{pts} P. · {share} % Wasser",
   "board.wins": "Gewonnene Tage: Feuer {fire} : {water} Wasser",
