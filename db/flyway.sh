@@ -9,10 +9,15 @@
 #
 # Test database first, then production. A database that admits only one host:
 # ELEMENTS_DB_VIA=user@host (see tunnel.sh).
+# Own migrations on top of these (an operator's extra tables): FLYWAY_MIGRATIONS
+# (a directory) and FLYWAY_CONF (its config, with its own flyway.table and
+# schema), run after this repo's; ours never depend on them.
 set -euo pipefail
 
 FLYWAY_IMAGE="${FLYWAY_IMAGE:-flyway/flyway:12.11.0-alpine}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
+MIGRATIONS="${FLYWAY_MIGRATIONS:-$DIR/migrations}"
+CONF="${FLYWAY_CONF:-$DIR/flyway.conf}"
 
 # podman or docker, whichever works (CONTAINER_ENGINE to choose).
 if [[ -z "${CONTAINER_ENGINE:-}" ]]; then
@@ -40,8 +45,8 @@ NET=()
 
 flyway() {
   "$CONTAINER_ENGINE" run --rm "${NET[@]}" \
-    -v "$DIR/migrations:/flyway/sql/migrations:ro" \
-    -v "$DIR/flyway.conf:/flyway/conf/flyway.conf:ro" \
+    -v "$MIGRATIONS:/flyway/sql/migrations:ro" \
+    -v "$CONF:/flyway/conf/flyway.conf:ro" \
     -e FLYWAY_URL="$JDBC_URL" \
     -e FLYWAY_USER="${creds%%:*}" \
     -e FLYWAY_PASSWORD="${creds#*:}" \

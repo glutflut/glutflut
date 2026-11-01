@@ -143,6 +143,7 @@ Run on this machine. Database URLs come from `~/.config/elements/env` (`set -a; 
 | `CONTAINER_ENGINE` | `db/flyway.sh` | first working of podman, docker | Container engine here. |
 | `ELEMENTS_DB_VIA` | `db/tunnel.sh`, `via.sh`, `flyway.sh`, `dbvia.py` | none (direct) | `user@host` to tunnel the database through (a database that admits only that host). |
 | `FLYWAY_IMAGE` | `flyway.sh` | `flyway/flyway:12.11.0-alpine` | Flyway container image. |
+| `FLYWAY_MIGRATIONS`, `FLYWAY_CONF` | `flyway.sh` | `db/migrations`, `db/flyway.conf` | Own migrations on top of these, with their own config (own `flyway.table` and schema); run them after this repo's. |
 | `FROM_DB`, `TO_DB` | `via.sh` | none | Also tunnelled when set. |
 
 Import scripts (`db/import/`) take many more (`REGION_SLUG`, `REGION_NAME`, `REGION_UUID`, `ID_OFFSET`, `SHARD`, `LANGUAGE`, `TIMEZONE`, `OSM_AREA`, `OSM_FILE`, `OSM_CLIP`, `OSM_PARENT`, `PLACES`, `COAST`, `WATER_R`, `WATER_SHARE`, `SOURCES`, `WATER_SOURCES`, `FOUNTAINS`, `AFFINITY`, `DEM_*`, `GRADE_K_*`, `COST_MULT_*`, `NEW_SINCE`, `OVERPASS`, `KEEP`, `DRY`, …). They are data jobs, documented in `db/import/README.md` and in each script's header.
