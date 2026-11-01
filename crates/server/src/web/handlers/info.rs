@@ -75,7 +75,8 @@ pub(super) fn info(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
             node,
             fire: q(st.fire),
             water: q(st.water),
-            source: existing.map(|s| crate::info::source(&s, natural, rules, g.affinity, slot)),
+            source: existing
+                .map(|s| crate::info::source(&s, natural, &g.node_type, rules, g.affinity, slot)),
             take,
             wait,
             dist: dist.round() as u32,

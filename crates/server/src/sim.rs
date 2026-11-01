@@ -330,20 +330,16 @@ pub fn setup_elements(
         .iter()
         .enumerate()
         .filter_map(|(i, &(e, ..))| {
-            let f = match nodes.get(e).ok()?.1.node_type.as_str() {
-                "fire_source" => Faction::Fire,
-                "water_source" | "spring_source" => Faction::Water,
-                _ => return None,
-            };
-            Some((i, f))
+            let m = elements_shared::source::marked(&nodes.get(e).ok()?.1.node_type)?;
+            Some((i, m.faction))
         })
         .collect();
     let spring: Vec<bool> = list
         .iter()
         .map(|&(e, ..)| {
-            nodes
-                .get(e)
-                .is_ok_and(|(_, g, _)| g.node_type == "spring_source")
+            nodes.get(e).is_ok_and(|(_, g, _)| {
+                elements_shared::source::marked(&g.node_type).is_some_and(|m| m.spring)
+            })
         })
         .collect();
     let any_marked = !marked.is_empty();

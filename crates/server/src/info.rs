@@ -29,6 +29,13 @@ pub struct Src {
     pub build: u32,
     /// Placed by this player (claims; the app knows its own permanent source).
     pub yours: bool,
+    /// Natural: the kind of place behind it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(
+        optional,
+        type = "\"food\" | \"shore\" | \"poi\" | \"fountain\" | \"bath\""
+    )]
+    pub why: Option<&'static str>,
 }
 
 /// Effective ageing speed of a source at a node with `affinity`.
@@ -90,6 +97,7 @@ pub fn weak_in(
 pub fn source(
     s: &ElementSource,
     natural: bool,
+    node_type: &str,
     rules: &Rules,
     affinity: f32,
     me: Option<u32>,
@@ -114,6 +122,9 @@ pub fn source(
         gone: (s.kind == SourceKind::Keep).then(|| (rules.keep.expire_s - s.built).max(0.0) as u32),
         build: (s.ramp - s.built).max(0.0).ceil() as u32,
         yours: me.is_some() && s.by == me,
+        why: (kind == "natural")
+            .then(|| elements_shared::source::marked(node_type)?.why)
+            .flatten(),
     }
 }
 
@@ -190,8 +201,22 @@ mod tests {
         assert_eq!(weak_in(&claim(0.0), &r, 0.0, 0.0, 0.8), Some(271));
         assert_eq!(weak_in(&claim(100.0), &r, 0.0, 0.0, 0.8), Some(171));
         assert_eq!(weak_in(&claim(400.0), &r, 0.0, 0.0, 0.8), Some(0));
-        assert_eq!(source(&claim(0.0), false, &r, 0.0, Some(3)).left, Some(540));
-        assert!(source(&claim(0.0), false, &r, 0.0, Some(3)).yours);
+        let c = source(&claim(0.0), false, "crossing", &r, 0.0, Some(3));
+        assert_eq!(c.left, Some(540));
+        assert!(c.yours);
+        assert_eq!(c.why, None);
+        // A natural source says why; a claim on one doesn't.
+        let mut n = claim(0.0);
+        n.life = None;
+        assert_eq!(
+            source(&n, true, "spring_source", &r, 0.0, None).why,
+            Some("fountain")
+        );
+        assert_eq!(source(&n, true, "crossing", &r, 0.0, None).why, None);
+        assert_eq!(
+            source(&claim(0.0), true, "spring_source", &r, 0.0, None).why,
+            None
+        );
     }
 
     #[test]

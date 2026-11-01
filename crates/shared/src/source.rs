@@ -215,6 +215,36 @@ impl Source {
     }
 }
 
+/// A natural source as the import marked it (`geo.nodes.node_type`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Marked {
+    pub faction: Faction,
+    /// Weaker than the shore (`Rules::natural_spring_strength`).
+    pub spring: bool,
+    /// The kind of place behind it, for the junction card; `None`: not known.
+    pub why: Option<&'static str>,
+}
+
+/// `None`: not a source. The `plain_*` types come from `simple-sources.sql`,
+/// which picks by height alone.
+pub fn marked(node_type: &str) -> Option<Marked> {
+    let (faction, spring, why) = match node_type {
+        "fire_source" => (Faction::Fire, false, Some("food")),
+        "water_source" => (Faction::Water, false, Some("shore")),
+        "poi_source" => (Faction::Water, false, Some("poi")),
+        "spring_source" => (Faction::Water, true, Some("fountain")),
+        "bath_source" => (Faction::Water, true, Some("bath")),
+        "plain_fire_source" => (Faction::Fire, false, None),
+        "plain_water_source" => (Faction::Water, false, None),
+        _ => return None,
+    };
+    Some(Marked {
+        faction,
+        spring,
+        why,
+    })
+}
+
 /// Natural sources: the marked nodes (`fire_source` / `water_source` from the
 /// import) if both elements have some, else the `NATURAL_COUNT` lowest nodes
 /// for fire and highest for water.
@@ -275,6 +305,16 @@ pub fn held<'a, S: 'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn marked_types() {
+        let m = |t: &str| marked(t).map(|x| (x.faction, x.spring, x.why));
+        assert_eq!(m("crossing"), None);
+        assert_eq!(m("fire_source"), Some((Faction::Fire, false, Some("food"))));
+        assert_eq!(m("poi_source"), Some((Faction::Water, false, Some("poi"))));
+        assert_eq!(m("bath_source"), Some((Faction::Water, true, Some("bath"))));
+        assert_eq!(m("plain_water_source"), Some((Faction::Water, false, None)));
+    }
     use crate::rules::Decay;
 
     fn rules() -> Rules {

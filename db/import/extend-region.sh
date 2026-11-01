@@ -35,8 +35,8 @@ active() { q "SELECT count(*) FROM geo.nodes WHERE region_id = '$UUID' AND is_ac
 SINCE="${NEW_SINCE:-$(q "SELECT now()")}"
 old() { q "SELECT count(*) FROM geo.nodes WHERE region_id = '$UUID' AND is_active AND created_at < '$SINCE' $1"; }
 OLD="$(old "")"
-FIRE="$(old "AND node_type = 'fire_source'")"
-WATER="$(old "AND node_type = 'water_source'")"
+FIRE="$(old "AND node_type IN ('fire_source', 'plain_fire_source')")"
+WATER="$(old "AND node_type IN ('water_source', 'plain_water_source')")"
 
 if [ -z "${NEW_SINCE:-}" ]; then
   echo ">> $SLUG: graph $(date +%T)"

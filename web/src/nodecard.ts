@@ -125,7 +125,9 @@ export function setupNodeCard(
       const mine = s.yours || (s.kind === "keep" && ownKeep().has(m.node));
       src =
         s.kind === "natural"
-          ? t("node.src.natural", { side: sideName })
+          ? s.why
+            ? t("node.src.why", { src: t("node.src.natural", { side: sideName }), why: t(`node.why.${s.why}` as Key) })
+            : t("node.src.natural", { side: sideName })
           : s.kind === "spark"
             ? t(`node.src.spark.${s.faction}` as Key, { t: left })
             : s.kind === "keep"

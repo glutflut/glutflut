@@ -205,7 +205,7 @@ The server logs the effective values of each region's set, base chain resolved, 
 | `energy_per_min` | 1.0 | – | ignored | Budget refill per minute. |
 | `natural_fire_strength` | 1.0 | 0.6 (Bogotá 0.40) | server | Pinned intensity of natural fire sources. |
 | `natural_water_strength` | 1.0 | – | server | Pinned intensity of natural water sources (shore). |
-| `natural_spring_strength` | 0.8 | – | server | Small water sources (fountains, `spring_source`). |
+| `natural_spring_strength` | 0.8 | – | server | Small water sources (fountains `spring_source`, baths `bath_source`). |
 | `decay` | `"none"` | `"linear"` | server | How a claimed source weakens: `none` (until it expires), `linear` (to 0 at the end), `halflife`. |
 | `decay_halflife_s` | 180 | – | server | Half-life for `halflife` (s). |
 | `fire_decay` | 1.0 | – | server | Ageing speed of fire sources (> 1 = faster). |

@@ -75,11 +75,11 @@ impl TileSet {
         let natural: HashMap<i64, u8> = nodes
             .iter()
             .filter_map(|n| {
-                let k = match n.node_type.as_str() {
-                    "fire_source" => 0,
-                    "water_source" => 1,
-                    "spring_source" => 2,
-                    _ => return None,
+                let m = elements_shared::source::marked(&n.node_type)?;
+                let k = match (m.faction, m.spring) {
+                    (elements_shared::elements::Faction::Fire, _) => 0,
+                    (_, false) => 1,
+                    (_, true) => 2,
                 };
                 Some((n.id, k))
             })

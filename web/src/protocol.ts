@@ -171,7 +171,7 @@ export type ChallengeView = { kind: ChallengeKind, goal: number, progress: numbe
 /**
  * The source on a junction as the card shows it.
  */
-export type NodeSource = { kind: "natural" | "claim" | "anchor" | "spark" | "keep", faction: Faction, left?: number, gone?: number, build: number, yours: boolean, };
+export type NodeSource = { kind: "natural" | "claim" | "anchor" | "spark" | "keep", faction: Faction, left?: number, gone?: number, build: number, yours: boolean, why?: "food" | "shore" | "poi" | "fountain" | "bath", };
 
 /**
  * Challenges the game proposes (no choice), unlocked by level.
