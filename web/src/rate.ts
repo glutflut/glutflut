@@ -13,13 +13,15 @@ import { CLAIM_RADIUS_M, distM } from "./geo";
 import { $, plus, toast } from "./page";
 
 const TOO_FAST = t("too.fast");
-/** Ask after the second claim of a visit, then after every third. */
-const ASK_EVERY = 3;
+/** Ask after the second claim of a visit, then after every sixth. */
+const ASK_EVERY = 6;
+/** Asked cards at least this far apart; doubles after each one closed unanswered. */
+const ASK_MIN_MS = 20 * 60_000;
 /** Not again near a place asked about (or rated) within the hour. */
 const ASK_GAP_M = 150;
 const ASK_GAP_MS = 60 * 60_000;
 /** At most this many cards per visit (ratings pay points up to 5 a day). */
-const ASK_MAX = 6;
+const ASK_MAX = 3;
 /** The card comes after the claim's own show, and goes away on its own. */
 const ASK_DELAY_MS = 1500;
 const ASK_SHOW_MS = 15_000;
@@ -41,6 +43,8 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
   const answered = new Set<number>();
   let claims = ASK_EVERY - 2;
   let asks = 0;
+  let lastAsk = 0;
+  let askGap = ASK_MIN_MS;
   const places: { ll: [number, number]; at: number }[] = [];
   let timer = 0;
   /** This card's choices: per pair, per tag, the city's answer. */
@@ -98,9 +102,11 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
   function finish() {
     clearTimeout(timer);
     sheet.hidden = true;
+    const asked = sheet.classList.contains("asked");
     sheet.classList.remove("asked");
     const cats = [...picked.values()];
     picked.clear();
+    if (asked) askGap = cats.length ? ASK_MIN_MS : askGap * 2;
     if (!cats.length) return;
     const me = d.me();
     if (!me) return;
@@ -134,8 +140,10 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
       // In the area of a city question: ask at once (once per visit).
       const due = claims >= ASK_EVERY || !!cityQuestion(me);
       if (!due || asks >= ASK_MAX || !me || !sheet.hidden || btn.disabled || near(me)) return;
+      if (!cityQuestion(me) && lastAsk && Date.now() - lastAsk < askGap) return;
       claims = 0;
       asks++;
+      lastAsk = Date.now();
       places.push({ ll: me, at: Date.now() });
       // Not over a story card (side, chapter, notice): after it is closed.
       let tries = 0;
