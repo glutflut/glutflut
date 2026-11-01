@@ -1190,6 +1190,15 @@ async fn shard_event_handler(
     let Ok(ev) = serde_json::from_str::<crate::shards::Event>(&body) else {
         return StatusCode::BAD_REQUEST.into_response();
     };
+    // A player of another shard deleted: far claims remembered for them
+    // here go too (kept under their owner key, `remote::Ask::owner`).
+    let me = &crate::shards::get().me;
+    let owner = match &ev {
+        crate::shards::Event::Forget { home, id } if home != me => {
+            crate::shards::id32(id).map(|id| crate::shards::owner_key(me, home, &id))
+        }
+        _ => None,
+    };
     let st = s.clone();
     let res = tokio::task::spawn_blocking(move || {
         st.with_db(|c| crate::shards::apply(c, &crate::shards::get().me, &ev))
@@ -1199,7 +1208,7 @@ async fn shard_event_handler(
     .flatten();
     match res {
         Some(gone) => {
-            for id in gone {
+            for id in gone.into_iter().chain(owner) {
                 s.host.broadcast(None, || FromWeb::Evict { id });
                 crate::cells::evict(id);
             }

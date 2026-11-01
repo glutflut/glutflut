@@ -177,6 +177,7 @@ mod tests {
                 regions: Vec::new(),
                 presence: Vec::new(),
                 streak: Default::default(),
+                home: None,
             },
         )
     }

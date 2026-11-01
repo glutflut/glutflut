@@ -130,7 +130,9 @@ pub(super) fn hello(
     );
     if let Some(slot) = slot {
         game.scores.touch(slot);
-        super::far::adopt(game, &crate::score::token_id(&token), slot, faction);
+        if let Some(key) = game.scores.owner_key(slot) {
+            super::far::adopt(game, &key, slot, faction);
+        }
         game.commands.entity(entity).insert(ScoreSlot(slot));
         // A brand-new identity from someone's link; or a known player's invites.
         match invite.by {

@@ -75,7 +75,7 @@ pub fn unhex(s: &str) -> Option<Vec<u8>> {
         .flatten()
 }
 
-fn id32(s: &str) -> Option<[u8; 32]> {
+pub(crate) fn id32(s: &str) -> Option<[u8; 32]> {
     unhex(s).and_then(|v| v.try_into().ok())
 }
 
@@ -101,6 +101,50 @@ pub(crate) fn hmac(key: &[u8], msg: &[u8]) -> [u8; 32] {
 /// Compare without leaking where they differ.
 pub(crate) fn same(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |d, (x, y)| d | (x ^ y)) == 0
+}
+
+/// A player on every shard: their home shard and id there (a visitor row
+/// keeps the same pair as `home`, `home_id`).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Owner {
+    pub home: String,
+    #[serde(with = "hex32")]
+    pub id: [u8; 32],
+}
+
+impl Owner {
+    /// The key shard `me` remembers far claims by: [`owner_key`].
+    pub fn key(&self, me: &str) -> [u8; 32] {
+        owner_key(me, &self.home, &self.id)
+    }
+}
+
+/// On shard `me`: a player of its own is their id there; one of another
+/// shard a hash of home and id (never equal to an id here). Evicting that
+/// key drops what was remembered for them.
+pub fn owner_key(me: &str, home: &str, id: &[u8; 32]) -> [u8; 32] {
+    if home == me {
+        return *id;
+    }
+    let mut h = Sha256::new();
+    h.update(b"glutflut-owner\0");
+    h.update(home.as_bytes());
+    h.update(b"\0");
+    h.update(id);
+    h.finalize().into()
+}
+
+mod hex32 {
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(id: &[u8; 32], s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&super::hex(id))
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<[u8; 32], D::Error> {
+        let s = String::deserialize(d)?;
+        super::id32(&s).ok_or_else(|| serde::de::Error::custom("bad id"))
+    }
 }
 
 /// Who a player is, signed by the shard that issues it.
@@ -685,6 +729,21 @@ mod tests {
         // Once only.
         assert!(s.redeem_passport(&signed).is_some());
         assert!(s.redeem_passport(&signed).is_none());
+    }
+
+    #[test]
+    fn owner_pair_travels_as_hex_and_keys_per_shard() {
+        let o = Owner {
+            home: "eu".into(),
+            id: [0xab; 32],
+        };
+        let j = serde_json::to_string(&o).unwrap();
+        assert!(j.contains(&"ab".repeat(32)));
+        assert_eq!(serde_json::from_str::<Owner>(&j).unwrap(), o);
+        // At home the key is the id; elsewhere a hash, the same on every shard.
+        assert_eq!(o.key("eu"), [0xab; 32]);
+        assert_eq!(o.key("na"), o.key("sa"));
+        assert_ne!(o.key("na"), [0xab; 32]);
     }
 
     #[test]

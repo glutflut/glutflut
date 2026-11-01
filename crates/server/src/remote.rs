@@ -40,8 +40,12 @@ pub struct Ask {
     /// Frames this ask already waited for Y's permanent sources (just woken).
     pub tries: u8,
     /// The player's id (`score::token_id`): the claim is theirs in Y too,
-    /// once they play there.
+    /// once they play there. Same shard only; `owner` wins when set.
     pub player: Option<[u8; 32]>,
+    /// The player on every shard (home and id there), for Y on another
+    /// shard, where their id is a different one.
+    #[serde(default)]
+    pub owner: Option<crate::shards::Owner>,
 }
 
 /// Y to X: what fell there, or why nothing did.

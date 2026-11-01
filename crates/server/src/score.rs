@@ -96,6 +96,9 @@ pub fn code_hash(input: &str) -> Option<[u8; 32]> {
 // adjective endings by gender (m -er, f -e, n -es).
 pub struct Rec {
     pub id: [u8; 32],
+    /// A visitor's home shard and id there (from the passport); known once
+    /// they connected.
+    home: Option<(String, [u8; 32])>,
     /// XP of the campaign before `xp_day`, and that day's (variety bonus per day).
     xp_prev: f32,
     day_xp: DayXp,
@@ -163,6 +166,8 @@ pub struct Global {
     /// Presence codes confirmed (no times).
     pub presence: Vec<String>,
     pub streak: Streak,
+    /// A visitor's home shard and id there.
+    pub home: Option<(String, [u8; 32])>,
 }
 
 impl Rec {
@@ -445,8 +450,33 @@ impl Scores {
     }
 
     /// Slot of a known player id (`token_id`).
-    pub fn slot_of_id(&self, id: &[u8; 32]) -> Option<u32> {
-        self.by_id.get(id).copied()
+    /// Who the player is on every shard: home shard and id there.
+    pub fn owner(&self, slot: u32) -> Option<crate::shards::Owner> {
+        let r = self.get(slot)?;
+        let (home, id) = r
+            .home
+            .clone()
+            .unwrap_or_else(|| (crate::shards::get().me.clone(), r.id));
+        Some(crate::shards::Owner { home, id })
+    }
+
+    /// The key a far claim of this player is remembered by here
+    /// ([`crate::shards::Owner::key`]).
+    pub fn owner_key(&self, slot: u32) -> Option<[u8; 32]> {
+        self.owner(slot).map(|o| o.key(&crate::shards::get().me))
+    }
+
+    /// The player with that key, if known here and connected once.
+    pub fn slot_of_key(&self, key: &[u8; 32]) -> Option<u32> {
+        if let Some(&s) = self.by_id.get(key) {
+            return Some(s);
+        }
+        let me = &crate::shards::get().me;
+        self.recs.iter().enumerate().find_map(|(i, r)| {
+            let r = r.as_ref()?;
+            let (h, id) = r.home.as_ref()?;
+            (crate::shards::owner_key(me, h, id) == *key).then_some(i as u32)
+        })
     }
 
     /// Slot of a known token.
@@ -471,6 +501,7 @@ impl Scores {
             regions: Vec::new(),
             presence: Vec::new(),
             streak: Streak::default(),
+            home: None,
         };
         self.adopt(token, g)
     }
@@ -497,6 +528,7 @@ impl Scores {
                 day: self.today,
                 hidden: false,
                 rated: 0,
+                home: None,
                 carry: 0.0,
                 last_seen: self.today,
                 dirty: true,
@@ -515,6 +547,9 @@ impl Scores {
                 points_week: 0,
             }),
         };
+        if let Some(r) = self.get_mut(slot) {
+            r.home.clone_from(&g.home);
+        }
         // Unwritten changes here are newer than the stored row (a rename
         // before the next flush); otherwise the stored row wins (played elsewhere).
         if let Some(r) = self.get_mut(slot).filter(|r| known.is_none() || !r.dirty) {
@@ -1322,6 +1357,7 @@ fn load(conn: &str, region: &str, today: i64) -> Result<Loaded, Box<dyn std::err
             day: r.get::<_, i32>(5) as i64,
             hidden: r.get(6),
             rated: 0,
+            home: None,
             carry: 0.0,
             last_seen: r.get::<_, i32>(7) as i64,
             dirty: false,
@@ -1459,7 +1495,7 @@ pub fn lookup(c: &mut postgres::Client, token: &str) -> Result<Option<Global>, p
          ARRAY(SELECT code FROM game.player_presence pp WHERE pp.id = p.id), \
          extract(epoch FROM xp_since)::float8, \
          streak_weeks, (streak_week - DATE '1970-01-01')::int, streak_days, \
-         (streak_day - DATE '1970-01-01')::int, streak_acts, streak_spared \
+         (streak_day - DATE '1970-01-01')::int, streak_acts, streak_spared, home, home_id \
          FROM game.players p WHERE id = $1",
         &[&&token_id(token)[..]],
     )?;
@@ -1481,6 +1517,10 @@ pub fn lookup(c: &mut postgres::Client, token: &str) -> Result<Option<Global>, p
         xp_day: r.get::<_, i32>(8) as i64,
         xp_since: r.get(15),
         streak: streak_of(&r, 16),
+        home: r.get::<_, Option<String>>(22).zip(
+            r.get::<_, Option<Vec<u8>>>(23)
+                .and_then(|h| <[u8; 32]>::try_from(h).ok()),
+        ),
     }))
 }
 
@@ -1919,6 +1959,7 @@ mod tests {
             regions: Vec::new(),
             presence: Vec::new(),
             streak: Default::default(),
+            home: None,
         }
     }
 
@@ -2310,6 +2351,32 @@ mod tests {
         assert_eq!(s.mine(b).unwrap().rank_today, None);
         s.forget(a);
         assert!(s.find("a").is_none() && s.get(a).is_none());
+    }
+
+    #[test]
+    fn far_claims_find_visitors_by_their_home() {
+        let mut s = scores();
+        let me = crate::shards::get().me.clone();
+        let own = s.adopt("own", global("Hier", Faction::Fire, 0.0));
+        let mut g = global("Gast", Faction::Water, 0.0);
+        g.home = Some(("na".into(), [7; 32]));
+        let guest = s.adopt("guest", g);
+        // Own player: their id, the same pair on every shard.
+        let o = s.owner(own).unwrap();
+        assert_eq!((o.home.as_str(), o.id), (me.as_str(), token_id("own")));
+        assert_eq!(s.owner_key(own), Some(token_id("own")));
+        assert_eq!(s.slot_of_key(&token_id("own")), Some(own));
+        // Visitor: home and id there; found by the key of that pair.
+        let o = s.owner(guest).unwrap();
+        assert_eq!((o.home.as_str(), o.id), ("na", [7; 32]));
+        let key = crate::shards::owner_key(&me, "na", &[7; 32]);
+        assert_ne!(key, [7; 32]);
+        assert_eq!(s.owner_key(guest), Some(key));
+        assert_eq!(s.slot_of_key(&key), Some(guest));
+        assert_eq!(
+            s.slot_of_key(&crate::shards::owner_key(&me, "sa", &[7; 32])),
+            None
+        );
     }
 
     #[test]

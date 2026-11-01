@@ -142,4 +142,5 @@ pub(super) fn rekey(game: &mut Game, old: &[u8; 32], new: [u8; 32]) {
 pub(super) fn evict(game: &mut Game, id: &[u8; 32]) {
     game.scores.evict(id);
     game.keeps.forget(id);
+    super::far::forget_owner(game, id);
 }

@@ -39,7 +39,8 @@ pub struct Pending {
     /// Day (unix days) of each player's last found key: one a day.
     found_day: HashMap<u32, i64>,
     /// As Y: junctions claimed from afar by players not yet known here, by
-    /// player id; theirs once they come (`adopt`).
+    /// owner key (`shards::owner_key`); theirs once they come (`adopt`),
+    /// gone when the player is deleted (`forget_owner`).
     owners: HashMap<[u8; 32], Vec<i64>>,
 }
 
@@ -48,8 +49,9 @@ const OWNERS_MAX: usize = 2000;
 const OWNER_NODES_MAX: usize = 50;
 
 /// Y: a player joined here; the claims they made from afar become theirs.
-pub(super) fn adopt(game: &mut Game, id: &[u8; 32], slot: u32, faction: Faction) {
-    let Some(nodes) = game.pending.owners.remove(id) else {
+/// `key`: [`crate::score::Scores::owner_key`].
+pub(super) fn adopt(game: &mut Game, key: &[u8; 32], slot: u32, faction: Faction) {
+    let Some(nodes) = game.pending.owners.remove(key) else {
         return;
     };
     for n in nodes {
@@ -63,6 +65,11 @@ pub(super) fn adopt(game: &mut Game, id: &[u8; 32], slot: u32, faction: Faction)
             }
         }
     }
+}
+
+/// Y: the player with that owner key was deleted: forget their far claims.
+pub(super) fn forget_owner(game: &mut Game, key: &[u8; 32]) {
+    game.pending.owners.remove(key);
 }
 
 struct FoundKey {
@@ -162,6 +169,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
             look,
             tries: 0,
             player: slot.and_then(|s| game.scores.get(s.0)).map(|r| r.id),
+            owner: slot.and_then(|s| game.scores.owner(s.0)),
         }),
     );
     if sent {
@@ -468,7 +476,11 @@ fn take(
             a.faction,
         );
     // The player's own here (white ring) if known; else once they come.
-    let by = a.player.and_then(|id| game.scores.slot_of_id(&id));
+    let key = match &a.owner {
+        Some(o) => Some(o.key(&crate::shards::get().me)),
+        None => a.player,
+    };
+    let by = key.and_then(|k| game.scores.slot_of_key(&k));
     // X keeps the player's wait; this one is only for the call.
     let mut cd = actions::AttackCooldown(0.0);
     let res = actions::claim(
@@ -491,7 +503,7 @@ fn take(
     match (res, existing) {
         (Ok(done), _) => {
             ans.ok = true;
-            if let (None, Some(id)) = (by, a.player) {
+            if let (None, Some(id)) = (by, key) {
                 let p = &mut game.pending.owners;
                 if p.len() < OWNERS_MAX || p.contains_key(&id) {
                     let v = p.entry(id).or_default();
