@@ -31,6 +31,12 @@ if (window.parent !== window) {
     const a = (e.target as Element).closest?.("a");
     if (!a || a.target === "_blank") return;
     const u = new URL(a.href, location.href);
+    // Other sites can't load in the frame (the game's CSP): a tab of their own.
+    if (/^https?:$/.test(u.protocol) && u.origin !== location.origin) {
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      return;
+    }
     if (u.origin !== location.origin || u.pathname.startsWith("/api")) return;
     e.preventDefault();
     if (u.pathname === "/" || u.pathname === "/index.html") window.parent.postMessage({ t: "elements:close" }, location.origin);
