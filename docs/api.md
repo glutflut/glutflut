@@ -33,6 +33,7 @@ Common conventions:
 | `GET /ws` | The game socket. Same origin only. |
 | `POST /api/passport`, `/api/shard/event`, `/api/shard/recover` | Between shards (signed); not for tools. |
 | `POST /api/cell/far?region=` | Between cells of a shard (signed): link messages for a region of that cell. |
+| `POST <relay>/far?shard=&region=` | Sent, not served: link messages for a region of another shard to the relay (`ELEMENTS_FAR_RELAY`), same body and signature as `/api/cell/far`. |
 
 `/api/leaderboard`:
 

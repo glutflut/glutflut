@@ -146,7 +146,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
     // A peek never wakes Y (`peek` asks only loaded regions); a claim does.
     // In another cell: maybe asleep there, a claim waits as long.
     let asleep = !crate::remote::awake(&game.peers.0, &far.region)
-        || crate::remote::other_cell(&game.peers.0, &far.region);
+        || crate::remote::elsewhere(&game.peers.0, &far.region);
     let sent = deliver(
         &game.peers.0,
         &far.region,
@@ -712,9 +712,9 @@ pub(super) fn found(
         uses: r.found_uses,
         days: r.found_days,
     };
-    if host.peek(&y).is_some() || crate::remote::other_cell(&host, &y) {
+    if host.peek(&y).is_some() || crate::remote::elsewhere(&host, &y) {
         // Running or loading: Y makes it (messages wait for the load). In
-        // another cell: that cell decides.
+        // another cell or shard: that side decides.
         deliver(&host, &y, FromWeb::FarMint(m));
         return;
     }

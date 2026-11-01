@@ -4,7 +4,11 @@
 //! X checks the player, Y checks the key and the map. Same server: through
 //! the pool (Y is loaded if needed). Another cell of this shard: a signed
 //! `POST /api/cell/far?region=Y` to the shard's own address, which the proxy
-//! routes to Y's cell ([`receive`] there). Other shards: not yet.
+//! routes to Y's cell ([`receive`] there). Another shard: with
+//! `ELEMENTS_FAR_RELAY` set, the same envelope, signed, to
+//! `<relay>/far?shard=S&region=Y`; the relay hands it to that shard's
+//! `/api/cell/far` (it is not part of this repo). Without one, links into
+//! other shards are down.
 
 use std::sync::{Arc, OnceLock};
 
@@ -179,19 +183,41 @@ pub fn other_cell(host: &Host, to: &str) -> bool {
         .is_some_and(|l| l.shard == host.shard() && l.cell != host.cell())
 }
 
-/// Region `to` runs here now (not asleep, not still loading). In another
-/// cell: unknown from here, so true (that cell answers a look with
-/// `asleep` itself).
+/// Region `to` runs on another shard and a relay is set: its shard.
+fn other_shard(host: &Host, to: &str) -> Option<String> {
+    relay_url()?;
+    host.listing(to)
+        .filter(|l| l.shard != host.shard())
+        .map(|l| l.shard)
+}
+
+/// Region `to` is reached by a call (another cell or, through the relay,
+/// another shard); that side decides what is asleep.
+pub fn elsewhere(host: &Host, to: &str) -> bool {
+    other_cell(host, to) || other_shard(host, to).is_some()
+}
+
+/// Region `to` runs here now (not asleep, not still loading). Elsewhere:
+/// unknown from here, so true (that side answers a look with `asleep`
+/// itself).
 pub fn awake(host: &Arc<Host>, to: &str) -> bool {
-    other_cell(host, to) || host.peek(to).is_some_and(|r| r.tx.running())
+    elsewhere(host, to) || host.peek(to).is_some_and(|r| r.tx.running())
 }
 
 /// Hand `msg` to region `to`; false if it can't be reached from here.
-/// Another cell: queued for the sender (a lost call ends in the asker's
+/// Elsewhere: queued for the sender (a lost call ends in the asker's
 /// timeout, `linkdown`).
 pub fn deliver(host: &Arc<Host>, to: &str, msg: FromWeb) -> bool {
     if other_cell(host, to) {
-        return Wire::of(msg).is_some_and(|w| send_cell(to, w));
+        let url = format!("{}/api/cell/far", cell_url());
+        return Wire::of(msg).is_some_and(|w| send(url, to, w));
+    }
+    if let Some(shard) = other_shard(host, to) {
+        let Some(base) = relay_url() else {
+            return false;
+        };
+        let url = format!("{base}/far?shard={shard}");
+        return Wire::of(msg).is_some_and(|w| send(url, to, w));
     }
     local(host, to, msg)
 }
@@ -218,16 +244,28 @@ fn cell_url() -> String {
         .to_string()
 }
 
-fn send_cell(to: &str, w: Wire) -> bool {
-    static TX: OnceLock<Option<Sender<(String, String)>>> = OnceLock::new();
+/// `ELEMENTS_FAR_RELAY`: base URL of the relay to other shards, if any.
+fn relay_url() -> Option<&'static str> {
+    static URL: OnceLock<Option<String>> = OnceLock::new();
+    URL.get_or_init(|| {
+        std::env::var("ELEMENTS_FAR_RELAY")
+            .ok()
+            .map(|u| u.trim_end_matches('/').to_string())
+            .filter(|u| !u.is_empty())
+    })
+    .as_deref()
+}
+
+/// Queue a signed POST of `w` for region `to` to `url` (one sender thread).
+fn send(url: String, to: &str, w: Wire) -> bool {
+    static TX: OnceLock<Option<Sender<(String, String, String)>>> = OnceLock::new();
     let tx = TX.get_or_init(|| {
-        let (tx, rx) = crossbeam_channel::unbounded::<(String, String)>();
-        let base = cell_url();
+        let (tx, rx) = crossbeam_channel::unbounded::<(String, String, String)>();
         std::thread::Builder::new()
             .name("cell-far".into())
             .spawn(move || {
-                for (to, body) in rx {
-                    post(&base, &to, &body);
+                for (url, to, body) in rx {
+                    post(&url, &to, &body);
                 }
             })
             .ok()?;
@@ -246,10 +284,10 @@ fn send_cell(to: &str, w: Wire) -> bool {
             return false;
         }
     };
-    tx.send((to.to_string(), body)).is_ok()
+    tx.send((url, to.to_string(), body)).is_ok()
 }
 
-fn post(base: &str, to: &str, body: &str) {
+fn post(url: &str, to: &str, body: &str) {
     let s = crate::shards::get();
     let Some(sig) = s.sign(body) else {
         warn!("cell far: ELEMENTS_SHARD_KEY unset, no links into other cells");
@@ -259,7 +297,7 @@ fn post(base: &str, to: &str, body: &str) {
         return;
     };
     let res = agent
-        .post(&format!("{base}/api/cell/far"))
+        .post(url)
         .query("region", to)
         .set("content-type", "application/json")
         .set("x-elements-sig", &sig)

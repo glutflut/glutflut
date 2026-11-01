@@ -69,6 +69,7 @@ They date from one container per city. The region's own settings win; sites only
 | `ELEMENTS_SHARDS` | server | empty | Other shards: `sa=https://sa.glutflut.com,na=https://na.glutflut.com`. Drives region links, CSP and the globe's shard index. |
 | `ELEMENTS_SHARD_KEY` | server | none | **Secret, in `.env`.** Same value on all shards of one setup (dev has its own). Signs passports and calls between shards. |
 | `ELEMENTS_CELL_URL` | server | `ELEMENTS_PUBLIC_URL` | Base URL that reaches every cell of this shard by `?region=` (the proxy). Links into a region of another cell go there as signed `POST /api/cell/far` (needs `ELEMENTS_SHARD_KEY`). |
+| `ELEMENTS_FAR_RELAY` | server | none | Base URL of a relay to other shards. Links into a region of another shard go there as signed `POST <relay>/far?shard=<shard>&region=<slug>` (same body and signature as `/api/cell/far`); the relay passes them to that shard's `/api/cell/far`. Without it, links into other shards are down (`linkdown`). |
 
 ### Analytics and privacy
 
