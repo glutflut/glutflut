@@ -37,6 +37,12 @@ if (window.parent !== window) {
       a.rel = "noopener noreferrer";
       return;
     }
+    // Mail and phone are blocked in the frame too; from the top they go to the app.
+    if (u.protocol === "mailto:" || u.protocol === "tel:") {
+      e.preventDefault();
+      window.top!.location.href = u.href;
+      return;
+    }
     if (u.origin !== location.origin || u.pathname.startsWith("/api")) return;
     e.preventDefault();
     if (u.pathname === "/" || u.pathname === "/index.html") window.parent.postMessage({ t: "elements:close" }, location.origin);
