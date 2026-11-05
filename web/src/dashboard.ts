@@ -88,6 +88,14 @@ interface HexRes {
   dropped: number;
 }
 
+interface LiveLage {
+  k: number | null;
+  window_start: number | null;
+  span_s?: number;
+  age_s?: number;
+  zones: Record<string, number>;
+}
+
 const AGES = ["u30", "30_59", "60p"];
 const ageLabel = (a: string) => t(`dash.age.${a}` as Key);
 
@@ -103,7 +111,7 @@ const hexSize = (res: string) => t("dash.hex.size", { m: fmt.format(HEX_M[res]) 
 /** "17–18 Uhr" */
 const hourRange = (h: number) => t("dash.hour.range", { h, h2: h + 1 });
 
-type Mode = "dwell" | "hexes" | "ratings" | "flows" | "areas";
+type Mode = "dwell" | "hexes" | "ratings" | "flows" | "areas" | "live";
 
 /** `/api/areas`: held area per side and hour, blocks held longest. */
 interface Areas {
@@ -1050,10 +1058,43 @@ async function main() {
     paint: { "text-color": "#0b0b0b", "text-halo-color": "#fff", "text-halo-width": 2 },
   });
 
+  // Live-Lage: zones with their persons, big enough to read at a glance.
+  map.addSource("live", { type: "geojson", data: empty });
+  map.addLayer({
+    id: "live",
+    type: "circle",
+    source: "live",
+    layout: { visibility: "none" },
+    paint: {
+      "circle-color": ["case", ["get", "fresh"], ["case", ["get", "known"], "#256abf", "#868e96"], "#adb5bd"],
+      "circle-opacity": 0.75,
+      "circle-radius": ["get", "r"],
+      "circle-stroke-color": "#fff",
+      "circle-stroke-width": 2,
+    },
+  });
+  map.addLayer({
+    id: "live-labels",
+    type: "symbol",
+    source: "live",
+    layout: {
+      visibility: "none",
+      "text-field": ["get", "label"],
+      "text-font": ["Noto Sans Medium"],
+      "text-size": 13,
+      "text-allow-overlap": true,
+    },
+    paint: { "text-color": "#0b0b0b", "text-halo-color": "#fff", "text-halo-width": 2 },
+  });
+
   let s: Summary | undefined;
   let ar: Areas = NO_AREAS;
   // Waben first: at realistic participation streets rarely reach k.
   let mode: Mode = "hexes";
+  let live: LiveLage | null = null;
+  let liveDenied = false;
+  let liveSeq = 0;
+  let liveTimer: ReturnType<typeof setTimeout> | undefined;
   let hour = -1;
   let cat = "voll";
   let hexRes = "10";
@@ -1303,6 +1344,68 @@ async function main() {
     if (!features.length) legend.replaceChildren(t("dash.flows.empty"));
   }
 
+  function drawLive() {
+    const zones = s?.zones ?? [];
+    const counts = live?.zones ?? {};
+    const k = live?.k ?? 10;
+    const span = live?.span_s ?? 900;
+    // A restart can skip one window: stale only after two are missing.
+    const fresh = live?.age_s !== undefined && live.age_s < 3 * span + 120;
+    const most = Math.max(k, ...Object.values(counts));
+    (map.getSource("live") as maplibregl.GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features: zones.map((z) => {
+        const n = counts[z.id];
+        return {
+          type: "Feature",
+          properties: {
+            known: n !== undefined,
+            fresh,
+            r: n === undefined ? 7 : 12 + 24 * Math.sqrt(n / most),
+            // "Under k" only where a window was measured.
+            label: n !== undefined ? `${z.name}\n${fmt.format(n)}` : live?.window_start == null ? z.name : `${z.name}\n${t("dash.live.below", { k })}`,
+          },
+          geometry: { type: "Point", coordinates: [z.lon, z.lat] },
+        };
+      }),
+    });
+    $("map-title").textContent = t("dash.live.title");
+    const clock = (u: number) => new Date(u * 1000).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
+    const start = live?.window_start;
+    $("map-caption").textContent = liveDenied
+      ? t("dash.live.denied")
+      : live?.k === null
+        ? t("dash.live.off")
+      : start == null
+        ? t("dash.live.none")
+        : t(fresh ? "dash.live.caption" : "dash.live.stale", { from: clock(start), to: clock(start + span), k });
+    const legend = $("map-legend");
+    const name = new Map(zones.map((z) => [z.id, z.name]));
+    const rows = Object.entries(counts).filter(([id]) => name.has(id)).sort((a, b) => b[1] - a[1]);
+    legend.replaceChildren(rows.length ? rows.map(([id, n]) => `${name.get(id)}: ${fmt.format(n)}`).join(" · ") : start == null ? "" : t("dash.live.nobody", { k }));
+  }
+
+  // The next window is there shortly after one closes (flush every 30 s).
+  async function loadLive() {
+    clearTimeout(liveTimer);
+    if (mode !== "live") return;
+    const seq = ++liveSeq;
+    const data = $<HTMLSelectElement>("data").value;
+    const r = region ? `&region=${encodeURIComponent(region)}` : "";
+    const res = await fetch(`/api/ops/live?data=${data === "synthetic" ? "synthetic" : "real"}${r}`, { headers: authHeaders(tokenInput.value.trim()) }).catch(() => null);
+    const body: LiveLage | null = res?.ok ? await res.json().catch(() => null) : null;
+    if (seq !== liveSeq || mode !== "live") return;
+    live = body;
+    liveDenied = res?.status === 401;
+    drawLive();
+    if (document.hidden) return;
+    const w = (live?.span_s ?? 900) * 1000;
+    liveTimer = setTimeout(() => void loadLive(), w - (Date.now() % w) + 45_000);
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) void loadLive();
+  });
+
   // Blocks by the side that held them longer; fainter = held for less of the period.
   function drawAreas() {
     const feats = ar.blocks.features;
@@ -1331,7 +1434,7 @@ async function main() {
       b.classList.toggle("on", b.dataset.mode === m);
       b.setAttribute("aria-selected", String(b.dataset.mode === m));
     }
-    $("ctl-dwell").hidden = m === "flows" || m === "areas";
+    $("ctl-dwell").hidden = m === "flows" || m === "areas" || m === "live";
     map.setLayoutProperty("areas", "visibility", m === "areas" ? "visible" : "none");
     showPlaces();
     $("ctl-hex").hidden = m !== "hexes";
@@ -1339,12 +1442,14 @@ async function main() {
     $("ctl-ratings").hidden = m !== "ratings";
     map.setLayoutProperty("ratings", "visibility", m === "ratings" ? "visible" : "none");
     for (const l of ["flows", "flow-arrows", "zones", "zone-labels"]) map.setLayoutProperty(l, "visibility", m === "flows" ? "visible" : "none");
+    for (const l of ["live", "live-labels"]) map.setLayoutProperty(l, "visibility", m === "live" ? "visible" : "none");
+    void loadLive();
     map.setPaintProperty("edges", "line-opacity", m === "dwell" ? 1 : 0.35);
     if (m !== "dwell") for (const id of shown) map.removeFeatureState({ source: "edges", id });
     redraw();
   }
   const redraw = () =>
-    mode === "dwell" ? drawDwell() : mode === "hexes" ? drawHexes() : mode === "ratings" ? drawRatings() : mode === "areas" ? drawAreas() : drawFlows();
+    mode === "dwell" ? drawDwell() : mode === "hexes" ? drawHexes() : mode === "ratings" ? drawRatings() : mode === "areas" ? drawAreas() : mode === "live" ? drawLive() : drawFlows();
 
   // Replay: step through all 24 hours; empty hours show an empty map.
   function stop() {
@@ -1420,6 +1525,7 @@ async function main() {
     const token = tokenInput.value.trim();
     if (token) storeToken(token, remember);
     void loadLayers();
+    void loadLive();
     const data = $<HTMLSelectElement>("data").value;
     const notice = $("notice");
     $<HTMLSelectElement>("days").disabled = data === "demo";

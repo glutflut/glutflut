@@ -56,6 +56,7 @@ Common conventions:
 | --- | --- | --- |
 | `GET /api/access` | any | `{all, regions, role, roles}`: what the token or login opens (`roles`: `[{region, role}]`, region `null` = all). A login adds `user` and, if set, `logout`; a login without any of the groups gets 200 with no regions. |
 | `GET /api/analytics` | read | k-anonymous summary (dwell per edge, persons per hour, …). Query: `days` (1–365, default 7) or `day=YYYY-MM-DD`; `data=synthetic\|all`. Real data appears the day after. `day=demo&data=synthetic` is public. Also `growth` (per day: seen, new, on 2+ days, last 30 days; today included), `peak` (most persons in a quarter hour) and `links` (short-link hits, all regions). |
+| `GET /api/ops/live` | read | Live view: last closed 15-minute window, `{k, window_start, span_s, age_s, zones: {id: persons}}`, zones at or above `k` only, rounded to fives. `k` is `null` when off (`ELEMENTS_LIVE_K`). Query: `data=synthetic`. One row per region (`analytics.live_zones`), replaced by the next window; survives a restart. |
 | `GET /api/export/{name}` | read | `dwell.csv`, `flows.csv`, `perception.geojson`, `crowdflow.json`; same query as analytics. |
 | `GET /api/report` | read | Before/after report per focus place (`report.rs`). |
 | `GET /api/areas` | read | Held areas (`areas.rs`). |

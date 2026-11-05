@@ -547,6 +547,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/hotspot", post(ops_hotspot))
                     .route("/api/ops/reload", post(ops_reload))
                     .route("/api/ops/nodes", get(ops_nodes))
+                    .route("/api/ops/live", get(live_handler))
                     .route("/api/ops/layers", get(layers::list))
                     .route("/api/ops/layers/{id}/{z}/{x}/{y}", get(layers::tile))
                     .route(
@@ -2364,6 +2365,35 @@ async fn analytics_handler(
             }
             Json(v).into_response()
         }
+        Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+/// `GET /api/ops/live?region=&data=synthetic`: the last closed window, persons per zone.
+async fn live_handler(
+    State(s): State<AppState>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+    Query(q): Query<AnalyticsQuery>,
+) -> Response {
+    let region = match s.slug(q.region.as_deref()) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    if !access(&s, c, &headers).await.allows(&region) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let Some(db) = s.read_db().map(String::from) else {
+        return (StatusCode::SERVICE_UNAVAILABLE, "no database").into_response();
+    };
+    let synthetic = q.data.as_deref() == Some("synthetic");
+    let res = tokio::task::spawn_blocking(move || {
+        crate::db::live_zones(&db, &region, synthetic).map_err(|e| e.to_string())
+    })
+    .await;
+    match res {
+        Ok(Ok(v)) => ([(header::CACHE_CONTROL, "no-store")], Json(v)).into_response(),
         Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }

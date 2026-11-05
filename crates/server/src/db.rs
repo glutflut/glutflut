@@ -414,6 +414,34 @@ pub fn load_finds(conn_str: &str, slug: &str) -> Result<Vec<FindRow>, Box<dyn Er
 }
 
 /// Open a connection (TLS per `sslmode` in the string).
+/// Live-Lage: the region's last closed window (`analytics.rs`), kept across restarts.
+pub fn live_zones(
+    conn_str: &str,
+    region: &str,
+    synthetic: bool,
+) -> Result<serde_json::Value, Box<dyn Error>> {
+    let Some(k) = crate::analytics::live_k() else {
+        return Ok(serde_json::json!({ "k": null, "window_start": null, "zones": {} }));
+    };
+    let mut c = connect(conn_str)?;
+    let row = c.query_opt(
+        "SELECT extract(epoch FROM window_start)::float8, span_s, \
+         extract(epoch FROM now() - window_start)::float8, zones::text \
+         FROM analytics.live_zones WHERE region = $1 AND synthetic = $2",
+        &[&region, &synthetic],
+    )?;
+    Ok(match row {
+        Some(r) => serde_json::json!({
+            "k": k,
+            "window_start": r.get::<_, f64>(0),
+            "span_s": r.get::<_, i32>(1),
+            "age_s": r.get::<_, f64>(2),
+            "zones": serde_json::from_str::<serde_json::Value>(r.get(3))?,
+        }),
+        None => serde_json::json!({ "k": k, "window_start": null, "zones": {} }),
+    })
+}
+
 pub fn connect(conn_str: &str) -> Result<Client, Box<dyn Error>> {
     let connector = MakeTlsConnector::new(native_tls::TlsConnector::new()?);
     let mut cfg: postgres::Config = conn_str.parse()?;

@@ -81,6 +81,7 @@ They date from one container per city. The region's own settings win; sites only
 | --- | --- | --- | --- |
 | `ELEMENTS_NOISE_KEY` | server | empty (warns: noise predictable) | **Secret, in `.env`.** Fixes the noise on published counts. Never rotate (`docs/deploy.md`). |
 | `ELEMENTS_K` | server | `5` | Minimum distinct persons per written aggregate. |
+| `ELEMENTS_LIVE_K` | server | none (off) | Dashboard's live view: minimum persons per zone (`10`; never below `ELEMENTS_K`). Unset: nothing is counted or written. New players count at once; numbers rounded to fives; within 200 m of a zone's centre. |
 | `ELEMENTS_WINDOW_S` | server | `900` | Aggregation window (s). Lower only for tests. |
 | `ELEMENTS_ESTABLISH_S` | server | `600` | Playing time (s) before a new real player counts in analytics; `0` = at once. |
 

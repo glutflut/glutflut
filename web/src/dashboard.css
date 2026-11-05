@@ -121,7 +121,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 summary { cursor: pointer; font-weight: 600; }
 
 .map-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.tabs { display: flex; gap: 4px; background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
 .tabs button, .chips button, .play, .downloads button {
   font: inherit; font-size: 13px; border: 1px solid transparent; background: transparent; color: var(--text-secondary);
   padding: 6px 12px; border-radius: 8px; cursor: pointer;

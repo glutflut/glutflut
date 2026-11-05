@@ -63,7 +63,7 @@ Each region's writer of one kind is a lane: pinned to one writer thread by regio
 
 ## Privacy by construction
 
-Positions live only in memory on the player's entity and are gone with the socket. Analytics snap fixes to edges and H3 cells and keep counts per 15-minute window, written only when at least k persons are in a window, with fixed keyed noise and release the next day (`analytics.rs`, `db.rs`). Leftovers below k pool into the hour and the region's local day. Scores are keyed by the SHA-256 of a random 128-bit browser token; the ops dashboard sees aggregates only. The IP is used for rate limits in memory and never stored (Caddy has no access log). What the web app promises is in `web/datenschutz.html`; a code review on 2026-10-06 checked it line by line against the code.
+Positions live only in memory on the player's entity and are gone with the socket. Analytics snap fixes to edges and H3 cells and keep counts per 15-minute window, written only when at least k persons are in a window, with fixed keyed noise and release the next day (`analytics.rs`, `db.rs`). Only exception, if switched on (`ELEMENTS_LIVE_K`): persons per zone in the last closed window, for logged-in readers, from 10 and rounded to fives; never counted per street or person. Leftovers below k pool into the hour and the region's local day. Scores are keyed by the SHA-256 of a random 128-bit browser token; the ops dashboard sees aggregates only. The IP is used for rate limits in memory and never stored (Caddy has no access log). What the web app promises is in `web/datenschutz.html`; a code review on 2026-10-06 checked it line by line against the code.
 
 ## Clients
 

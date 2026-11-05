@@ -15,6 +15,23 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
+/// Live-Lage: minimum persons per zone (`ELEMENTS_LIVE_K`; unset: off, nothing
+/// is counted or written). Never below [`k_min`].
+pub fn live_k() -> Option<usize> {
+    std::env::var("ELEMENTS_LIVE_K")
+        .ok()
+        .and_then(|v| v.trim().parse().ok())
+        .map(|k: usize| k.max(k_min()))
+}
+
+/// Live-Lage: a zone counts this close to its centre at most, whatever its radius.
+const LIVE_R_M: f32 = 200.0;
+
+/// Persons as shown and stored: to the nearest five.
+fn live_rounded(n: usize) -> i32 {
+    ((n + 2) / 5 * 5) as i32
+}
+
 /// Aggregation window in seconds (`ELEMENTS_WINDOW_S`, default 900; lower only for tests).
 pub fn window_s() -> i64 {
     static W: std::sync::OnceLock<i64> = std::sync::OnceLock::new();
@@ -66,6 +83,12 @@ pub fn k_min() -> usize {
 
 /// One aggregate to persist.
 pub enum Row {
+    /// Live-Lage: a closed window, persons per zone at or above [`live_k`].
+    Live {
+        window: i64,
+        synthetic: bool,
+        zones: Vec<(String, i32)>,
+    },
     Dwell {
         edge: i64,
         window: i64,
@@ -372,8 +395,14 @@ fn write_rows(
         vec![],
     );
     let mut hex_sup = vec![];
+    let mut live = vec![];
     for r in rows {
         match r {
+            Row::Live {
+                window,
+                synthetic,
+                zones,
+            } => live.push((window, synthetic, zones)),
             Row::Dwell {
                 edge,
                 window,
@@ -621,7 +650,29 @@ fn write_rows(
             &[&region, &node, &starts, &ends, &source],
         )?;
     }
-    tx.commit()
+    tx.commit()?;
+    // Apart: a missing table (migration not run yet) must not cost the rest.
+    for (window, synthetic, zones) in live {
+        let zones: serde_json::Map<String, serde_json::Value> =
+            zones.into_iter().map(|(z, n)| (z, n.into())).collect();
+        if let Err(e) = c.execute(
+            "INSERT INTO analytics.live_zones (region, synthetic, window_start, span_s, zones) \
+             VALUES ($1, $2, to_timestamp($3), $4, $5::text::jsonb) \
+             ON CONFLICT (region, synthetic) DO UPDATE SET window_start = EXCLUDED.window_start, \
+             span_s = EXCLUDED.span_s, zones = EXCLUDED.zones \
+             WHERE analytics.live_zones.window_start <= EXCLUDED.window_start",
+            &[
+                &region,
+                &synthetic,
+                &(window as f64),
+                &(window_s() as i32),
+                &serde_json::Value::Object(zones).to_string(),
+            ],
+        ) {
+            warn!(error = %e, region, "live zones not written");
+        }
+    }
+    Ok(())
 }
 
 /// Grid index over street segments in local ENU meters (x east, z south).
@@ -905,6 +956,11 @@ pub struct Aggregator {
     zones: Vec<(String, Vec2, Option<f32>)>,
     /// Last zone per pseudonym.
     zone_of: HashMap<u64, usize>,
+    /// Live-Lage: (window, synthetic) -> zone id -> persons; everyone counts at once.
+    live: HashMap<(i64, bool), HashMap<String, HashSet<u64>>>,
+    /// First whole window of this process: an earlier one would undercount.
+    live_from: i64,
+    live_k: Option<usize>,
     /// (from, to, hour, synthetic) -> persons.
     flows: HashMap<(usize, usize, i64, bool), HashSet<u64>>,
     /// Leftovers of hours below k: (from, to, day, synthetic) -> persons.
@@ -954,6 +1010,9 @@ impl Aggregator {
             answered: HashSet::new(),
             zones,
             zone_of: HashMap::new(),
+            live: HashMap::new(),
+            live_from: ((now_s() as i64).div_euclid(window_s()) + 1) * window_s(),
+            live_k: live_k(),
             flows: HashMap::new(),
             flow_rest: HashMap::new(),
             daily: HashMap::new(),
@@ -1100,7 +1159,27 @@ impl Aggregator {
             .entry((day, t.synthetic))
             .or_default()
             .insert(t.pseudo, t.profile.keys());
-        if let Some(z) = self.zone(p2) {
+        let zone = self.zone(p2);
+        let window = (now as i64).div_euclid(window_s()) * window_s();
+        if self.live_k.is_some() && window >= self.live_from {
+            let w = self.live.entry((window, t.synthetic)).or_default();
+            let near = zone.filter(|&z| {
+                let (_, c, r) = &self.zones[z];
+                c.distance(p2) <= r.unwrap_or(ZONE_R_M).min(LIVE_R_M)
+            });
+            if let Some(z) = near {
+                let id = &self.zones[z].0;
+                match w.get_mut(id) {
+                    Some(p) => {
+                        p.insert(t.pseudo);
+                    }
+                    None => {
+                        w.insert(id.clone(), HashSet::from([t.pseudo]));
+                    }
+                }
+            }
+        }
+        if let Some(z) = zone {
             if let Some(prev) = self.zone_of.insert(t.pseudo, z).filter(|&p| p != z) {
                 let hour = (now as i64).div_euclid(3600) * 3600;
                 self.flows
@@ -1213,6 +1292,9 @@ impl Aggregator {
         for p in self.flows.values_mut().chain(self.flow_rest.values_mut()) {
             p.remove(&pseudo);
         }
+        for p in self.live.values_mut().flat_map(HashMap::values_mut) {
+            p.remove(&pseudo);
+        }
         for p in self.daily.values_mut() {
             p.remove(&pseudo);
         }
@@ -1241,6 +1323,24 @@ impl Aggregator {
         let mut rows = Vec::new();
         let (mut kept, mut dropped) = (0, 0);
         let k = self.k;
+        // No grace, and an open window never goes out (shutdown): the last
+        // whole one stays on the screen.
+        let live_k = self.live_k.unwrap_or(usize::MAX);
+        self.live.retain(|&(window, synthetic), zones| {
+            if ((window + window_s()) as f64) > now {
+                return true;
+            }
+            rows.push(Row::Live {
+                window,
+                synthetic,
+                zones: zones
+                    .iter()
+                    .filter(|(_, p)| p.len() >= live_k)
+                    .map(|(z, p)| (z.clone(), live_rounded(p.len())))
+                    .collect(),
+            });
+            false
+        });
         let mut per_window: HashMap<(i64, bool), (i32, i32, HashSet<u64>)> = HashMap::new();
         let dwell_rest = &mut self.dwell_rest;
         self.dwell.retain(|&(edge, window, synthetic), b| {
@@ -1607,7 +1707,96 @@ mod tests {
         let mut a = Aggregator::new(snap, Vec::new(), AnalyticsTx(Out::Chan(tx)));
         a.k = k;
         a.standing.need = 0.0; // everyone counts at once
+        a.live_from = 0;
         (a, rx)
+    }
+
+    fn live_rows(rx: &Receiver<Msg>) -> Vec<(i64, Vec<(String, i32)>)> {
+        rx.try_iter()
+            .flat_map(|m| match m {
+                Msg::Rows(r) => r,
+                Msg::Barrier(_) => vec![],
+            })
+            .filter_map(|r| match r {
+                Row::Live { window, zones, .. } => Some((window, zones)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// One zone around the test street; `n` new players in it from `t0`.
+    fn live_agg(n: u64, t0: f64) -> (Aggregator, Receiver<Msg>) {
+        let (mut a, rx) = agg(1);
+        a.zones = vec![("markt".into(), Vec2::new(20.0, 5.0), None)];
+        a.live_k = Some(2);
+        a.standing.need = 600.0;
+        for p in 0..n {
+            a.observe(&tracked(p), Vec3::new(20.0, 0.0, 5.0), t0, false);
+        }
+        (a, rx)
+    }
+
+    #[test]
+    fn live_counts_new_players_when_the_window_closes() {
+        let w = window_s() as f64;
+        let (mut a, rx) = live_agg(3, 100.0);
+        a.flush(w - 1.0, false);
+        assert!(live_rows(&rx).is_empty());
+        a.flush(w, false);
+        assert_eq!(live_rows(&rx), vec![(0, vec![("markt".to_string(), 5)])]);
+        a.flush(w + 1.0, false);
+        assert!(live_rows(&rx).is_empty(), "written once");
+    }
+
+    #[test]
+    fn live_hides_zones_below_k_but_still_reports_the_window() {
+        let (mut a, rx) = live_agg(1, 100.0);
+        a.flush(window_s() as f64, false);
+        assert_eq!(live_rows(&rx), vec![(0, vec![])]);
+    }
+
+    #[test]
+    fn live_never_writes_an_open_or_partial_window() {
+        let w = window_s() as f64;
+        let (mut a, rx) = live_agg(3, 100.0);
+        a.flush(w - 1.0, true);
+        assert!(live_rows(&rx).is_empty(), "open at shutdown");
+        let (mut a, rx) = agg(1);
+        a.zones = vec![("markt".into(), Vec2::new(20.0, 5.0), None)];
+        a.live_k = Some(1);
+        a.live_from = window_s();
+        a.observe(&tracked(1), Vec3::new(20.0, 0.0, 5.0), 100.0, false);
+        a.flush(w, false);
+        assert!(live_rows(&rx).is_empty(), "started during this window");
+    }
+
+    #[test]
+    fn live_is_off_without_a_minimum() {
+        let (mut a, rx) = live_agg(3, 100.0);
+        a.live_k = None;
+        a.live.clear();
+        a.observe(&tracked(1), Vec3::new(20.0, 0.0, 5.0), 100.0, false);
+        a.flush(window_s() as f64, false);
+        assert!(live_rows(&rx).is_empty());
+    }
+
+    #[test]
+    fn live_rounds_to_fives_and_keeps_zones_small() {
+        assert_eq!([10, 12, 13, 17, 18].map(live_rounded), [10, 10, 15, 15, 20]);
+        let (mut a, rx) = live_agg(0, 100.0);
+        a.zones[0].2 = Some(400.0);
+        a.observe(&tracked(1), Vec3::new(320.0, 0.0, 5.0), 100.0, false);
+        a.observe(&tracked(2), Vec3::new(320.0, 0.0, 5.0), 100.0, false);
+        a.flush(window_s() as f64, false);
+        assert_eq!(live_rows(&rx), vec![(0, vec![])], "300 m out: not counted");
+    }
+
+    #[test]
+    fn live_drops_who_objected() {
+        let (mut a, rx) = live_agg(2, 100.0);
+        a.withdraw(1);
+        a.flush(window_s() as f64, false);
+        assert_eq!(live_rows(&rx), vec![(0, vec![])]);
     }
 
     /// Fixes every 5 s on edge 7 for `secs` seconds from `t0`.
