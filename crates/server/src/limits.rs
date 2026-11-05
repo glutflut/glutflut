@@ -132,8 +132,9 @@ impl Limiter {
 pub static HTTP: Limiter = Limiter::new(30.0, 600.0);
 /// New sockets (phones reconnect often).
 pub static SOCKETS: Limiter = Limiter::new(2.0, 60.0);
-/// New players (unknown tokens): 120 an hour after a burst of 30.
-pub static NEW_PLAYERS: Limiter = Limiter::new(1.0 / 30.0, 30.0);
+/// New players (unknown tokens): 1200 an hour after a burst of 200. One address
+/// can be a whole event (venue Wi-Fi, carrier NAT); proof of work slows scripts.
+pub static NEW_PLAYERS: Limiter = Limiter::new(1.0 / 3.0, 200.0);
 /// "I want to play here": one per 10 minutes after 3.
 pub static WISHES: Limiter = Limiter::new(1.0 / 600.0, 3.0);
 /// Short-link hits counted per client (the redirect works regardless).
@@ -286,6 +287,13 @@ mod tests {
         assert!(l.allow(c) && l.allow(c) && l.allow(c));
         assert!(!l.allow(c));
         assert!(l.allow(Client(2)));
+    }
+
+    #[test]
+    fn a_crowd_of_new_players_fits_on_one_address() {
+        let c = Client(77);
+        assert!((0..200).all(|_| NEW_PLAYERS.allow(c)));
+        assert!(!NEW_PLAYERS.allow(c), "the burst ends");
     }
 
     #[test]
