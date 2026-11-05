@@ -547,6 +547,8 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/hotspot", post(ops_hotspot))
                     .route("/api/ops/reload", post(ops_reload))
                     .route("/api/ops/nodes", get(ops_nodes))
+                    .route("/api/ops/layers", get(layers::list))
+                    .route("/api/ops/layers/{id}/{z}/{x}/{y}", get(layers::tile))
                     .route(
                         "/api/ops/chapters",
                         get(editor::list).post(editor::save).delete(editor::delete),
@@ -2506,6 +2508,8 @@ mod editor_places;
 /// The city's questions (editor).
 #[path = "editor_questions.rs"]
 mod editor_questions;
+#[path = "layers.rs"]
+mod layers;
 /// The mood map (public).
 #[path = "mood.rs"]
 mod mood;

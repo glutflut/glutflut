@@ -887,11 +887,52 @@ async function main() {
   });
   // Places come with the summary; the streets load by tiles (a city is too big at once).
   const nodePos = { get: (n: number): [number, number] | undefined => s?.places?.[n] };
-  const map = new maplibregl.Map({ container: "map", style: await basemapStyle("grayscale"), bounds: meta.region.bounds, fitBoundsOptions: { padding: 10 } });
+  const map = new maplibregl.Map({ container: "map", style: await basemapStyle("grayscale"), bounds: meta.region.bounds, fitBoundsOptions: { padding: 10 },
+    transformRequest: (url) => (url.includes("/api/ops/layers/") ? { url, headers: authHeaders(tokenInput.value.trim()) } : { url }) });
   await new Promise<void>((r) => map.on("load", () => r()));
   localLabels(map);
   map.addImage("flow-arrow", arrowImage(), { sdf: true });
   const empty = { type: "FeatureCollection" as const, features: [] };
+
+  // Optional layers from the operator's tile service (server: layers.rs), under the water: ratings mean nothing on a lake.
+  const layerPick = $<HTMLSelectElement>("layer");
+  const layerOpacity = $<HTMLInputElement>("layer-opacity");
+  const layerRegion = () => region || $<HTMLSelectElement>("region").value;
+  const setLayer = () => {
+    if (map.getLayer("context")) map.removeLayer("context");
+    if (map.getSource("context")) map.removeSource("context");
+    const id = layerPick.value;
+    $("layer-legend").hidden = !id;
+    layerOpacity.hidden = !id;
+    if (!id) return;
+    const r = layerRegion();
+    map.addSource("context", {
+      type: "raster",
+      tileSize: 256,
+      maxzoom: 18,
+      tiles: [`${location.origin}/api/ops/layers/${encodeURIComponent(id)}/{z}/{x}/{y}.png${r ? `?region=${encodeURIComponent(r)}` : ""}`],
+    });
+    map.addLayer({ id: "context", type: "raster", source: "context", paint: { "raster-opacity": +layerOpacity.value / 100 } }, map.getLayer("water") ? "water" : "edges");
+  };
+  layerPick.addEventListener("change", setLayer);
+  layerOpacity.addEventListener("input", () => {
+    if (map.getLayer("context")) map.setPaintProperty("context", "raster-opacity", +layerOpacity.value / 100);
+  });
+  let layersFor: string | null = null;
+  const loadLayers = async () => {
+    const token = tokenInput.value.trim();
+    const r = layerRegion();
+    if (layersFor === `${token}|${r}`) return;
+    layersFor = `${token}|${r}`;
+    const res = await fetch(`/api/ops/layers${r ? `?region=${encodeURIComponent(r)}` : ""}`, { headers: authHeaders(token) }).catch(() => null);
+    const body: { layers: { id: string; label: string }[]; credit?: string } = res?.ok ? await res.json().catch(() => ({ layers: [] })) : { layers: [] };
+    const kept = layerPick.value;
+    layerPick.replaceChildren(new Option(t("dash.layers.none"), ""), ...body.layers.map((l) => new Option(l.label, l.id)));
+    layerPick.value = body.layers.some((l) => l.id === kept) ? kept : "";
+    $("layer-credit").textContent = body.credit ?? "";
+    $("ctl-layers").hidden = !body.layers.length;
+    setLayer();
+  };
 
   map.addSource("edges", { type: "geojson", data: empty });
   map.addLayer({
@@ -1375,6 +1416,7 @@ async function main() {
     const seq = ++loadSeq;
     const token = tokenInput.value.trim();
     if (token) storeToken(token, remember);
+    void loadLayers();
     const data = $<HTMLSelectElement>("data").value;
     const notice = $("notice");
     $<HTMLSelectElement>("days").disabled = data === "demo";

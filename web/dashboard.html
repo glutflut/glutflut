@@ -88,6 +88,12 @@
         </div>
         <div id="map"></div>
         <div id="map-legend" class="legend"></div>
+        <div class="controls layers" id="ctl-layers" hidden>
+          <label><span data-i18n="dash.layers.label">Ebene</span> <select id="layer"></select></label>
+          <input id="layer-opacity" type="range" min="20" max="100" value="60" data-i18n-aria="dash.layers.opacity" aria-label="Deckkraft" />
+          <span class="legend" id="layer-legend" hidden><span data-i18n="dash.layers.low">ungünstig</span> <span class="sw grad"></span> <span data-i18n="dash.layers.high">günstig</span></span>
+          <span class="caption" id="layer-credit"></span>
+        </div>
       </section>
 
       <div class="grid2">

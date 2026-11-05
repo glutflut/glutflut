@@ -202,3 +202,10 @@ summary { cursor: pointer; font-weight: 600; }
 .legend .ln { width: 22px; height: 0; border-top: 2px solid; display: inline-block; }
 .legend .ln.thin { border-top-style: dashed; border-top-width: 1.5px; }
 .map-head .map-places { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); margin-left: auto; margin-right: 8px; }
+
+.layers { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; }
+.layers select { font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+.layers input[type="range"] { width: 110px; }
+.layers .caption { margin: 0; }
+.legend .sw.grad { width: 60px; background: linear-gradient(90deg, #a50026, #ffffbf, #006837); }
+.legend[hidden] { display: none; }

@@ -64,6 +64,16 @@ pub fn from(cfg: &Config, headers: &HeaderMap) -> Option<Login> {
     Some(Login { user, grants })
 }
 
+/// This request's login is in `group` (the full name, prefix included).
+pub fn in_group(headers: &HeaderMap, group: &str) -> bool {
+    config().is_some_and(|cfg| member(cfg, headers, group))
+}
+
+fn member(cfg: &Config, headers: &HeaderMap, group: &str) -> bool {
+    from(cfg, headers).is_some()
+        && text(headers, &cfg.groups).is_some_and(|g| g.split(',').any(|g| g.trim() == group))
+}
+
 fn text(headers: &HeaderMap, name: &str) -> Option<String> {
     headers
         .get(name)
@@ -141,6 +151,24 @@ mod tests {
             h.insert(*k, v.parse().unwrap());
         }
         h
+    }
+
+    #[test]
+    fn member_needs_login_and_the_exact_group() {
+        let g = "elements-lagecheck";
+        let site = ("sec-fetch-site", "same-origin");
+        let c = cfg();
+        let on =
+            |groups: &'static str| req(&[("remote-user", "a"), ("remote-groups", groups), site]);
+        assert!(member(&c, &on("elements-read, elements-lagecheck"), g));
+        assert!(!member(&c, &on("elements-lagecheck-x,elements-read"), g));
+        assert!(!member(&c, &req(&[("remote-groups", g), site]), g));
+        let foreign = req(&[
+            ("remote-user", "a"),
+            ("remote-groups", g),
+            ("sec-fetch-site", "cross-site"),
+        ]);
+        assert!(!member(&c, &foreign, g));
     }
 
     #[test]
