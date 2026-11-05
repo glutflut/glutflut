@@ -157,6 +157,8 @@ summary { cursor: pointer; font-weight: 600; }
 .fb-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 520px; overflow-y: auto; }
 .fb-list li { display: grid; grid-template-columns: 28px 1fr; column-gap: 8px; padding: 10px 0; border-top: 1px solid var(--grid); }
 .fb-list li.empty { display: block; }
+.wish-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.wish-list b { min-width: 3.5em; font-variant-numeric: tabular-nums; }
 .fb-list .face { grid-row: span 2; font-size: 20px; line-height: 1.2; }
 .fb-list p { margin: 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .fb-list small { color: var(--text-muted); font-size: 12px; margin-top: 2px; }

@@ -385,6 +385,7 @@ async function showAccess(token: string) {
   $("token").hidden = !!login;
   $("token-clear").hidden = login ? !login.logout : !token;
   void loadFeedback(a?.all ? token : null);
+  void loadWishes(a?.all ? token : null);
   if (login) {
     const user = login.user!;
     if (login.all) return void (el.textContent = t("dash.login.all", { user }));
@@ -490,6 +491,75 @@ for (const b of document.querySelectorAll<HTMLButtonElement>("#fb-scope button")
     for (const o of document.querySelectorAll<HTMLButtonElement>("#fb-scope button")) o.classList.toggle("on", o === b);
     void loadFeedback(fbToken);
   });
+
+// Operator only, like the feedback: "Ich will hier spielen" outside the cities,
+// counts per H3 cell (res 6) from this server's database.
+interface WishRow {
+  cell: string;
+  wishes: number;
+  last: string;
+  center: [number, number] | null;
+}
+let wishSeq = 0;
+
+async function loadWishes(token: string | null) {
+  const seq = ++wishSeq;
+  const card = $("wish-card");
+  if (token === null) return void (card.hidden = true);
+  const [res, regions] = await Promise.all([
+    fetch("/api/wishes", { headers: authHeaders(token) }).catch(() => null),
+    listRegions().catch(() => []),
+  ]);
+  const rows: WishRow[] | null = res?.ok ? await res.json().catch(() => null) : null;
+  if (seq !== wishSeq) return;
+  card.hidden = res?.status === 401;
+  if (card.hidden) return;
+  $("wish-caption").textContent = rows ? t("dash.wish.caption", { host: location.host }) : t("dash.load.failed");
+  const list = $("wish-list");
+  if (!rows) return void ($("wish-tiles").replaceChildren(), list.replaceChildren());
+  const total = rows.reduce((a, r) => a + r.wishes, 0);
+  const last = rows.reduce((a, r) => (r.last > a ? r.last : a), "");
+  const day = (d: string) => new Date(d).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  $("wish-tiles").replaceChildren(
+    tile(t("dash.wish.total"), fmt.format(total)),
+    tile(t("dash.wish.places"), fmt.format(rows.length)),
+    tile(t("dash.wish.last"), last ? day(last) : "–"),
+  );
+  if (!rows.length) return void list.replaceChildren(Object.assign(document.createElement("li"), { className: "empty", textContent: t("dash.wish.empty") }));
+  // Where it is, said by the nearest city in the game (centre of its bounds).
+  const near = ([lon, lat]: [number, number]) => {
+    let best: { city: string; km: number; inside: boolean } | null = null;
+    for (const r of regions) {
+      const [w, s, e, n] = r.bounds;
+      const dy = (lat - (s + n) / 2) * 111.32;
+      const dx = (lon - (w + e) / 2) * 111.32 * Math.cos((lat * Math.PI) / 180);
+      const km = Math.hypot(dx, dy);
+      if (!best || km < best.km) best = { city: r.city, km, inside: lon >= w && lon <= e && lat >= s && lat <= n };
+    }
+    if (!best) return "";
+    return best.inside ? t("dash.wish.in", { city: best.city }) : t("dash.wish.near", { km: fmt.format(Math.round(best.km)), city: best.city });
+  };
+  list.replaceChildren(
+    ...rows.map((r) => {
+      const li = document.createElement("li");
+      li.append(Object.assign(document.createElement("b"), { textContent: fmt.format(r.wishes) }));
+      if (r.center) {
+        const [lon, lat] = r.center;
+        li.append(
+          Object.assign(document.createElement("span"), { textContent: near(r.center) || `${lat.toFixed(3)}, ${lon.toFixed(3)}` }),
+          Object.assign(document.createElement("a"), {
+            href: `https://www.openstreetmap.org/?mlat=${lat.toFixed(5)}&mlon=${lon.toFixed(5)}#map=12/${lat.toFixed(5)}/${lon.toFixed(5)}`,
+            target: "_blank",
+            rel: "noopener noreferrer",
+            textContent: t("dash.wish.map"),
+          }),
+        );
+      }
+      li.append(Object.assign(document.createElement("small"), { textContent: t("dash.wish.lastday", { day: day(r.last) }) }));
+      return li;
+    }),
+  );
+}
 
 // Before/after report for one place.
 interface RepPeriod {
