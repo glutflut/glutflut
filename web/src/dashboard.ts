@@ -904,6 +904,9 @@ async function main() {
     const id = layerPick.value;
     $("layer-legend").hidden = !id;
     layerOpacity.hidden = !id;
+    // Our own fills let the layer show through while one is on.
+    if (map.getLayer("hexes")) map.setPaintProperty("hexes", "fill-opacity", id ? 0.3 : 0.7);
+    if (map.getLayer("areas")) map.setPaintProperty("areas", "fill-opacity", id ? ["*", 0.5, ["get", "o"]] : ["get", "o"]);
     if (!id) return;
     const r = layerRegion();
     map.addSource("context", {
