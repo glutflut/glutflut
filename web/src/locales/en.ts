@@ -781,6 +781,7 @@ export const en: Dict = {
   "dash.live.denied": "The live view needs a login.",
   "dash.live.off": "The live view is not switched on for this server.",
   "dash.live.below": "under {k}",
+  "dash.live.dots": "grey dots: under {k}",
   "dash.live.nobody": "No zone with {k} or more players.",
   "dash.area.title": "Areas of the sides",
   "dash.area.caption": "A block between streets belongs to a side when it holds nearly all junctions on its edge. Area in hectares, hourly mean; “with players”: only blocks with a player's source on the edge (not nature's). Game state, no personal data.",

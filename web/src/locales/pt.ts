@@ -781,6 +781,7 @@ export const pt: Dict = {
   "dash.live.denied": "A vista ao vivo requer início de sessão.",
   "dash.live.off": "A vista ao vivo não está ativada neste servidor.",
   "dash.live.below": "menos de {k}",
+  "dash.live.dots": "pontos cinzentos: menos de {k}",
   "dash.live.nobody": "Nenhuma zona com {k} ou mais jogadores.",
   "dash.area.title": "Áreas dos times",
   "dash.area.caption": "Uma quadra entre as ruas pertence a um time se ele mantém quase todos os cruzamentos na sua borda. Área em hectares, média por hora; “com jogadores”: só quadras com uma fonte de jogadores na borda (excluídas as naturais). Estado do jogo, nenhum dado pessoal.",

@@ -782,6 +782,7 @@ export const es: Dict = {
   "dash.live.denied": "La vista en vivo requiere iniciar sesión.",
   "dash.live.off": "La vista en vivo no está activada en este servidor.",
   "dash.live.below": "menos de {k}",
+  "dash.live.dots": "puntos grises: menos de {k}",
   "dash.live.nobody": "Ninguna zona con {k} o más jugadores.",
   "dash.area.title": "Áreas de los bandos",
   "dash.area.caption": "Una manzana entre calles pertenece a un bando cuando este tiene casi todos los cruces de su borde. Área en hectáreas, media por hora; «con jugadores»: solo manzanas con una fuente de jugador en el borde (no de la naturaleza). Estado del juego, sin datos personales.",

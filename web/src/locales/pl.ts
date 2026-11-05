@@ -781,6 +781,7 @@ export const pl: Dict = {
   "dash.live.denied": "Widok na żywo wymaga zalogowania.",
   "dash.live.off": "Widok na żywo nie jest włączony na tym serwerze.",
   "dash.live.below": "poniżej {k}",
+  "dash.live.dots": "szare punkty: poniżej {k}",
   "dash.live.nobody": "Żadna strefa nie ma {k} lub więcej graczy.",
   "dash.area.title": "Obszary stron",
   "dash.area.caption": "Kwartał między ulicami należy do strony, gdy trzyma ona prawie wszystkie skrzyżowania na jego brzegu. Powierzchnia w hektarach, średnia godzinowa; „z graczami”: tylko kwartały ze źródłem gracza na brzegu (bez źródeł natury). Stan gry, bez danych osobowych.",

@@ -780,6 +780,7 @@ export const de = {
   "dash.live.denied": "Die Live-Lage braucht eine Anmeldung.",
   "dash.live.off": "Die Live-Lage ist auf diesem Server nicht eingeschaltet.",
   "dash.live.below": "unter {k}",
+  "dash.live.dots": "graue Punkte: unter {k}",
   "dash.live.nobody": "Keine Zone mit {k} oder mehr Spielenden.",
   "dash.area.title": "Flächen der Seiten",
   "dash.area.caption": "Ein Block zwischen Straßen gehört einer Seite, wenn sie fast alle Kreuzungen am Rand hält. Fläche in Hektar, im Stundenmittel; „mit Spielenden“: nur Blöcke, an deren Rand eine Quelle von Spielenden steht (ohne Quellen der Natur). Spielstand, keine Personendaten.",

@@ -781,6 +781,7 @@ export const fr: Dict = {
   "dash.live.denied": "La vue en direct nécessite une connexion.",
   "dash.live.off": "La vue en direct n’est pas activée sur ce serveur.",
   "dash.live.below": "moins de {k}",
+  "dash.live.dots": "points gris : moins de {k}",
   "dash.live.nobody": "Aucune zone avec {k} joueurs ou plus.",
   "dash.area.title": "Surfaces des camps",
   "dash.area.caption": "Un îlot entre des rues appartient à un camp quand celui-ci tient presque tous les carrefours de son bord. Surface en hectares, moyenne horaire ; « avec joueurs » : seulement les îlots avec une source de joueur au bord (pas celles de la nature). État du jeu, aucune donnée personnelle.",

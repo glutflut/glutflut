@@ -993,9 +993,11 @@ async function main() {
     .catch(() => {});
   const placesBox = $<HTMLInputElement>("show-places");
   const showPlaces = () => {
-    for (const l of ["outline", "zone-circles"]) map.setLayoutProperty(l, "visibility", placesBox.checked ? "visible" : "none");
+    map.setLayoutProperty("outline", "visibility", placesBox.checked ? "visible" : "none");
+    // Live counts a smaller circle than these and labels its zones itself.
+    map.setLayoutProperty("zone-circles", "visibility", placesBox.checked && mode !== "live" ? "visible" : "none");
     // "Wege" labels its zones already.
-    map.setLayoutProperty("zone-circle-labels", "visibility", placesBox.checked && mode !== "flows" ? "visible" : "none");
+    map.setLayoutProperty("zone-circle-labels", "visibility", placesBox.checked && mode !== "flows" && mode !== "live" ? "visible" : "none");
   };
   placesBox.addEventListener("change", (e) => {
     e.stopPropagation();
@@ -1058,33 +1060,52 @@ async function main() {
     paint: { "text-color": "#0b0b0b", "text-halo-color": "#fff", "text-halo-width": 2 },
   });
 
-  // Live-Lage: zones with their persons, big enough to read at a glance.
+  // Live-Lage: a city has many zones. Counted ones with number and (if there is
+  // room) name; the rest are dots, named on hover. Biggest circles lowest.
   map.addSource("live", { type: "geojson", data: empty });
   map.addLayer({
     id: "live",
     type: "circle",
     source: "live",
-    layout: { visibility: "none" },
+    layout: { visibility: "none", "circle-sort-key": ["-", ["get", "n"]] },
     paint: {
-      "circle-color": ["case", ["get", "fresh"], ["case", ["get", "known"], "#256abf", "#868e96"], "#adb5bd"],
-      "circle-opacity": 0.75,
+      "circle-color": ["case", ["all", ["get", "fresh"], ["get", "known"]], "#256abf", "#868e96"],
+      "circle-opacity": ["case", ["get", "known"], 0.85, 0.55],
       "circle-radius": ["get", "r"],
       "circle-stroke-color": "#fff",
-      "circle-stroke-width": 2,
+      "circle-stroke-width": ["case", ["get", "known"], 2, 0.5],
     },
   });
   map.addLayer({
     id: "live-labels",
     type: "symbol",
     source: "live",
+    filter: ["get", "known"],
     layout: {
       visibility: "none",
-      "text-field": ["get", "label"],
+      "text-field": ["get", "name"],
+      "text-font": ["Noto Sans Medium"],
+      "text-size": 12,
+      "text-variable-anchor": ["top", "bottom", "right", "left"],
+      "text-radial-offset": ["/", ["get", "r"], 12],
+      "symbol-sort-key": ["-", ["get", "n"]],
+    },
+    paint: { "text-color": "#0b0b0b", "text-halo-color": "#fff", "text-halo-width": 2 },
+  });
+  map.addLayer({
+    id: "live-counts",
+    type: "symbol",
+    source: "live",
+    filter: ["get", "known"],
+    layout: {
+      visibility: "none",
+      "text-field": ["get", "count"],
       "text-font": ["Noto Sans Medium"],
       "text-size": 13,
       "text-allow-overlap": true,
+      "text-ignore-placement": true,
     },
-    paint: { "text-color": "#0b0b0b", "text-halo-color": "#fff", "text-halo-width": 2 },
+    paint: { "text-color": "#fff" },
   });
 
   let s: Summary | undefined;
@@ -1141,7 +1162,11 @@ async function main() {
     const h = (m: number) => hours1(m / 60);
     pop(e, [t("dash.area.popup", { f: h(p.f), w: h(p.w) }), t("dash.area.popup.ha", { ha: hours1(p.ha) })]);
   });
-  for (const l of ["edges", "hexes", "ratings", "flows", "areas"]) map.on("mouseleave", l, () => popup.remove());
+  map.on("mousemove", "live", (e) => {
+    const p = e.features?.[0]?.properties;
+    if (p) pop(e, p.note ? [p.name, p.note] : [p.name]);
+  });
+  for (const l of ["edges", "hexes", "ratings", "flows", "areas", "live"]) map.on("mouseleave", l, () => popup.remove());
 
   const hourText = (h: number) => (h < 0 ? t("dash.hour.all") : hourRange(h));
 
@@ -1359,11 +1384,14 @@ async function main() {
         return {
           type: "Feature",
           properties: {
+            n: n ?? 0,
             known: n !== undefined,
             fresh,
-            r: n === undefined ? 7 : 12 + 24 * Math.sqrt(n / most),
+            name: z.name,
+            count: n === undefined ? "" : fmt.format(n),
             // "Under k" only where a window was measured.
-            label: n !== undefined ? `${z.name}\n${fmt.format(n)}` : live?.window_start == null ? z.name : `${z.name}\n${t("dash.live.below", { k })}`,
+            note: n !== undefined ? fmt.format(n) : live?.window_start == null ? "" : t("dash.live.below", { k }),
+            r: n === undefined ? 3.5 : 11 + 15 * Math.sqrt(n / most),
           },
           geometry: { type: "Point", coordinates: [z.lon, z.lat] },
         };
@@ -1382,7 +1410,7 @@ async function main() {
     const legend = $("map-legend");
     const name = new Map(zones.map((z) => [z.id, z.name]));
     const rows = Object.entries(counts).filter(([id]) => name.has(id)).sort((a, b) => b[1] - a[1]);
-    legend.replaceChildren(rows.length ? rows.map(([id, n]) => `${name.get(id)}: ${fmt.format(n)}`).join(" · ") : start == null ? "" : t("dash.live.nobody", { k }));
+    legend.replaceChildren(start == null ? "" : `${rows.length ? rows.map(([id, n]) => `${name.get(id)}: ${fmt.format(n)}`).join(" · ") : t("dash.live.nobody", { k })} (${t("dash.live.dots", { k })})`);
   }
 
   // The next window is there shortly after one closes (flush every 30 s).
@@ -1442,7 +1470,7 @@ async function main() {
     $("ctl-ratings").hidden = m !== "ratings";
     map.setLayoutProperty("ratings", "visibility", m === "ratings" ? "visible" : "none");
     for (const l of ["flows", "flow-arrows", "zones", "zone-labels"]) map.setLayoutProperty(l, "visibility", m === "flows" ? "visible" : "none");
-    for (const l of ["live", "live-labels"]) map.setLayoutProperty(l, "visibility", m === "live" ? "visible" : "none");
+    for (const l of ["live", "live-labels", "live-counts"]) map.setLayoutProperty(l, "visibility", m === "live" ? "visible" : "none");
     void loadLive();
     map.setPaintProperty("edges", "line-opacity", m === "dwell" ? 1 : 0.35);
     if (m !== "dwell") for (const id of shown) map.removeFeatureState({ source: "edges", id });

@@ -781,6 +781,7 @@ export const it: Dict = {
   "dash.live.denied": "La vista live richiede l’accesso.",
   "dash.live.off": "La vista live non è attiva su questo server.",
   "dash.live.below": "meno di {k}",
+  "dash.live.dots": "punti grigi: meno di {k}",
   "dash.live.nobody": "Nessuna zona con {k} o più giocatori.",
   "dash.area.title": "Aree delle squadre",
   "dash.area.caption": "Un isolato tra le strade appartiene a una squadra se questa tiene quasi tutti gli incroci sul suo bordo. Area in ettari, media oraria; «con giocatori»: solo isolati con una sorgente di giocatori sul bordo (escluse quelle naturali). Stato di gioco, nessun dato personale.",
