@@ -144,7 +144,7 @@ export const es: Dict = {
   "rate.button": "¿Cómo está aquí?",
   "rate.title": "Valorar este lugar",
   "rate.sheet": "¿Cómo está aquí ahora?",
-  "rate.ask.sub": "Basta con un toque. Así la ciudad aprende cómo se sienten sus lugares.",
+  "rate.ask.sub": "Toca una por fila, la que encaje mejor. Así la ciudad aprende cómo se sienten sus lugares.",
   "rate.city": "La ciudad pregunta",
   "rate.general": "Y en general:",
   "rate.tags": "¿Qué destaca?",

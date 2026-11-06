@@ -218,10 +218,11 @@ body.watching #board .you { display: none; }
 .sheet-kicker { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold); margin: 2px 0 4px; }
 .sheet-q-title { font-weight: 600; font-size: 16px; margin-bottom: 8px; }
 .chips.q { margin-bottom: 10px; }
-/* Three pairs, one choice each; then what stands out. */
+/* Three pairs, one choice each (a two-way switch per row); then what stands out. */
 .pairs { display: grid; gap: 6px; margin-bottom: 10px; }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.pair button,
+.pair { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.pair button { padding: 9px 12px; font-size: 15px; border: none; border-radius: 0; color: var(--fg); background: transparent; }
+.pair button + button { border-left: 1px solid var(--line); }
 #sheet .chips button {
   padding: 9px 12px;
   font-size: 15px;

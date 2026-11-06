@@ -62,7 +62,7 @@ export function setupClaim(d: {
   /** A claim of this player took (invite nudge). */
   claimed: () => void;
   /** "Wie ist es hier?" asks now and then after a claim (rate.ts). */
-  rate: { onClaimed(): void };
+  rate: { onClaimed(at: [number, number] | null): void };
 }) {
   const { net, sound, nodePos, state } = d;
   const claimBtn = $("claim") as HTMLButtonElement;
@@ -354,7 +354,7 @@ export function setupClaim(d: {
       const via = !m.far && d.tunnel.onClaim(m.node, m.ok);
       if (m.ok && faction) {
         d.claimed();
-        if (!m.far) d.rate.onClaimed();
+        if (!m.far) d.rate.onClaimed(nodePos.get(m.node) ?? null);
         if (m.doused) sound.steam();
         else sound.claim(faction);
         if (m.build && m.build >= 2) sound.building(faction, m.build);

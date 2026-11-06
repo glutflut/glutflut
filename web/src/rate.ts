@@ -92,7 +92,7 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
     const q = cityQuestion(d.me());
     drawQuestion(q);
     sheet.classList.toggle("asked", asked);
-    sub.hidden = !asked || !!q;
+    sub.hidden = !!q;
     // Just above the buttons (the footer grows with its hints).
     sheet.style.bottom = `${Math.max(0, innerHeight - row.getBoundingClientRect().top) + 8}px`;
     sheet.hidden = false;
@@ -133,10 +133,12 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
   for (const b of sheet.querySelectorAll<HTMLButtonElement>("button[data-tag]")) b.onclick = () => choose(`tag:${b.dataset.cat}`, b);
 
   return {
-    /** A claim of this player took here: maybe ask how it is. */
-    onClaimed() {
-      claims++;
+    /** A claim of this player took at `at`: maybe ask how it is. Not after
+     *  claims over there (links, tunnels): the map shows another place then. */
+    onClaimed(at: [number, number] | null) {
       const me = d.me();
+      if (!at || !me || distM(me, at) > 2 * CLAIM_RADIUS_M) return;
+      claims++;
       // In the area of a city question: ask at once (once per visit).
       const due = claims >= ASK_EVERY || !!cityQuestion(me);
       if (!due || asks >= ASK_MAX || !me || !sheet.hidden || btn.disabled || near(me)) return;

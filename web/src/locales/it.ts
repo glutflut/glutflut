@@ -143,7 +143,7 @@ export const it: Dict = {
   "rate.button": "Com’è qui?",
   "rate.title": "Valuta il luogo",
   "rate.sheet": "Com’è qui in questo momento?",
-  "rate.ask.sub": "Basta un tocco. Così la città impara come si vivono i suoi luoghi.",
+  "rate.ask.sub": "Tocca una per riga, quella che si adatta meglio. Così la città impara come si vivono i suoi luoghi.",
   "rate.city": "La città chiede",
   "rate.general": "E in generale:",
   "rate.tags": "Cosa colpisce?",
