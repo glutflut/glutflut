@@ -38,7 +38,7 @@ The server's main options are also command-line flags (`elements-server --help`)
 | `ELEMENTS_AUTH_GROUPS_HEADER` | server | `Remote-Groups` | Header with the user's groups, comma-separated. |
 | `ELEMENTS_AUTH_GROUP_PREFIX` | server | `elements-` | Only groups with this prefix count: `<prefix>read`, `<prefix>editor`, `<prefix>admin` for every region, `<prefix><role>-<slug>` for one (`elements-editor-region-konstanz`). |
 | `ELEMENTS_AUTH_LOGOUT_URL` | server | none | `https://` address the dashboard's and editor's "Abmelden" goes to for a login. |
-| `ELEMENTS_LAYER_TILES` | server | none (off) | Optional raster layers on the dashboard map: `https://` tile address with `{layer}`, `{z}`, `{x}`, `{y}`. The server fetches the tiles; the browser only talks to this server. The legend assumes a red (unfavourable) to green (favourable) colour scale. |
+| `ELEMENTS_LAYER_COGS` | server | none (off) | Optional raster layers on the dashboard map: `https://` address of one cloud-optimised GeoTIFF per layer with `{layer}` and optionally `{mode}` (tried as `car,foot`, then `none`), e.g. `https://ratings-free.geosci.de/2026-10-28/{mode}/{layer}_3857.tiff`. Web Mercator, 8 bit, deflate; the last band is used as a score (0 unfavourable, 254 favourable, 255 none). The server reads the files by range requests and renders the tiles; the browser only talks to this server. |
 | `ELEMENTS_LAYERS` | server | none | The layers, `id=Label,id=Label`; only these ids are fetched. |
 | `ELEMENTS_LAYER_CREDIT` | server | none | Source line shown next to the layer picker. |
 | `ELEMENTS_LAYER_GROUP` | server | none (anyone who can read the region) | Full name of the login group that may use the layers, besides admins of the region. |

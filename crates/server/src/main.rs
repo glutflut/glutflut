@@ -25,6 +25,7 @@ mod challenge;
 mod cheat;
 mod cheer;
 mod clock;
+mod cog;
 mod db;
 mod demo;
 mod finds;
