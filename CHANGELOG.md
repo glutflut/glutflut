@@ -6,6 +6,22 @@ All notable changes to Glut & Flut. Versions follow
 
 ## Unreleased
 
+### Added
+
+- Indoors (`[indoor]`, `rules/indoor.toml`): in halls without GPS a scanned
+  code places the player at a junction for three minutes. Sheets on the
+  wall carry a fixed code, screens (`/knoten.html`, offline, also e-ink) a code
+  that changes every 30 s; a camera app opens the game link and the code
+  counts too. In the app a "Scan" button with the camera (BarcodeDetector,
+  else jsQR). Graph from a hand-drawn GeoJSON (`db/import/indoor-region.sh`),
+  sheets and screen links on `/indoor.html` (admin, `GET /api/ops/indoor`),
+  key `ELEMENTS_INDOOR_KEY`.
+
+### Fixed
+
+- A new connection no longer stands at the region's centre until its first
+  position: claims there were possible without any GPS fix.
+
 ### Changed
 
 - Map buttons: sound, rain radar, clouds, time-lapse and whole city fold away

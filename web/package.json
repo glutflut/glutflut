@@ -8,12 +8,14 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "dev:https": "HTTPS=1 vite",
-    "check:ar": "node scripts/armath-check.mjs"
+    "check:ar": "node scripts/armath-check.mjs",
+    "check:indoor": "node scripts/indoor-check.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
     "@protomaps/basemaps": "^5.7.2",
     "h3-js": "^4.5.0",
+    "jsqr": "^1.4.0",
     "maplibre-gl": "^6.11.2",
     "pmtiles": "^4.5.0",
     "qrcode-generator": "^1.5.2"

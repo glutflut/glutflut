@@ -174,6 +174,7 @@ pub(super) fn hello(
             },
             invite_points: rules.score.invite,
             watch,
+            indoor: rules.indoor.enabled,
         },
     );
     // By tiles: state follows with the first `view`.
@@ -361,6 +362,10 @@ pub(super) fn pos(
         return;
     };
     let slot = slot.map(|s| s.0);
+    // Indoors only scans place a player (test servers: taps too).
+    if c.rules.indoor.enabled && !game.allow_sim.0 {
+        return;
+    }
     pos.0 = project_enu(lat, lon, c.region.centroid_lat, c.region.centroid_lon);
     if !game.allow_sim.0 && (!motion.fix(pos.0, now, speed) || motion.locked(now)) {
         return; // implausible: no analytics while locked
@@ -505,7 +510,7 @@ fn spawn_player(
             PlayerId(next_id.take()),
             faction,
             cooldown,
-            Position::default(),
+            Position(crate::motion::NOWHERE),
             WebConn,
             tracked,
             motion,

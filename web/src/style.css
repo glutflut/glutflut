@@ -1713,3 +1713,59 @@ body.kiosk #lapse-play, body.kiosk #lapse-close { visibility: hidden; }
 
 /* The "Wie ist es hier?" button while the Stadtfühler challenge runs. */
 #rate.hot { border: 2px solid var(--gold); box-shadow: 0 0 12px rgba(255, 212, 59, 0.5); }
+
+/* Indoors (indoor.ts): scan instead of GPS. */
+#scan {
+  flex: 0 0 auto;
+  padding: 16px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  color: #111;
+  background: var(--gold);
+}
+body.watching #scan { display: none; }
+body.indoor #gps { cursor: pointer; }
+#scanner {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#scanner[hidden] { display: none; }
+#scanner video { width: 100%; height: 100%; object-fit: cover; }
+#scanner .scanner-frame {
+  position: absolute;
+  width: min(70vw, 60vh);
+  aspect-ratio: 1;
+  border: 3px solid var(--gold);
+  border-radius: 18px;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+#scanner-hint {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  margin: 0;
+  text-align: center;
+  color: #fff;
+  font-size: 15px;
+}
+#scanner-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  font-size: 26px;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+}

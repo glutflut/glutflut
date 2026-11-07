@@ -67,6 +67,7 @@ Common conventions:
 | `GET/POST/DELETE /api/ops/media`, `POST /api/ops/media/commons`, `/decide` | editor | Images. |
 | `POST /api/ops/hotspot` `{node, minutes}` | admin | Start a hotspot. 202. |
 | `GET /api/ops/nodes` | editor | `{t, fire, water, front}`: junction ids per side now. 503 + `Retry-After` until the region has built it (only on request). For pictures of the game state (posts, posters). |
+| `GET /api/ops/indoor` | admin | Indoor regions (`[indoor]`) only, else 409: `{region, base, window_s, hold_s, nodes: [{id, lat, lon, label, screen, code?, secret?}]}`; sheets get their fixed `code`, screens their `secret` (hex) for `/knoten.html`. Contains secrets: admins only. Page: `/indoor.html`. |
 | `POST /api/ops/reload` | admin | Unload and reload the region from the database. 202 `{region, was_loaded}`. |
 
 Example:

@@ -223,6 +223,11 @@ pub enum FromWeb {
         lon: f64,
         radius_m: f32,
     },
+    /// A scanned junction code (`indoor.rs`), checked in the region.
+    Scan {
+        conn: u64,
+        code: String,
+    },
     /// Place a permanent source on an own claim, or top one up (`keep.rs`).
     Keep {
         conn: u64,
@@ -547,6 +552,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/hotspot", post(ops_hotspot))
                     .route("/api/ops/reload", post(ops_reload))
                     .route("/api/ops/nodes", get(ops_nodes))
+                    .route("/api/ops/indoor", get(ops_indoor))
                     .route("/api/ops/live", get(live_handler))
                     .route("/api/ops/layers", get(layers::list))
                     .route("/api/ops/layers/{id}/{z}/{x}/{y}", get(layers::tile))
@@ -1611,6 +1617,23 @@ async fn handle_socket(
             },
             ClientMsg::Collect { on } => FromWeb::Collect { conn, on },
             ClientMsg::Stats { on } => FromWeb::Stats { conn, on },
+            ClientMsg::Scan { code } => {
+                let Some(code) =
+                    crate::indoor::from_scan(&code).filter(|_| limits::SCAN.allow(client))
+                else {
+                    let msg = ServerMsg::Scan {
+                        ok: false,
+                        reason: Some("unknown"),
+                        node: None,
+                        lat: None,
+                        lon: None,
+                        hold_s: 0.0,
+                    };
+                    let _ = out.send(msg.to_json());
+                    continue;
+                };
+                FromWeb::Scan { conn, code }
+            }
             ClientMsg::Presence { code } => {
                 let refuse = |reason: &'static str| {
                     let msg = ServerMsg::Presence {
@@ -2231,6 +2254,82 @@ async fn ops_nodes(
             .into_response();
     }
     json_response(&json.unwrap_or_default(), "no-store")
+}
+
+/// `GET /api/ops/indoor?region=` (admin): every junction's codes for the
+/// sheets and screens (`indoor.rs`; `web/indoor.html` prints them). The
+/// screen secrets are in here: admins only.
+async fn ops_indoor(
+    State(s): State<AppState>,
+    Query(q): Query<RegionQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    if !who(&s, c, &headers).await.may(&slug, Role::Admin) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let rules = crate::actions::load_rules(s.host.listing(&slug).and_then(|l| l.rules).as_deref());
+    if !rules.indoor.enabled {
+        return (
+            StatusCode::CONFLICT,
+            "region is not indoor ([indoor] enabled)",
+        )
+            .into_response();
+    }
+    let st = s.clone();
+    let sl = slug.clone();
+    let rows = tokio::task::spawn_blocking(move || {
+        st.with_db(|c| {
+            c.query(
+                "SELECT n.id, n.lat, n.lon, n.node_type, COALESCE(n.story_tag, '') \
+                 FROM geo.nodes n JOIN geo.regions r ON r.id = n.region_id \
+                 WHERE r.slug = $1 AND n.is_active ORDER BY n.id",
+                &[&sl],
+            )
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    let Some(rows) = rows else {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
+    let base =
+        std::env::var("ELEMENTS_PUBLIC_URL").unwrap_or_else(|_| "https://glutflut.com".into());
+    let mut nodes = Vec::new();
+    for r in rows {
+        let id: i64 = r.get(0);
+        let Some((code, secret)) = crate::indoor::codes_for(&slug, id) else {
+            return (
+                StatusCode::CONFLICT,
+                "no ELEMENTS_INDOOR_KEY / ELEMENTS_SHARD_KEY",
+            )
+                .into_response();
+        };
+        let screen = r.get::<_, &str>(3) == "screen";
+        nodes.push(serde_json::json!({
+            "id": id,
+            "lat": r.get::<_, f64>(1),
+            "lon": r.get::<_, f64>(2),
+            "label": r.get::<_, &str>(4),
+            "screen": screen,
+            // Sheets: the fixed code; screens: their secret, never a fixed code.
+            "code": (!screen).then_some(code),
+            "secret": screen.then_some(secret),
+        }));
+    }
+    Json(serde_json::json!({
+        "region": slug,
+        "base": base,
+        "window_s": rules.indoor.window_s,
+        "hold_s": rules.indoor.hold_s,
+        "nodes": nodes,
+    }))
+    .into_response()
 }
 
 async fn ops_reload(

@@ -85,6 +85,8 @@ pub struct Rules {
     /// Chance that a new player joins the weaker side (fewer players today,
     /// else less land); 0.5 = a coin, 1 = always the weaker one.
     pub join_weaker: f32,
+    /// Indoors (`[indoor]`): a scanned code places the player, not GPS.
+    pub indoor: Indoor,
 }
 
 /// Where nothing is left to take and no anchor fits, a claim may put an
@@ -95,6 +97,28 @@ pub struct Rules {
 pub struct Reinforce {
     pub enabled: bool,
     pub front_only: bool,
+}
+
+/// Indoors, where GPS fails (halls): the player stands at a junction for
+/// `hold_s` after scanning its code (a sheet on the wall or a screen,
+/// server `indoor.rs`); GPS fixes are ignored. A screen's code changes every
+/// `window_s`; a junction with `node_type = 'screen'` takes only those.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Indoor {
+    pub enabled: bool,
+    pub hold_s: f32,
+    pub window_s: u32,
+}
+
+impl Default for Indoor {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            hold_s: 180.0,
+            window_s: 30,
+        }
+    }
 }
 
 /// Blocks (`geo.blocks`): a side holds a block when it owns
@@ -345,6 +369,7 @@ impl Default for Rules {
             tide: Default::default(),
             streak: Default::default(),
             join_weaker: 0.67,
+            indoor: Default::default(),
         }
     }
 }
@@ -658,5 +683,18 @@ mod shipped {
         let r = super::Rules::from_file(root.join("default.toml")).unwrap();
         assert_eq!(r.name, "default");
         assert!(r.keep.enabled && r.weather.enabled && r.streak.enabled);
+    }
+}
+
+#[cfg(test)]
+mod shipped_indoor {
+    /// The indoor set sits on the default one and turns scanning on.
+    #[test]
+    fn indoor_file_loads() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../rules");
+        let r = super::Rules::from_file(root.join("indoor.toml")).unwrap();
+        assert_eq!(r.name, "indoor");
+        assert!(r.indoor.enabled && r.keep.enabled);
+        assert_eq!(r.claim_radius_m, 25.0);
     }
 }

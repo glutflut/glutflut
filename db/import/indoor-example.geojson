@@ -1,0 +1,375 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "eingang",
+    "label": "Eingang Süd"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9845,
+     53.5622
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "foyer",
+    "label": "Foyer"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9845,
+     53.5624714
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "treppe",
+    "label": "Treppe"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9848781,
+     53.5625619
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "osm",
+    "label": "OSM-Assembly",
+    "screen": true
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9840463,
+     53.5626976
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "a1",
+    "label": "Assembly-Reihe A"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9845,
+     53.5628333
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "a2",
+    "label": "Assembly-Reihe B"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9849537,
+     53.5628785
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "bar",
+    "label": "Bar",
+    "source": "water"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9841219,
+     53.5630594
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "bühne",
+    "label": "Bühne",
+    "source": "fire"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9846512,
+     53.5631951
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "key": "lounge",
+    "label": "Lounge",
+    "screen": true
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     9.9851805,
+     53.5631499
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "eingang",
+    "to": "foyer"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9845,
+      53.5622
+     ],
+     [
+      9.9845,
+      53.5624714
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "foyer",
+    "to": "treppe"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9845,
+      53.5624714
+     ],
+     [
+      9.9848781,
+      53.5625619
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "foyer",
+    "to": "osm"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9845,
+      53.5624714
+     ],
+     [
+      9.9840463,
+      53.5626976
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "foyer",
+    "to": "a1"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9845,
+      53.5624714
+     ],
+     [
+      9.9845,
+      53.5628333
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "treppe",
+    "to": "a2"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9848781,
+      53.5625619
+     ],
+     [
+      9.9849537,
+      53.5628785
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "osm",
+    "to": "a1"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9840463,
+      53.5626976
+     ],
+     [
+      9.9845,
+      53.5628333
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "a1",
+    "to": "a2"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9845,
+      53.5628333
+     ],
+     [
+      9.9849537,
+      53.5628785
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "osm",
+    "to": "bar"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9840463,
+      53.5626976
+     ],
+     [
+      9.9841219,
+      53.5630594
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "a1",
+    "to": "bühne"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9845,
+      53.5628333
+     ],
+     [
+      9.9846512,
+      53.5631951
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "bar",
+    "to": "bühne"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9841219,
+      53.5630594
+     ],
+     [
+      9.9846512,
+      53.5631951
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "a2",
+    "to": "lounge"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9849537,
+      53.5628785
+     ],
+     [
+      9.9851805,
+      53.5631499
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "from": "bühne",
+    "to": "lounge"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      9.9846512,
+      53.5631951
+     ],
+     [
+      9.9851805,
+      53.5631499
+     ]
+    ]
+   }
+  }
+ ]
+}

@@ -51,14 +51,19 @@ export function setupPlayer(d: {
 
   const drawRange = () => me && (map.getSource("range") as maplibregl.GeoJSONSource).setData(circle(me, d.claimRadius()));
 
-  /** `speed`: the device's own speed in m/s (GPS Doppler), for the driving check. */
-  function setMe(p: [number, number], accuracy?: number, speed?: number) {
+  /** The dot, range and camera at `p` (nothing sent). */
+  function show(p: [number, number]) {
     if (!me) {
       if (!hold) map.jumpTo({ center: p, zoom: 16.5 });
     } else if (follow) map.easeTo({ center: p, duration: 600 });
     me = p;
     marker.setLngLat(p).addTo(map);
     drawRange();
+  }
+
+  /** `speed`: the device's own speed in m/s (GPS Doppler), for the driving check. */
+  function setMe(p: [number, number], accuracy?: number, speed?: number) {
+    show(p);
     $("gps").textContent = accuracy ? t("gps.accuracy", { m: Math.round(accuracy) }) : t("gps.set");
     // A presence code from the game link, once there is a position.
     const code = presenceToSend();
@@ -87,6 +92,19 @@ export function setupPlayer(d: {
     me: () => me,
     marker,
     setMe,
+    /** Indoors: placed by a scan (the server knows already), or nowhere again. */
+    place(p: [number, number] | null) {
+      if (p) {
+        show(p);
+        d.tiles.setPlayer(p);
+        d.moved();
+        return;
+      }
+      me = null;
+      marker.remove();
+      (map.getSource("range") as maplibregl.GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features: [] });
+      d.moved();
+    },
     drawRange,
     follow: () => follow,
     setFollow,

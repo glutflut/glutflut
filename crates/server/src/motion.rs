@@ -22,6 +22,10 @@ impl AllowSim {
     }
 }
 
+/// Before the first fix (and indoors after a hold): claims, ratings and
+/// presence all fail by distance.
+pub const NOWHERE: Vec3 = Vec3::new(1.0e7, 0.0, 1.0e7);
+
 #[derive(Component, Default)]
 pub struct Motion {
     recent: VecDeque<(Vec3, f64)>,
@@ -43,6 +47,8 @@ pub struct Motion {
     /// Full strength from the start: played on an earlier day, confirmed on
     /// site, or a test server.
     pub trusted: bool,
+    /// Indoors: the junction scanned last, held for a while (`indoor.rs`).
+    pub held: Option<crate::indoor::Held>,
 }
 
 /// New identities claim with this share of their strength until they have

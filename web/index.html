@@ -420,6 +420,13 @@
       <button id="sheet-done" data-i18n="rate.done" hidden>Fertig</button>
     </div>
 
+    <div id="scanner" role="dialog" hidden>
+      <video playsinline muted></video>
+      <div class="scanner-frame"></div>
+      <p id="scanner-hint" data-i18n="indoor.aim">Halte die Kamera auf den Code am Knoten.</p>
+      <button id="scanner-close" data-i18n-aria="close">×</button>
+    </div>
+
     <footer id="actions">
       <div id="toast" role="status" aria-live="polite" hidden></div>
       <div id="gps" data-i18n="gps.connecting">Verbinde …</div>
@@ -460,6 +467,7 @@
       <button id="claim-link" hidden></button>
       <p id="cheers" hidden></p>
       <div class="row">
+        <button id="scan" hidden data-i18n="indoor.button">Code scannen</button>
         <button id="rate" disabled data-i18n-title="rate.title" data-i18n="rate.button">Wie ist es hier?</button>
         <button id="claim" disabled data-i18n="claim.button">Erobern</button>
         <button id="cheer-fire" class="cheer fire">🔥</button>

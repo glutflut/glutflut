@@ -5,11 +5,12 @@
  * What the server sends.
  */
 export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: number, }
+  | { "t": "scan", ok: boolean, reason?: string, node?: number, lat?: number, lon?: number, hold_s: number, }
   | { "t": "pong" }
   | { "t": "busy" }
   | { "t": "recover", ok: boolean, reason: "unknown" | "wait", }
   | { "t": "pow", c: string, bits: number, }
-  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, invite: string, invite_points: number, watch: boolean, }
+  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, invite: string, invite_points: number, watch: boolean, indoor: boolean, }
   | { "t": "state", nodes: Array<[number, number, number]>, }
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
@@ -85,7 +86,8 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "link", node: number, ticket: string, to?: number | null, to_ticket?: string | null, }
   | { "t": "collect", on: boolean, }
   | { "t": "stats", on: boolean, }
-  | { "t": "presence", code: string, };
+  | { "t": "presence", code: string, }
+  | { "t": "scan", code: string, };
 
 /**
  * The far end of a link in another region: the region and a key to the

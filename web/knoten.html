@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glut &amp; Flut – Knoten</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #fff; color: #111; font: 18px system-ui, sans-serif; }
+      main { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vmin; padding: 2vmin; box-sizing: border-box; }
+      #qr { width: min(92vw, 76vh); aspect-ratio: 1; }
+      #qr svg { width: 100%; height: 100%; display: block; }
+      h1 { margin: 0; font-size: clamp(20px, 5vmin, 56px); text-align: center; }
+      p { margin: 0; font-size: clamp(14px, 2.6vmin, 28px); text-align: center; color: #333; }
+      #bar { width: min(92vw, 76vh); height: 1.2vmin; min-height: 6px; background: linear-gradient(90deg, #e8590c, #1c7ed6); transform-origin: left; }
+      #err { color: #c92a2a; }
+      body.eink #bar { display: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 id="label">Glut &amp; Flut</h1>
+      <div id="qr"></div>
+      <div id="bar"></div>
+      <p id="hint">In der App „Scannen“ tippen · Tap “Scan” in the app</p>
+      <p id="err" hidden></p>
+    </main>
+    <script type="module" src="/src/knoten.ts"></script>
+  </body>
+</html>

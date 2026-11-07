@@ -33,6 +33,7 @@ mod found;
 mod gateway;
 mod hinterland;
 mod hotspot;
+mod indoor;
 mod info;
 mod keep;
 mod limits;
@@ -623,7 +624,7 @@ pub fn build(p: Prepared) -> App {
                 web::challenge_tick.run_if(resource_exists::<challenge::Challenges>),
                 web::campaign_tick,
                 web::tide_tick,
-                cheer::tick,
+                (cheer::tick, indoor::hold).chain(),
                 live_rain::update.run_if(resource_exists::<live_rain::LiveRain>),
                 tide::update.run_if(resource_exists::<tide::LiveTide>),
                 weather::apply,

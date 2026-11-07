@@ -1,0 +1,15 @@
+# Indoors (halls, server indoor.rs): a scanned code places the player at a
+# junction for `hold_s`, GPS is ignored. Junctions are 20-60 m apart, so a
+# shorter claim radius and spread than outside. Per region:
+# geo.regions.rules = 'indoor' (db/import/indoor-region.sh sets it).
+base = "default.toml"
+name = "indoor"
+claim_radius_m = 25.0
+
+[field]
+reach_scale = 60.0
+
+[indoor]
+enabled = true
+hold_s = 180.0
+window_s = 30

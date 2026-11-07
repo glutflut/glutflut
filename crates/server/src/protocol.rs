@@ -27,6 +27,24 @@ pub enum ServerMsg<'a> {
         #[ts(optional)]
         n: Option<usize>,
     },
+    /// Answer to a scanned code indoors (`indoor.rs`): placed at `node`
+    /// for `hold_s`, or why not (`off`, `unknown`, `old`, `screen`, `moving`).
+    Scan {
+        ok: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        reason: Option<&'static str>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        node: Option<i64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        lat: Option<f64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        lon: Option<f64>,
+        hold_s: f32,
+    },
     /// Answer to `ping`, from the gateway.
     Pong,
     /// Too many new players from this client: the app backs off.
@@ -81,6 +99,8 @@ pub enum ServerMsg<'a> {
         invite_points: i64,
         /// A watcher (hello with `watch`): no token, no side, no score.
         watch: bool,
+        /// Indoors: codes to scan instead of GPS (`[indoor]`).
+        indoor: bool,
     },
     State {
         nodes: Vec<(i64, f32, f32)>,
@@ -791,6 +811,10 @@ pub enum ClientMsg {
     },
     /// A presence code from the game link (`?p=`).
     Presence {
+        code: String,
+    },
+    /// A scanned junction code indoors (`indoor.rs`).
+    Scan {
         code: String,
     },
 }

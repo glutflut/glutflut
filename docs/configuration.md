@@ -72,6 +72,7 @@ They date from one container per city. The region's own settings win; sites only
 | `ELEMENTS_CELL` | server | `main` | Cell within the shard: only regions with this `geo.regions.cell` load here; `main` also runs the shard-wide jobs (outbox, globe index). See `docs/deploy.md`, Cells. |
 | `ELEMENTS_SHARDS` | server | empty | Other shards: `sa=https://sa.glutflut.com,na=https://na.glutflut.com`. Drives region links, CSP and the globe's shard index. |
 | `ELEMENTS_SHARD_KEY` | server | none | **Secret, in `.env`.** Same value on all shards of one setup (dev has its own). Signs passports and calls between shards. |
+| `ELEMENTS_INDOOR_KEY` | server | derived from `ELEMENTS_SHARD_KEY` | **Secret, in `.env`.** At least 32 characters. Key of the junction codes indoors (`[indoor]`, `indoor.rs`): every printed sheet and screen secret derives from it, so changing it voids them all. Without it and without a shard key, scans are refused (`off`). |
 | `ELEMENTS_CELL_URL` | server | `ELEMENTS_PUBLIC_URL` | Base URL that reaches every cell of this shard by `?region=` (the proxy). Links into a region of another cell go there as signed `POST /api/cell/far` (needs `ELEMENTS_SHARD_KEY`). |
 | `ELEMENTS_FAR_RELAY` | server | none | Base URL of a relay to other shards. Links into a region of another shard go there as signed `POST <relay>/far?shard=<shard>&region=<slug>` (same body and signature as `/api/cell/far`); the relay passes them to that shard's `/api/cell/far`. Without it, links into other shards are down (`linkdown`). |
 
@@ -470,6 +471,16 @@ A claimed or permanent source whose junction has at least `min_neighbours` neigh
 | `acts_per_day` | 3 | – | Small actions that make a play day (a claim is one; a challenge, find or rating a whole day). |
 | `spare_weeks` | 1 | – | Missed weeks spared per campaign. |
 | `badges` | [2, 4, 8] | – | Streak lengths (weeks) that earn a badge `streak-N`. |
+
+#### `[indoor]` (halls, `indoor.rs`)
+
+Where GPS fails, a scanned code places the player at a junction for `hold_s`; GPS fixes are ignored (test servers: taps still move). A sheet on the wall has a fixed code; a junction with `node_type = 'screen'` takes only the changing code of its screen (`web/knoten.html`, new every `window_s`, good for two windows after its own). Codes far apart in too short a time lock the player like a GPS jump. Set `rules/indoor.toml` (claim radius 25 m, `field.reach_scale` 60); graph and region: `db/import/indoor-region.sh`; sheets and screen links: `/indoor.html` (admin, `GET /api/ops/indoor`).
+
+| Key | Default | indoor.toml | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | false | true | Switch. |
+| `hold_s` | 180 | – | How long a scan places the player (s). Scanning the same junction again extends it. |
+| `window_s` | 30 | – | Lifetime of a screen code (s). E-ink screens: 60 or more. |
 
 ## 3. Other configuration
 

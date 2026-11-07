@@ -57,6 +57,8 @@ export default defineConfig({
         datenschutz: "datenschutz.html",
         chronik: "chronik.html",
         sounds: "sounds.html",
+        knoten: "knoten.html",
+        indoor: "indoor.html",
       },
     },
   },

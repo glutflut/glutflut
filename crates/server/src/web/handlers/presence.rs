@@ -62,6 +62,77 @@ pub(super) fn presence(
     );
 }
 
+/// A scanned junction code indoors: the player stands there for `hold_s`.
+pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
+    let (now, region, rules) = (c.now, c.region, c.rules);
+    let nodes = &game.nodes;
+    let by_id = &game.node_by_id;
+    let looked = crate::indoor::check(&region.slug, code, now, &rules.indoor, |n| {
+        let (g, _) = nodes.get(*by_id.get(&n)?).ok()?;
+        Some(g.node_type == "screen")
+    });
+    let Some((e, out)) = game.clients.0.get(&conn) else {
+        return;
+    };
+    let refuse = |reason: &'static str| {
+        send(
+            out,
+            &ServerMsg::Scan {
+                ok: false,
+                reason: Some(reason),
+                node: None,
+                lat: None,
+                lon: None,
+                hold_s: 0.0,
+            },
+        )
+    };
+    let node = match looked {
+        Ok(n) => n,
+        Err(r) => return refuse(r),
+    };
+    let Some((g, _)) = by_id.get(&node).and_then(|&n| nodes.get(n).ok()) else {
+        return refuse("unknown");
+    };
+    let (lat, lon) = (g.lat, g.lon);
+    let Ok((_, mut pos, _, tracked, slot, mut motion)) = game.players.get_mut(*e) else {
+        return;
+    };
+    let at = project_enu(lat, lon, region.centroid_lat, region.centroid_lon);
+    // Codes far apart in too short a time (photos passed around): locked
+    // like a GPS jump. The same junction again only extends the hold.
+    let again = motion.held.is_some_and(|h| h.node == node);
+    if motion.locked(now) || (!again && !motion.fix(at, now, None)) {
+        return refuse("moving");
+    }
+    pos.0 = at;
+    motion.last_fix = Some((at, now));
+    motion.held = Some(crate::indoor::Held {
+        node,
+        at,
+        until: now + f64::from(rules.indoor.hold_s),
+        next_stay: now + 5.0,
+    });
+    let shadowed = slot.is_some_and(|s| game.scores.shadowed(s.0, now));
+    if let Some(t) = tracked.filter(|t| t.counted && !shadowed) {
+        game.agg
+            .observe(&t, at, now, game.hotspots.bonus(at, rules.hotspot_radius_m));
+        game.hotspots.observe(&t, at);
+    }
+    info!(conn, node, "indoor scan");
+    send(
+        out,
+        &ServerMsg::Scan {
+            ok: true,
+            reason: None,
+            node: Some(node),
+            lat: Some(lat),
+            lon: Some(lon),
+            hold_s: rules.indoor.hold_s,
+        },
+    );
+}
+
 pub(super) fn rate(game: &mut Game, c: &Ctx, conn: u64, node: i64, cats: &[String]) {
     let (now, rules) = (c.now, c.rules);
     let Some((e, out)) = game.clients.0.get(&conn) else {

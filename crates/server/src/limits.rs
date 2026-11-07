@@ -145,6 +145,8 @@ pub static FEEDBACK: Limiter = Limiter::new(1.0 / 300.0, 3.0);
 pub static RECOVER: Limiter = Limiter::new(1.0 / 60.0, 5.0);
 /// Presence codes tried (guessing a 50-bit code is hopeless anyway).
 pub static PRESENCE: Limiter = Limiter::new(1.0 / 60.0, 10.0);
+/// Codes scanned indoors (48-bit macs; many phones share a hall's IPv4).
+pub static SCAN: Limiter = Limiter::new(0.5, 30.0);
 /// Wrong dashboard tokens.
 pub static BAD_TOKENS: Limiter = Limiter::new(0.1, 10.0);
 /// Messages on one socket: positions every second, views while panning.

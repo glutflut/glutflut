@@ -26,6 +26,7 @@ import { setupFeedback } from "./feedback";
 import { Sound } from "./sound";
 import { isCounted } from "./consent";
 import { presenceAnswer, takePresenceCode } from "./presence";
+import { setupIndoor, takeScanCode } from "./indoor";
 import { setupCampaign } from "./campaign";
 import { setupTunnel } from "./tunnel";
 import { setupTop } from "./top";
@@ -75,6 +76,7 @@ const gameView = gfx !== "map";
 const animOn = gfx === "full" && !calm;
 
 takePresenceCode();
+takeScanCode();
 // From the weather globe: dark until the map stands (style.css `arrive`).
 if (/(?:^#|&)look=/.test(location.hash)) document.documentElement.classList.add("arrive");
 
@@ -363,6 +365,7 @@ async function main() {
     history.replaceState(null, "", location.pathname + location.search);
   }
   const gps = setupGps(map, player.setMe, tapCard);
+  const indoor = setupIndoor({ net, place: player.place });
   // Recordings only (video.ts): staged claims keep their rings through the server's lists.
   const staged: SourceItems = [];
   setupVideo({
@@ -441,7 +444,9 @@ async function main() {
       }
       if (!isCounted()) net.send({ t: "stats", on: false });
       sendProfile();
-      gps.start(params.has("sim") && m.sim);
+      // Indoors codes place the player, not GPS (test servers: taps too).
+      indoor.welcome(m.indoor);
+      if (!m.indoor || (params.has("sim") && m.sim)) gps.start(params.has("sim") && m.sim);
       document.body.classList.toggle("test", m.sim); // test server: dev data, sim allowed
       fxOn(m.sim);
       applyFaction(m.faction);
@@ -464,7 +469,7 @@ async function main() {
         void campaign.catchUp();
       }
       const me = player.me();
-      if (me) net.send({ t: "pos", lat: me[1], lon: me[0] });
+      if (me && !m.indoor) net.send({ t: "pos", lat: me[1], lon: me[0] });
       // New connection: the server knows no tiles yet.
       if (lastView.length) net.send({ t: "view", tiles: lastView });
       if (overview.on()) net.send({ t: "overview", on: true });
@@ -597,6 +602,7 @@ async function main() {
       floaters.score(m.today);
       board.mine(m);
     },
+    scan: (m) => indoor.answer(m),
     presence(m) {
       const r = presenceAnswer(m.ok, m.reason);
       if (r === "ok") toast(t("presence.ok"), 5000);
