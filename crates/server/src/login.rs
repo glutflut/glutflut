@@ -55,7 +55,7 @@ pub struct Login {
 /// the request comes from our own pages.
 pub fn from(cfg: &Config, headers: &HeaderMap) -> Option<Login> {
     let user = text(headers, &cfg.user)?;
-    if !same_origin(headers) {
+    if !same_origin(headers) && !crate::admin::trusted(headers) {
         return None;
     }
     let grants = text(headers, &cfg.groups)

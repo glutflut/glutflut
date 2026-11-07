@@ -95,7 +95,10 @@ function drawShards() {
     })
     .join("");
   const bad = shards.filter((s) => s.state !== "ok" && s.state !== "wait");
-  msg(bad.map((s) => `Shard ${s.shard}: ${s.state}${s.base ? ` (${s.base}; dort angemeldet?)` : ""}`).join(" · "));
+  // With a token the browser must ask first (preflight), which a login proxy
+  // in front of the other shard refuses: there only the login works.
+  const why = token ? "mit Token oft nicht erreichbar, mit Login anmelden" : "dort angemeldet?";
+  msg(bad.map((s) => `Shard ${s.shard}: ${s.state}${s.base ? ` (${s.base}; ${why})` : ""}`).join(" · "));
 }
 
 /** Play addresses by shard (the game links), from the shard index. */

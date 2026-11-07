@@ -48,6 +48,20 @@ fn origins() -> &'static [String] {
     O.get_or_init(|| list("ELEMENTS_ADMIN_ORIGINS"))
 }
 
+/// A login from the admin page on another shard: its origin is listed in
+/// `ELEMENTS_ADMIN_ORIGINS` (the login's same-origin rule, `login.rs`, would
+/// refuse it otherwise).
+pub fn trusted(headers: &axum::http::HeaderMap) -> bool {
+    trusted_in(headers, origins())
+}
+
+fn trusted_in(headers: &axum::http::HeaderMap, allowed: &[String]) -> bool {
+    let get = |k: &str| headers.get(k).and_then(|v| v.to_str().ok());
+    // A sibling site only (same-site), never another site.
+    get("sec-fetch-site").is_none_or(|s| s == "same-site")
+        && get("origin").is_some_and(|o| allowed.iter().any(|a| a == o))
+}
+
 /// The endpoints the admin page reads or writes on another shard.
 fn admin_path(p: &str) -> bool {
     matches!(
@@ -102,6 +116,46 @@ pub async fn cors(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn trusted_only_the_listed_sibling() {
+        let allowed = vec!["https://ops.example.org".to_string()];
+        let h = |pairs: &[(&'static str, &str)]| {
+            let mut m = axum::http::HeaderMap::new();
+            for (k, v) in pairs {
+                m.insert(*k, v.parse().unwrap());
+            }
+            m
+        };
+        let ops = ("origin", "https://ops.example.org");
+        assert!(trusted_in(
+            &h(&[ops, ("sec-fetch-site", "same-site")]),
+            &allowed
+        ));
+        assert!(
+            trusted_in(&h(&[ops]), &allowed),
+            "older browsers: Origin only"
+        );
+        assert!(!trusted_in(
+            &h(&[ops, ("sec-fetch-site", "cross-site")]),
+            &allowed
+        ));
+        assert!(!trusted_in(
+            &h(&[
+                ("origin", "https://evil.example"),
+                ("sec-fetch-site", "same-site")
+            ]),
+            &allowed
+        ));
+        assert!(!trusted_in(
+            &h(&[("sec-fetch-site", "same-site")]),
+            &allowed
+        ));
+        assert!(
+            !trusted_in(&h(&[ops]), &[]),
+            "nothing listed: nothing trusted"
+        );
+    }
 
     #[test]
     fn admin_paths() {
