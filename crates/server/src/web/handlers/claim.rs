@@ -291,6 +291,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         return;
     };
     let pseudo = tracked.as_ref().map(|t| t.pseudo);
+    let held = motion.held.map(|h| h.node);
     if motion.locked(now) {
         send(
             out,
@@ -419,7 +420,24 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         .open
         .get(&tunnel_key(conn, slot))
         .is_some_and(|&(n, until)| n == node && now < until);
-    let power = if tunnel {
+    // Indoors the reach counts in steps along the paths from the held
+    // junction (Weitblick: one more), not in metres.
+    let indoor_ok = (rules.indoor.enabled && !tunnel && link.is_none()).then(|| {
+        let far = game.abilities.get(*e).is_ok_and(|a| a.armed[REACH]);
+        held.is_some_and(|h| {
+            crate::indoor::reach(
+                &game.node_by_id,
+                game.sim.as_deref(),
+                h,
+                rules.indoor.reach_hops + u32::from(far),
+            )
+            .contains(&node)
+        })
+    });
+    if indoor_ok == Some(false) {
+        return refuse("range");
+    }
+    let power = if tunnel || indoor_ok == Some(true) {
         actions::Power {
             reach_m: f32::MAX,
             ..power

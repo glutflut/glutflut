@@ -13,3 +13,5 @@ reach_scale = 60.0
 enabled = true
 hold_s = 180.0
 window_s = 30
+# A claim reaches the held junction and its neighbours (Weitblick: 2 steps).
+reach_hops = 1

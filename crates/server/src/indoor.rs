@@ -186,6 +186,34 @@ pub fn check(
     }
 }
 
+/// The junctions up to `hops` steps from `start` along the paths, `start`
+/// first (indoors a claim reaches these, not a radius).
+pub fn reach(
+    by_id: &crate::sim::NodeById,
+    sim: Option<&crate::sim::ElementSim>,
+    start: i64,
+    hops: u32,
+) -> Vec<i64> {
+    let (Some(i0), Some(sim)) = (by_id.index(start), sim) else {
+        return vec![start];
+    };
+    let mut seen = vec![i0];
+    let mut ring = vec![i0];
+    for _ in 0..hops {
+        let mut next = Vec::new();
+        for &i in &ring {
+            for j in sim.neighbour_idx(i) {
+                if !seen.contains(&j) {
+                    seen.push(j);
+                    next.push(j);
+                }
+            }
+        }
+        ring = next;
+    }
+    seen.into_iter().filter_map(|i| by_id.id_at(i)).collect()
+}
+
 /// From the last scan to `at` (junction `node`) on foot in time.
 pub fn walkable(last: Option<(i64, Vec3, f64)>, node: i64, at: Vec3, now: f64) -> bool {
     last.is_none_or(|(n, p, t)| {
@@ -228,6 +256,26 @@ pub fn hold(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reach_counts_steps_along_the_paths() {
+        use crate::testkit::{line, world};
+        let (nodes, edges) = line(5, 40.0, &[]);
+        let w = world(elements_shared::rules::Rules::default(), nodes, edges);
+        let (by_id, sim) = (
+            w.resource::<crate::sim::NodeById>(),
+            w.get_resource::<crate::sim::ElementSim>(),
+        );
+        let mut r = reach(by_id, sim, 3, 1);
+        assert_eq!(r[0], 3, "the held junction first");
+        r.sort();
+        assert_eq!(r, vec![2, 3, 4]);
+        let mut r = reach(by_id, sim, 1, 2);
+        r.sort();
+        assert_eq!(r, vec![1, 2, 3], "Weitblick: one step more");
+        assert_eq!(reach(by_id, sim, 3, 0), vec![3]);
+        assert_eq!(reach(by_id, sim, 99, 1), vec![99], "unknown: only itself");
+    }
 
     #[test]
     fn codes_check() {

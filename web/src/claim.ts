@@ -38,6 +38,8 @@ export function setupClaim(d: {
   faction: () => Faction | null;
   me: () => [number, number] | null;
   claimRadius: () => number;
+  /** Indoors: the junctions a claim reaches (steps along the paths); null: metres count. */
+  reachIds: () => Set<number> | null;
   /** The rules' claim radius (the armed reach aside). */
   baseRadius: () => number;
   supply: () => number | null;
@@ -68,6 +70,11 @@ export function setupClaim(d: {
 }) {
   const { net, sound, nodePos, state } = d;
   const claimBtn = $("claim") as HTMLButtonElement;
+  /** In reach: indoors one of the junctions the scan named, else within the radius. */
+  const inReach = (id: number, dist: number) => {
+    const ids = d.reachIds();
+    return ids ? ids.has(id) : dist <= d.claimRadius();
+  };
   const linkBtn = $("claim-link") as HTMLButtonElement;
   const rateBtn = $("rate") as HTMLButtonElement;
   // The second button: standing at an own linked permanent source, what a
@@ -214,7 +221,7 @@ export function setupClaim(d: {
       let best: [number, number] | null = null;
       for (const [id, c] of nodePos) {
         const dist = distM(p, c);
-        if (dist > d.claimRadius() || (best && dist >= best[1]) || !ok(id)) continue;
+        if (!inReach(id, dist) || (best && dist >= best[1]) || !ok(id)) continue;
         best = [id, dist];
       }
       return best?.[0] ?? null;
@@ -245,7 +252,7 @@ export function setupClaim(d: {
     let best: [number, number] | null = null;
     for (const [id, c] of nodePos) {
       const dist = distM(p, c);
-      if (src.has(id) || dist > d.claimRadius() || (best && dist >= best[1])) continue;
+      if (src.has(id) || !inReach(id, dist) || (best && dist >= best[1])) continue;
       const [f, w] = state.get(id) ?? [0, 0];
       if (owner(f, w) === mine) best = [id, dist];
     }
@@ -275,7 +282,7 @@ export function setupClaim(d: {
     let any = false;
     for (const [id, c] of nodePos) {
       const dist = distM(p, c);
-      if (dist <= d.claimRadius()) {
+      if (inReach(id, dist)) {
         any = true;
         if (!src.has(id)) free = true;
       }

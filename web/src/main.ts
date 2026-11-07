@@ -26,7 +26,7 @@ import { setupFeedback } from "./feedback";
 import { Sound } from "./sound";
 import { isCounted } from "./consent";
 import { presenceAnswer, takePresenceCode } from "./presence";
-import { introIndoor, scanPending, setupIndoor, takeScanCode } from "./indoor";
+import { indoorReach, introIndoor, scanPending, setupIndoor, takeScanCode } from "./indoor";
 import { setupCampaign } from "./campaign";
 import { setupTunnel } from "./tunnel";
 import { setupTop } from "./top";
@@ -298,6 +298,7 @@ async function main() {
     state,
     sources: sources.all,
     faction: () => faction,
+    reachIds: () => indoorReach(progress.reachArmed()),
     me: () => player.me(),
     claimRadius: progress.claimRadius,
     baseRadius: progress.baseRadius,
@@ -351,6 +352,7 @@ async function main() {
     net,
     tiles,
     claimRadius: progress.claimRadius,
+    rangeHidden: () => indoorReach(false) !== null,
     moved: () => {
       tunnel.moved();
       claim.update();

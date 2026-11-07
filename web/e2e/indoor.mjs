@@ -1,7 +1,9 @@
 // Indoors (indoor.rs, indoor.ts): no claim before a scan, a sheet code by
-// link places the player and a claim works, a screen junction refuses its
+// link places the player, the answer names what a claim reaches (steps along
+// the paths) and a claim takes one of those, a screen junction refuses its
 // fixed code but takes the screen's, old screen codes and codes far apart in
-// no time are refused. Screenshot at 360x640.
+// no time are refused. Screenshot at 360x640. Graph: the Messe mockup
+// (vault 40c3/messe_hh) or db/import/indoor-example.geojson.
 //   node e2e/indoor.mjs [base, default http://127.0.0.1:5080] [out dir]
 // Server: an indoor region (db/import/indoor-region.sh, e.g. the example
 // graph) as ELEMENTS_REGION, ELEMENTS_OPS_TOKEN, ELEMENTS_INDOOR_KEY,
@@ -27,9 +29,9 @@ const sheets = list.nodes.filter((n) => !n.screen);
 const screens = list.nodes.filter((n) => n.screen);
 check(screens.length > 0 && screens.every((n) => n.secret && !n.code), "screens: secret, no fixed code");
 const byLabel = (l) => list.nodes.find((n) => n.label === l);
-const foyer = byLabel("Foyer") ?? sheets[0];
-const far = byLabel("Lounge") ?? screens[screens.length - 1];
-const screen = byLabel("OSM-Assembly") ?? screens[0];
+const foyer = byLabel("Halle A4 Süd") ?? byLabel("Foyer") ?? sheets[0];
+const far = byLabel("Eingang Süd") ?? byLabel("Lounge") ?? screens[screens.length - 1];
+const screen = byLabel("Eingang Mitte") ?? byLabel("OSM-Assembly") ?? screens[0];
 
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const ctx = await browser.newContext({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 2, locale: "de-DE" });
@@ -71,7 +73,10 @@ check(await page.$eval("#claim", (b) => b.disabled), "no claim before a scan");
 
 // A sheet by link.
 let m = await scan(foyer.code);
-check(m?.ok && m.node === foyer.id, "sheet code places the player", JSON.stringify(m));
+check(m?.ok && m.node === foyer.id, "sheet code places the player", JSON.stringify(m).slice(0, 160));
+check(m?.reach?.[0] === foyer.id && m.reach.length > 1, "reach: the junction and its neighbours", JSON.stringify(m?.reach));
+check(m?.reach_far?.length > m?.reach?.length && m.reach.every((n) => m.reach_far.includes(n)), "Weitblick reaches one step more", `${m?.reach?.length} → ${m?.reach_far?.length}`);
+const reach = m?.reach ?? [];
 if (await page.isVisible("#intro")) await page.click("#intro-ok");
 await page.waitForFunction(() => document.getElementById("gps")?.textContent?.includes("Knoten"), null, { timeout: 10_000 }).catch(() => {});
 check((await page.textContent("#gps"))?.includes("noch"), "hold countdown", await page.textContent("#gps"));
@@ -83,7 +88,17 @@ const front = (await page.textContent("#claim"))?.includes("Front");
 await page.click("#claim").catch(() => {});
 const cl = front ? { node: foyer.id, ok: false, reason: "own" } : await next("claim");
 // Earlier runs may have left a source there ("strong", "own"): only range counts here.
-check(cl?.node === foyer.id && (cl.ok || !["range", "moving"].includes(cl.reason)), "claim at the scanned junction in range", JSON.stringify(cl ?? {}).slice(0, 120));
+check(reach.includes(cl?.node) && (cl.ok || !["range", "moving"].includes(cl.reason)), "claim takes a junction in reach", JSON.stringify(cl ?? {}).slice(0, 120));
+// After the cooldown the button goes on to a neighbour (own junction now).
+if (cl?.ok) {
+  await page.waitForTimeout((cl.wait ?? 10) * 1000 + 1500);
+  await page.$$eval("#side-card, #first-card, .card-overlay, #claim-card", (els) => els.forEach((e) => (e.hidden = true))).catch(() => {});
+  if (!(await page.textContent("#claim"))?.includes("Front")) {
+    await page.click("#claim").catch(() => {});
+    const c2 = await next("claim");
+    check(c2 && c2.node !== foyer.id && reach.includes(c2.node) && c2.reason !== "range", "next claim: a neighbour one step away", JSON.stringify(c2 ?? {}).slice(0, 120));
+  } else check(true, "next claim: all in reach own already (skipped)");
+}
 
 // Screen junction: fixed code refused, its screen code taken, old one refused.
 const secret = C.unhex(screen.secret);
@@ -92,8 +107,8 @@ m = await scan(`${screen.id.toString(36)}-${C.mac(secret, "s")}`);
 check(m && !m.ok && m.reason === "screen", "fixed code at a screen refused", m?.reason);
 m = await scan(C.screenCode(secret, screen.id, wnow - 5));
 check(m && !m.ok && m.reason === "old", "old screen code refused", m?.reason);
-// Foyer to the screen is ~40 m: on foot that takes a while.
-await page.waitForTimeout(12_000);
+// To the screen on foot (3 m/s + 10 m slack): ~55 m in the Messe graph.
+await page.waitForTimeout(20_000);
 m = await scan(C.screenCode(secret, screen.id, C.windowOf(Date.now(), list.window_s)));
 check(m?.ok && m.node === screen.id, "screen code places the player", JSON.stringify(m));
 

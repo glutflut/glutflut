@@ -26,6 +26,13 @@ const pendingSet = (code: string | null) => {
 };
 
 /** Take `?q=` from the address (call once at start; a shared link doesn't pass it on). */
+// What a claim reaches from the held junction (the scan's answer): steps
+// along the paths, one more with Weitblick armed. `null`: not indoors / no hold.
+let reachNear: Set<number> | null = null;
+let reachFar: Set<number> | null = null;
+/** Indoors with a hold: the junctions a claim reaches now; else null (metres count). */
+export const indoorReach = (armed: boolean): Set<number> | null => (armed ? reachFar : reachNear);
+
 /** The welcome card indoors (also while watching): scan instead of walking,
  * no "do you live here". */
 export function introIndoor(on: boolean) {
@@ -137,6 +144,7 @@ export function setupIndoor(d: {
     }
     clearInterval(timer);
     timer = 0;
+    reachNear = reachFar = null;
     d.place(null);
     $("gps").textContent = t("indoor.scan");
   }
@@ -158,13 +166,15 @@ export function setupIndoor(d: {
       pendingSet(null);
       if (code) send(code);
     },
-    answer(m: { ok: boolean; reason?: string; lat?: number; lon?: number; hold_s: number; label?: string }) {
+    answer(m: { ok: boolean; reason?: string; lat?: number; lon?: number; hold_s: number; label?: string; reach?: number[]; reach_far?: number[] }) {
       if (!m.ok || m.lat === undefined || m.lon === undefined) {
         const why = m.reason === "old" ? "indoor.old" : m.reason === "moving" ? "indoor.moving" : m.reason === "screen" ? "indoor.screen" : "indoor.unknown";
         return void toast(t(why), 5000);
       }
       until = Date.now() + m.hold_s * 1000;
       label = m.label ?? "";
+      reachNear = m.reach ? new Set(m.reach) : null;
+      reachFar = m.reach_far ? new Set(m.reach_far) : reachNear;
       // Which code the camera read (sheets side by side: the neighbour's).
       if (label) toast(label, 2500);
       d.place([m.lon, m.lat]);

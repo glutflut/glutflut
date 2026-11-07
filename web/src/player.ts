@@ -16,6 +16,8 @@ export function setupPlayer(d: {
   net: Net;
   tiles: TileLayer;
   claimRadius: () => number;
+  /** Indoors the reach is steps along the paths: no circle. */
+  rangeHidden?: () => boolean;
   /** After each position: the tunnel, the claim button, the hotspot hint. */
   moved: () => void;
 }) {
@@ -49,7 +51,8 @@ export function setupPlayer(d: {
     map.fitBounds(d.meta.region.bounds, { padding: 40 });
   };
 
-  const drawRange = () => me && (map.getSource("range") as maplibregl.GeoJSONSource).setData(circle(me, d.claimRadius()));
+  const drawRange = () =>
+    me && (map.getSource("range") as maplibregl.GeoJSONSource).setData(d.rangeHidden?.() ? { type: "FeatureCollection", features: [] } : circle(me, d.claimRadius()));
 
   /** The dot, range and camera at `p` (nothing sent). */
   function show(p: [number, number]) {

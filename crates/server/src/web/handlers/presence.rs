@@ -85,6 +85,8 @@ pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
                 lon: None,
                 hold_s: 0.0,
                 label: None,
+                reach: None,
+                reach_far: None,
             },
         )
     };
@@ -125,6 +127,17 @@ pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
             .observe(&t, at, now, game.hotspots.bonus(at, rules.hotspot_radius_m));
         game.hotspots.observe(&t, at);
     }
+    let hops = rules.indoor.reach_hops;
+    let reach_far = crate::indoor::reach(&game.node_by_id, game.sim.as_deref(), node, hops + 1);
+    let near: std::collections::HashSet<i64> =
+        crate::indoor::reach(&game.node_by_id, game.sim.as_deref(), node, hops)
+            .into_iter()
+            .collect();
+    let reach: Vec<i64> = reach_far
+        .iter()
+        .copied()
+        .filter(|n| near.contains(n))
+        .collect();
     info!(conn, node, "indoor scan");
     send(
         out,
@@ -136,6 +149,8 @@ pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
             lon: Some(lon),
             hold_s: rules.indoor.hold_s,
             label,
+            reach: Some(reach),
+            reach_far: Some(reach_far),
         },
     );
 }

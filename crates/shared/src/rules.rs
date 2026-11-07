@@ -109,6 +109,9 @@ pub struct Indoor {
     pub enabled: bool,
     pub hold_s: f32,
     pub window_s: u32,
+    /// Reach along the paths instead of metres: the held junction and the
+    /// ones up to this many steps away (Weitblick: one more).
+    pub reach_hops: u32,
 }
 
 impl Default for Indoor {
@@ -117,6 +120,7 @@ impl Default for Indoor {
             enabled: false,
             hold_s: 180.0,
             window_s: 30,
+            reach_hops: 1,
         }
     }
 }

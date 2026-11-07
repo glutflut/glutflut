@@ -1630,6 +1630,8 @@ async fn handle_socket(
                         lon: None,
                         hold_s: 0.0,
                         label: None,
+                        reach: None,
+                        reach_far: None,
                     };
                     let _ = out.send(msg.to_json());
                     continue;

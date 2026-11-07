@@ -22,6 +22,9 @@ All notable changes to Glut & Flut. Versions follow
   key `ELEMENTS_INDOOR_KEY`. The answer names the junction (its label);
   no automatic hotspots and no "Wie ist es hier?" card indoors; the welcome card says to scan a code
   instead of walking and leaves out "do you live here" (not sent indoors).
+  A claim reaches along the paths instead of a radius: the held junction
+  and its neighbours (`[indoor] reach_hops`, Weitblick one step more); the
+  scan answer names them, no range circle indoors.
 
 ### Fixed
 

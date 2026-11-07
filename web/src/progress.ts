@@ -180,6 +180,8 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
       showMine();
     },
     claimRadius,
+    /** Weitblick armed. */
+    reachArmed: () => ab.reach.armed,
     /** The rules' claim radius, without the armed reach. */
     baseRadius: () => baseM,
     supply: () => supply,

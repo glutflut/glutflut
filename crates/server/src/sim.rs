@@ -147,6 +147,11 @@ impl NodeById {
     pub fn get(&self, id: &i64) -> Option<&Entity> {
         self.index(*id).map(|i| &self.ents[i])
     }
+
+    /// The id at dense index `i` (the reach graph's order).
+    pub fn id_at(&self, i: usize) -> Option<i64> {
+        self.ids.get(i).copied()
+    }
 }
 
 /// Precomputed reach graph. Built once in [`setup_elements`].

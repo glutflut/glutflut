@@ -48,6 +48,14 @@ pub enum ServerMsg<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         label: Option<String>,
+        /// What a claim reaches from here (`[indoor] reach_hops` steps along
+        /// the paths), and with Weitblick armed (one step more).
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        reach: Option<Vec<i64>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        reach_far: Option<Vec<i64>>,
     },
     /// Answer to `ping`, from the gateway.
     Pong,
