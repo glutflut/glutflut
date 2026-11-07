@@ -1628,6 +1628,7 @@ async fn handle_socket(
                         lat: None,
                         lon: None,
                         hold_s: 0.0,
+                        label: None,
                     };
                     let _ = out.send(msg.to_json());
                     continue;

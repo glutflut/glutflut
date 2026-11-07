@@ -474,7 +474,7 @@ A claimed or permanent source whose junction has at least `min_neighbours` neigh
 
 #### `[indoor]` (halls, `indoor.rs`)
 
-Where GPS fails, a scanned code places the player at a junction for `hold_s`; GPS fixes are ignored (test servers: taps still move). A sheet on the wall has a fixed code; a junction with `node_type = 'screen'` takes only the changing code of its screen (`web/knoten.html`, new every `window_s`, good for two windows after its own). Codes far apart in too short a time lock the player like a GPS jump. Set `rules/indoor.toml` (claim radius 25 m, `field.reach_scale` 60); graph and region: `db/import/indoor-region.sh`; sheets and screen links: `/indoor.html` (admin, `GET /api/ops/indoor`).
+Where GPS fails, a scanned code places the player at a junction for `hold_s`; GPS fixes are ignored (test servers: taps still move). A sheet on the wall has a fixed code; a junction with `node_type = 'screen'` takes only the changing code of its screen (`web/knoten.html`, new every `window_s`, good for two windows after its own). Codes far apart in too short a time lock the player like a GPS jump. Set `rules/indoor.toml` (claim radius 25 m, `field.reach_scale` 60); graph and region: `db/import/indoor-region.sh` (the label goes to `story_tag` and the scan answer names it); no automatic hotspots and no rating card indoors; sheets and screen links: `/indoor.html` (admin, `GET /api/ops/indoor`).
 
 | Key | Default | indoor.toml | Meaning |
 | --- | --- | --- | --- |

@@ -126,6 +126,7 @@ export const pt: Dict = {
   "indoor.aim": "Aponte a câmera para o código do nó.",
   "indoor.scan": "Interior: leia o código de um nó",
   "indoor.here": "Você está no nó · faltam {t}",
+  "indoor.at": "Você está em: {name} · faltam {t}",
   "indoor.nocamera": "Sem acesso à câmera. Você também pode abrir o código com o app da câmera.",
   "indoor.foreign": "Esse não é um código do Glut & Flut.",
   "indoor.old": "O código expirou. Leia a tela de novo.",

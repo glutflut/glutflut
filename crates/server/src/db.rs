@@ -169,7 +169,24 @@ pub fn load_region_data(conn_str: &str, slug: &str) -> Option<crate::RegionData>
         tiles: None,
         tide,
         rivers,
+        labels: load_labels(conn_str, slug).unwrap_or_else(|e| {
+            warn!(error = %e, "no junction names");
+            Default::default()
+        }),
     })
+}
+
+/// Junction names (`story_tag`), for the indoor scan answer.
+fn load_labels(conn_str: &str, slug: &str) -> Result<crate::indoor::Labels, Box<dyn Error>> {
+    let mut c = connect(conn_str)?;
+    let rows = c.query(
+        "SELECT n.id, n.story_tag FROM geo.nodes n JOIN geo.regions r ON r.id = n.region_id \
+         WHERE r.slug = $1 AND n.is_active AND n.story_tag IS NOT NULL AND n.story_tag <> ''",
+        &[&slug],
+    )?;
+    Ok(crate::indoor::Labels(
+        rows.iter().map(|r| (r.get(0), r.get(1))).collect(),
+    ))
 }
 
 /// The region's gauge and its junctions near tidal water; `None`

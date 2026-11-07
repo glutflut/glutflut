@@ -175,6 +175,11 @@ impl Hotspots {
         }
     }
 
+    /// No automatic slots (indoors); manual hotspots still work.
+    pub fn no_auto(&mut self) {
+        self.n_active = 0;
+    }
+
     /// The city's sites changed (none: automatic ones again); from the next slot.
     pub fn set_sites(&mut self, chosen: &[crate::places::SiteRow], region: &RegionInfo) {
         if self.pinned {

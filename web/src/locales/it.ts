@@ -126,6 +126,7 @@ export const it: Dict = {
   "indoor.aim": "Inquadra il codice del nodo con la fotocamera.",
   "indoor.scan": "Al chiuso: scansiona il codice di un nodo",
   "indoor.here": "Sei al nodo · ancora {t}",
+  "indoor.at": "Sei a: {name} · ancora {t}",
   "indoor.nocamera": "Nessun accesso alla fotocamera. Puoi anche aprire il codice con l’app fotocamera.",
   "indoor.foreign": "Non è un codice di Glut & Flut.",
   "indoor.old": "Il codice è scaduto. Scansiona di nuovo lo schermo.",

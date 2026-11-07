@@ -702,6 +702,8 @@ pub struct RegionData {
     pub tide: Option<tide::Setup>,
     /// Junctions at big rivers and the regions downstream (`found.rs`).
     pub rivers: found::Rivers,
+    /// Junction names (`geo.nodes.story_tag`; indoors the sheet's label).
+    pub labels: indoor::Labels,
 }
 
 /// Spawn the region's graph from `prepare` as ECS entities (S2), with its
@@ -714,6 +716,7 @@ fn load_geo(
     analytics_tx: Res<analytics::AnalyticsTx>,
     mut scores: ResMut<score::Scores>,
     mut keeps: ResMut<keep::Keeps>,
+    rules: Res<sim::GameRules>,
 ) {
     let Some(data) = loaded.0.take() else {
         return;
@@ -729,8 +732,10 @@ fn load_geo(
         tiles,
         tide,
         rivers,
+        labels,
     } = data;
     commands.insert_resource(rivers);
+    commands.insert_resource(labels);
     // Automatic hotspots never at the waterline (`tide.rs`).
     let shore = tide.as_ref().map(tide::Setup::shore).unwrap_or_default();
     commands.insert_resource(tide::LiveTide::new(tide));
@@ -794,6 +799,10 @@ fn load_geo(
         hotspot::Hotspots::new(&inland, &region, &places.sites, analytics_tx.clone());
     drop(inland);
     hotspots.set_plans(&places.plans, &region);
+    // Indoors: no automatic hotspots (a hall is small; ops can still add one).
+    if rules.0.indoor.enabled {
+        hotspots.no_auto();
+    }
     commands.insert_resource(hotspots);
 
     let (node_count, edge_count) = (graph.nodes.len(), graph.edges.len());

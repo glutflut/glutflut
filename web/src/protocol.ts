@@ -5,7 +5,7 @@
  * What the server sends.
  */
 export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: number, }
-  | { "t": "scan", ok: boolean, reason?: string, node?: number, lat?: number, lon?: number, hold_s: number, }
+  | { "t": "scan", ok: boolean, reason?: string, node?: number, lat?: number, lon?: number, hold_s: number, label?: string, }
   | { "t": "pong" }
   | { "t": "busy" }
   | { "t": "recover", ok: boolean, reason: "unknown" | "wait", }

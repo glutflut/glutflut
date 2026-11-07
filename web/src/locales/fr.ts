@@ -126,6 +126,7 @@ export const fr: Dict = {
   "indoor.aim": "Vise le code du nœud avec la caméra.",
   "indoor.scan": "À l’intérieur : scanne le code d’un nœud",
   "indoor.here": "Tu es au nœud · encore {t}",
+  "indoor.at": "Tu es à : {name} · encore {t}",
   "indoor.nocamera": "Pas d’accès à la caméra. Tu peux aussi ouvrir le code avec l’appli photo.",
   "indoor.foreign": "Ce n’est pas un code Glut & Flut.",
   "indoor.old": "Le code a expiré. Scanne l’écran à nouveau.",

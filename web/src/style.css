@@ -146,6 +146,8 @@ body.watching #board .you { display: none; }
   border-radius: 8px;
 }
 #gps.tap { cursor: pointer; text-decoration: underline dotted; }
+/* Indoors the line carries the junction's name: one line, cut off. */
+body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 #actions .row {
   display: flex;

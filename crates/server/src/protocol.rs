@@ -44,6 +44,10 @@ pub enum ServerMsg<'a> {
         #[ts(optional)]
         lon: Option<f64>,
         hold_s: f32,
+        /// The junction's name (the sheet's label), if it has one.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        label: Option<String>,
     },
     /// Answer to `ping`, from the gateway.
     Pong,

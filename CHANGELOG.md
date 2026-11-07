@@ -15,10 +15,13 @@ All notable changes to Glut & Flut. Versions follow
   counts too. In the app a "Scan" button with the camera (BarcodeDetector,
   else jsQR). Graph from a hand-drawn GeoJSON (`db/import/indoor-region.sh`),
   sheets and screen links on `/indoor.html` (admin, `GET /api/ops/indoor`),
-  key `ELEMENTS_INDOOR_KEY`.
+  key `ELEMENTS_INDOOR_KEY`. The answer names the junction (its label);
+  no automatic hotspots and no "Wie ist es hier?" card indoors.
 
 ### Fixed
 
+- The keep button and the link check used a fixed 80 m instead of the
+  region's claim radius (the server refused what the button offered).
 - A new connection no longer stands at the region's centre until its first
   position: claims there were possible without any GPS fix.
 

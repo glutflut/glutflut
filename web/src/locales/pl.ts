@@ -126,6 +126,7 @@ export const pl: Dict = {
   "indoor.aim": "Skieruj aparat na kod przy węźle.",
   "indoor.scan": "W środku: zeskanuj kod przy węźle",
   "indoor.here": "Stoisz przy węźle · jeszcze {t}",
+  "indoor.at": "Stoisz przy: {name} · jeszcze {t}",
   "indoor.nocamera": "Brak dostępu do aparatu. Kod możesz też otworzyć aplikacją aparatu.",
   "indoor.foreign": "To nie jest kod Glut & Flut.",
   "indoor.old": "Kod wygasł. Zeskanuj ekran jeszcze raz.",

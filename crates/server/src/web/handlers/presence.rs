@@ -84,6 +84,7 @@ pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
                 lat: None,
                 lon: None,
                 hold_s: 0.0,
+                label: None,
             },
         )
     };
@@ -95,6 +96,7 @@ pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
         return refuse("unknown");
     };
     let (lat, lon) = (g.lat, g.lon);
+    let label = game.labels.as_ref().and_then(|l| l.0.get(&node).cloned());
     let Ok((_, mut pos, _, tracked, slot, mut motion)) = game.players.get_mut(*e) else {
         return;
     };
@@ -133,6 +135,7 @@ pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
             lat: Some(lat),
             lon: Some(lon),
             hold_s: rules.indoor.hold_s,
+            label,
         },
     );
 }

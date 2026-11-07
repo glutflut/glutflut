@@ -112,7 +112,8 @@ export function setupPerm(
   net: Net,
   toast: (s: string, ms?: number) => void,
   distM: (a: [number, number], b: [number, number]) => number,
-  radiusM: number,
+  /** The server's claim radius (rules, from the welcome). */
+  radiusM: () => number,
   /** Show a source on the map (after placing, or from the list). */
   focus: (node: number) => void,
   /** The player's level (1 without levels). */
@@ -663,7 +664,7 @@ export function setupPerm(
       action = null;
       let label = "";
       if (on && me && f) {
-        const near = (s: PermSrc) => distM(me, s.ll) <= radiusM;
+        const near = (s: PermSrc) => distM(me, s.ll) <= radiusM();
         const own = mine
           .map((m) => ({ m, s: sources.find((s) => s.node === m.node && s.kind === "keep") }))
           .find((x) => x.s && near(x.s));

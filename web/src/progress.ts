@@ -180,6 +180,8 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
       showMine();
     },
     claimRadius,
+    /** The rules' claim radius, without the armed reach. */
+    baseRadius: () => baseM,
     supply: () => supply,
     reinforce: () => reinforce,
     welcome(m: Msg<"welcome">) {

@@ -152,6 +152,10 @@ pub fn codes_for(region: &str, node: i64) -> Option<(String, String)> {
     Some((static_code(&s, node), hex(&s)))
 }
 
+/// Junction names by node id (`geo.nodes.story_tag`).
+#[derive(Resource, Default)]
+pub struct Labels(pub std::collections::HashMap<i64, String>);
+
 /// Junction held after a scan, until when (on the player's `Motion`).
 #[derive(Clone, Copy, Debug)]
 pub struct Held {

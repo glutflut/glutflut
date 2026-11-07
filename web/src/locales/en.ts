@@ -126,6 +126,7 @@ export const en: Dict = {
   "indoor.aim": "Point the camera at the code on the node.",
   "indoor.scan": "Indoors: scan the code at a node",
   "indoor.here": "You're at the node · {t} left",
+  "indoor.at": "You're at: {name} · {t} left",
   "indoor.nocamera": "No camera access. You can also open the code with your camera app.",
   "indoor.foreign": "That's not a Glut & Flut code.",
   "indoor.old": "The code has expired. Scan the screen again.",

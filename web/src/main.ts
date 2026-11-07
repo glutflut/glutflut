@@ -54,7 +54,7 @@ import { setupInset } from "./inset";
 import { setupNavMore } from "./navmore";
 import { setupRecovery } from "./recovery";
 import { onProfile, renderProfiles, sendProfile } from "./profile";
-import { CLAIM_RADIUS_M, COLORS, distM, owner } from "./geo";
+import { COLORS, distM, owner } from "./geo";
 import { $, params, toast } from "./page";
 import { KEYS, blocked, load, save } from "./store";
 import { join, joinFree, joinGate, kiosk, tryJoin, watching } from "./watch";
@@ -235,7 +235,7 @@ async function main() {
     net,
     toast,
     distM,
-    CLAIM_RADIUS_M,
+    () => progress.baseRadius(),
     (node) => {
       const ll = sources.all().find((x) => x.node === node)?.ll ?? nodePos.get(node);
       if (!ll) return;
@@ -300,6 +300,7 @@ async function main() {
     faction: () => faction,
     me: () => player.me(),
     claimRadius: progress.claimRadius,
+    baseRadius: progress.baseRadius,
     supply: progress.supply,
     reinforce: progress.reinforce,
     perm,

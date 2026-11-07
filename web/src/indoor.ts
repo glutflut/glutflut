@@ -68,6 +68,8 @@ export function setupIndoor(d: {
 }) {
   let on = false;
   let until = 0;
+  /** The held junction's name (sheet label), if any. */
+  let label = "";
   let timer = 0;
   let stream: MediaStream | null = null;
   let scanning = false;
@@ -117,7 +119,8 @@ export function setupIndoor(d: {
   function tick() {
     const left = Math.round((until - Date.now()) / 1000);
     if (left > 0) {
-      $("gps").textContent = t("indoor.here", { t: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` });
+      const time = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+      $("gps").textContent = label ? t("indoor.at", { name: label, t: time }) : t("indoor.here", { t: time });
       return;
     }
     clearInterval(timer);
@@ -142,12 +145,15 @@ export function setupIndoor(d: {
       pendingSet(null);
       if (code) send(code);
     },
-    answer(m: { ok: boolean; reason?: string; lat?: number; lon?: number; hold_s: number }) {
+    answer(m: { ok: boolean; reason?: string; lat?: number; lon?: number; hold_s: number; label?: string }) {
       if (!m.ok || m.lat === undefined || m.lon === undefined) {
         const why = m.reason === "old" ? "indoor.old" : m.reason === "moving" ? "indoor.moving" : m.reason === "screen" ? "indoor.screen" : "indoor.unknown";
         return void toast(t(why), 5000);
       }
       until = Date.now() + m.hold_s * 1000;
+      label = m.label ?? "";
+      // Which code the camera read (sheets side by side: the neighbour's).
+      if (label) toast(label, 2500);
       d.place([m.lon, m.lat]);
       tick();
       timer ||= window.setInterval(tick, 1000);

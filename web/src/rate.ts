@@ -141,7 +141,8 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
       claims++;
       // In the area of a city question: ask at once (once per visit).
       const due = claims >= ASK_EVERY || !!cityQuestion(me);
-      if (!due || asks >= ASK_MAX || !me || !sheet.hidden || btn.disabled || near(me)) return;
+      // Not indoors (the button is hidden there too).
+      if (!due || asks >= ASK_MAX || !me || !sheet.hidden || btn.disabled || near(me) || document.body.classList.contains("indoor")) return;
       if (!cityQuestion(me) && lastAsk && Date.now() - lastAsk < askGap) return;
       claims = 0;
       asks++;

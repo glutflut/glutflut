@@ -5,7 +5,7 @@ import type { Sound } from "./sound";
 import type { Src } from "./sources";
 import type { Link } from "./perm";
 import type { Far } from "./protocol";
-import { arrow, CLAIM_RADIUS_M, distM, owner } from "./geo";
+import { arrow, distM, owner } from "./geo";
 import { $, plus, toast } from "./page";
 
 const TOO_FAST = t("too.fast");
@@ -38,6 +38,8 @@ export function setupClaim(d: {
   faction: () => Faction | null;
   me: () => [number, number] | null;
   claimRadius: () => number;
+  /** The rules' claim radius (the armed reach aside). */
+  baseRadius: () => number;
   supply: () => number | null;
   reinforce: () => boolean;
   perm: { update(me: [number, number] | null, sources: Src[], faction: Faction | null): void };
@@ -95,7 +97,7 @@ export function setupClaim(d: {
   function peek() {
     const me = d.me();
     // The server's radius around A, not the armed reach (that counts from B).
-    const l = me && d.faction() ? d.links().find((l) => distM(me, l.ll) <= CLAIM_RADIUS_M) : undefined;
+    const l = me && d.faction() ? d.links().find((l) => distM(me, l.ll) <= d.baseRadius()) : undefined;
     if (!l) {
       linkTarget = null;
       linkWhy = null;

@@ -125,6 +125,7 @@ export const de = {
   "indoor.aim": "Halte die Kamera auf den Code am Knoten.",
   "indoor.scan": "Drinnen: Code an einem Knoten scannen",
   "indoor.here": "Du stehst am Knoten · noch {t}",
+  "indoor.at": "Du stehst an: {name} · noch {t}",
   "indoor.nocamera": "Keine Kamera erlaubt. Du kannst den Code auch mit der Kamera-App öffnen.",
   "indoor.foreign": "Das ist kein Code von Glut & Flut.",
   "indoor.old": "Der Code ist abgelaufen. Scanne den Bildschirm noch einmal.",
