@@ -13,8 +13,17 @@ let send = (_: Profile) => {};
 export function onProfile(f: (p: Profile) => void) {
   send = f;
 }
-// Only from 16 (consent, Art. 8 GDPR).
-export const sendProfile = () => send(isAdult() ? profile : { age: null, local: null });
+let indoorOn = false;
+const indoor = () => indoorOn;
+/** Indoors (welcome, also while watching): no "lives here", not sent. */
+export function setProfileIndoor(on: boolean) {
+  if (on === indoorOn) return;
+  indoorOn = on;
+  renderProfiles();
+  sendProfile();
+}
+// Only from 16 (consent, Art. 8 GDPR); indoors "lives here" means nothing.
+export const sendProfile = () => send(isAdult() ? { ...profile, local: indoor() ? null : profile.local } : { age: null, local: null });
 
 function save() {
   saveJson(KEYS.profile, profile);
@@ -33,6 +42,7 @@ export function renderProfiles() {
     [t("profile.age"), [[t("profile.age.u30"), { age: "u30" }], [t("profile.age.30_59"), { age: "30_59" }], [t("profile.age.60p"), { age: "60p" }]]],
     [t("profile.local"), [[t("profile.yes"), { local: true }], [t("profile.no"), { local: false }]]],
   ];
+  if (indoor()) rows.pop();
   for (const host of document.querySelectorAll<HTMLElement>(".profile")) {
     host.replaceChildren(
       Object.assign(document.createElement("div"), {

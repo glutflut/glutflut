@@ -36,6 +36,7 @@ export const es: Dict = {
   "intro.title": "¡Bienvenido a Glut & Flut!",
   "city.in": "en {city}",
   "intro.text": "Fuego contra agua en las calles de {city}. Camina y toca «Conquistar» para ganar los cruces cercanos para tu bando.",
+  "intro.text.indoor": "Fuego contra agua en {city}. Escanea el código QR de un nodo: así estás allí y puedes tocar «Conquistar» para ganarlo para tu bando.",
   "intro.ok": "¡Vamos!",
   "intro.watch": "Solo mirar",
   "watch.join": "Jugar",

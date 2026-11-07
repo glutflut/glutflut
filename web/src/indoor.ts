@@ -3,9 +3,10 @@
 // while. The camera scanner uses BarcodeDetector where it works, else jsQR
 // (loaded only then). A phone camera app opens the game link itself
 // (`?q=`): that code is sent once the server says the region is indoor.
-import { t } from "./i18n";
+import { t, type Key } from "./i18n";
 import { codeFromScan } from "./indoor-code";
 import type { Net } from "./net";
+import { setProfileIndoor } from "./profile";
 import { $, toast } from "./page";
 
 // Kept for this tab across the reload that joining makes.
@@ -25,6 +26,17 @@ const pendingSet = (code: string | null) => {
 };
 
 /** Take `?q=` from the address (call once at start; a shared link doesn't pass it on). */
+/** The welcome card indoors (also while watching): scan instead of walking,
+ * no "do you live here". */
+export function introIndoor(on: boolean) {
+  const intro = document.querySelector<HTMLElement>('#intro [data-i18n^="intro.text"]');
+  if (intro) {
+    intro.dataset.i18n = on ? "intro.text.indoor" : "intro.text";
+    intro.textContent = t(intro.dataset.i18n as Key);
+  }
+  setProfileIndoor(on);
+}
+
 export function takeScanCode() {
   const u = new URL(location.href);
   const q = u.searchParams.get("q");
@@ -138,6 +150,7 @@ export function setupIndoor(d: {
       on = indoor;
       document.body.classList.toggle("indoor", on);
       $("scan").hidden = !on;
+      introIndoor(on);
       if (!on) return;
       if (!timer) $("gps").textContent = t("indoor.scan");
       $("gps").onclick = () => void open();

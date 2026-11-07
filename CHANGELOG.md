@@ -16,7 +16,8 @@ All notable changes to Glut & Flut. Versions follow
   else jsQR). Graph from a hand-drawn GeoJSON (`db/import/indoor-region.sh`),
   sheets and screen links on `/indoor.html` (admin, `GET /api/ops/indoor`),
   key `ELEMENTS_INDOOR_KEY`. The answer names the junction (its label);
-  no automatic hotspots and no "Wie ist es hier?" card indoors.
+  no automatic hotspots and no "Wie ist es hier?" card indoors; the welcome card says to scan a code
+  instead of walking and leaves out "do you live here" (not sent indoors).
 
 ### Fixed
 

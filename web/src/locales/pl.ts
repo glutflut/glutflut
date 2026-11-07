@@ -35,6 +35,7 @@ export const pl: Dict = {
   "intro.title": "Witaj w Glut & Flut!",
   "city.in": "w mieście {city}",
   "intro.text": "Ogień przeciw wodzie na ulicach miasta {city}. Chodź po mieście i stuknij „Zdobądź”, aby zdobywać skrzyżowania w pobliżu dla swojej strony.",
+  "intro.text.indoor": "Ogień przeciw wodzie: {city}. Zeskanuj kod QR przy węźle – wtedy tam stoisz i możesz stuknąć „Zdobądź”, aby zdobyć go dla swojej strony.",
   "intro.ok": "Zaczynamy",
   "intro.watch": "Najpierw popatrzę",
   "watch.join": "Dołącz do gry",

@@ -34,6 +34,7 @@ export const de = {
   "intro.title": "Willkommen bei Glut & Flut!",
   "city.in": "in {city}",
   "intro.text": "Feuer gegen Wasser auf den Straßen {in_city}. Geh los und tipp auf „Erobern“, um Kreuzungen in deiner Nähe für deine Seite zu gewinnen.",
+  "intro.text.indoor": "Feuer gegen Wasser {in_city}. Scanne den QR-Code an einem Knoten: Dann stehst du dort und kannst ihn mit „Erobern“ für deine Seite gewinnen.",
   "intro.ok": "Los geht's",
   "intro.watch": "Erst zuschauen",
   "watch.join": "Mitspielen",

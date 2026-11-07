@@ -26,7 +26,7 @@ import { setupFeedback } from "./feedback";
 import { Sound } from "./sound";
 import { isCounted } from "./consent";
 import { presenceAnswer, takePresenceCode } from "./presence";
-import { scanPending, setupIndoor, takeScanCode } from "./indoor";
+import { introIndoor, scanPending, setupIndoor, takeScanCode } from "./indoor";
 import { setupCampaign } from "./campaign";
 import { setupTunnel } from "./tunnel";
 import { setupTop } from "./top";
@@ -433,6 +433,7 @@ async function main() {
           $("nav-rank").hidden = false;
           $("nav-rank").onclick = board.openRank;
         }
+        introIndoor(m.indoor);
         // Indoors no GPS check: a scanned code is being there.
         if (!kiosk && m.indoor) {
           if (scanPending()) return join();
