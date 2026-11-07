@@ -554,6 +554,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/nodes", get(ops_nodes))
                     .route("/api/ops/indoor", get(ops_indoor))
                     .route("/api/ops/regions", get(ops_regions))
+                    .route("/api/ops/feedback/{id}", post(ops_feedback_done))
                     .route("/api/ops/live", get(live_handler))
                     .route("/api/ops/layers", get(layers::list))
                     .route("/api/ops/layers/{id}/{z}/{x}/{y}", get(layers::tile))
@@ -1934,7 +1935,8 @@ async fn feedback_list_handler(
     let rows = tokio::task::spawn_blocking(move || {
         s.with_db(|c| {
             c.query(
-                "SELECT region, day::text, mood, text, lang, version, id FROM game.feedback \
+                "SELECT region, day::text, mood, text, lang, version, id, \
+                   to_char(done_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), done_by FROM game.feedback \
                  WHERE $1::text IS NULL OR region = $1 ORDER BY id DESC LIMIT 500",
                 &[&region],
             )
@@ -1957,6 +1959,8 @@ async fn feedback_list_handler(
                 "lang": r.get::<_, Option<&str>>(4),
                 "version": r.get::<_, Option<&str>>(5),
                 "id": r.get::<_, i64>(6),
+                "done_at": r.get::<_, Option<String>>(7),
+                "done_by": r.get::<_, Option<&str>>(8),
             })
         })
         .collect();
@@ -2266,6 +2270,44 @@ async fn ops_nodes(
 /// `GET /api/ops/regions` (admin for all regions): every region of this shard,
 /// also inactive and unlisted ones, with its rule set, whether it is indoor
 /// and loaded now, players today and in 7 days, and feedback in 30 days (the
+#[derive(Deserialize)]
+struct FeedbackDone {
+    done: bool,
+}
+
+/// `POST /api/ops/feedback/{id} {done}` (admin for all regions): mark a
+/// feedback entry done (or open again), with who did it.
+async fn ops_feedback_done(
+    State(s): State<AppState>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+    Json(b): Json<FeedbackDone>,
+) -> Response {
+    let w = who(&s, c, &headers).await;
+    if !matches!(w.access(), Access::All) || w.role() < Role::Admin {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let by = w.user.clone().unwrap_or_else(|| w.label.clone());
+    let n = tokio::task::spawn_blocking(move || {
+        s.with_db(|c| {
+            c.execute(
+                "UPDATE game.feedback SET done_at = CASE WHEN $2 THEN now() END, \
+                   done_by = CASE WHEN $2 THEN $3 END WHERE id = $1",
+                &[&id, &b.done, &by],
+            )
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match n {
+        Some(1) => StatusCode::NO_CONTENT.into_response(),
+        Some(_) => StatusCode::NOT_FOUND.into_response(),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
 /// admin page, `admin.html`).
 async fn ops_regions(
     State(s): State<AppState>,

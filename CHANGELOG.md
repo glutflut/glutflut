@@ -11,7 +11,9 @@ All notable changes to Glut & Flut. Versions follow
 - Admin page `/admin.html` for the operator: regions of the shard (state,
   rule set, players, reload), feedback from all regions, "play here" wishes
   with their region, indoor QR sheets; ops token or a login with admin for all
-  regions. New `GET /api/ops/regions`.
+  regions. New `GET /api/ops/regions`. Feedback can be marked done
+  (`POST /api/ops/feedback/{id}`, migration V17: `done_at`, `done_by`); the
+  page shows open ones by default.
 - Indoors (`[indoor]`, `rules/indoor.toml`): in halls without GPS a scanned
   code places the player at a junction for three minutes. Sheets on the
   wall carry a fixed code, screens (`/knoten.html`, offline, also e-ink) a code

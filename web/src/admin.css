@@ -20,3 +20,4 @@
 .hint { color: var(--text-secondary); font-size: 14px; max-width: 80ch; }
 .codes li { margin: 8px 0; }
 .msg { color: #c92a2a; min-height: 1.2em; }
+.ed-table tr.done td { opacity: .55; }

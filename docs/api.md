@@ -60,7 +60,7 @@ Common conventions:
 | `GET /api/export/{name}` | read | `dwell.csv`, `flows.csv`, `perception.geojson`, `crowdflow.json`; same query as analytics. |
 | `GET /api/report` | read | Before/after report per focus place (`report.rs`). |
 | `GET /api/areas` | read | Held areas (`areas.rs`). |
-| `GET /api/feedback`, `GET /api/wishes` | ops token | Latest 500 feedback entries (with `id`); wish cells. |
+| `GET /api/feedback`, `GET /api/wishes` | ops token | Latest 500 feedback entries (with `id`, `done_at`, `done_by`); wish cells. |
 | `GET/POST/DELETE /api/ops/chapters`, `GET /api/ops/chapters/suggest` | editor | Chapter editor (`editor.rs`). |
 | `GET/POST/DELETE /api/ops/mottos`, `GET/POST /api/ops/places` | editor | Campaign phrases, places (finds may carry a `text` per language and a `campaign`). |
 | `GET/POST/DELETE /api/ops/notices` | editor | News flashes (`editor_notices.rs`): `{id?, names: {lang: {title, text}}, url, starts, ends}`; the app shows running ones. |
@@ -69,6 +69,7 @@ Common conventions:
 | `GET /api/ops/nodes` | editor | `{t, fire, water, front}`: junction ids per side now. 503 + `Retry-After` until the region has built it (only on request). For pictures of the game state (posts, posters). |
 | `GET /api/ops/indoor` | admin | Indoor regions (`[indoor]`) only, else 409: `{region, base, window_s, hold_s, nodes: [{id, lat, lon, label, screen, code?, secret?}]}`; sheets get their fixed `code`, screens their `secret` (hex) for `/knoten.html`. Contains secrets: admins only. Page: `/indoor.html`. |
 | `GET /api/ops/regions` | admin, all regions | Every region of this shard, also inactive and unlisted: `{shard, regions: [{slug, name, active, listed, rules, cell, language, indoor, loaded, players_today, players_7d, feedback_30d}]}`. Page: `/admin.html` (with feedback, wishes, indoor sheets). |
+| `POST /api/ops/feedback/{id}` | admin, all regions | Body `{done: bool}`: mark a feedback entry done (time and who: login or token label) or open again. 204, 404 unknown id. |
 | `POST /api/ops/reload` | admin | Unload and reload the region from the database. 202 `{region, was_loaded}`. |
 
 Example:

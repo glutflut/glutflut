@@ -19,7 +19,7 @@ type Region = {
   players_7d: number;
   feedback_30d: number;
 };
-type Feedback = { id?: number; region: string; day: string; mood: number; text: string | null; lang: string | null; version: string | null };
+type Feedback = { id?: number; region: string; day: string; mood: number; text: string | null; lang: string | null; version: string | null; done_at?: string | null; done_by?: string | null };
 type Wish = { cell: string; wishes: number; last: string; center: [number, number] | null };
 type Listed = { slug: string; name: string; outline?: { type: string; coordinates: number[][][] | number[][][][] } };
 
@@ -127,13 +127,18 @@ const FACE: Record<number, string> = { 1: "☹️", 2: "😐", 3: "😊" };
 function renderFeedback() {
   const reg = $<HTMLSelectElement>("fb-region").value;
   const withText = $<HTMLInputElement>("fb-text").checked;
+  const onlyOpen = $<HTMLInputElement>("fb-open").checked;
   const names = new Map(regions.map((r) => [r.slug, r.name]));
-  const rows = feedback.filter((f) => (!reg || f.region === reg) && (!withText || f.text?.trim()));
-  $("fb-sum").textContent = `${rows.length} von ${feedback.length} (die letzten 500)`;
+  const rows = feedback.filter((f) => (!reg || f.region === reg) && (!withText || f.text?.trim()) && (!onlyOpen || !f.done_at));
+  const open = feedback.filter((f) => !f.done_at).length;
+  $("fb-sum").textContent = `${rows.length} von ${feedback.length} (die letzten 500, ${open} offen)`;
   $("feedback").innerHTML =
-    `<tr><th>Tag</th><th></th><th>Region</th><th>Text</th><th>Sprache</th><th>Version</th></tr>` +
+    `<tr><th>Tag</th><th></th><th>Region</th><th>Text</th><th>Sprache</th><th>Version</th><th></th></tr>` +
     rows
-      .map((f) => `<tr><td>${esc(f.day)}</td><td class="mood" title="${f.mood}">${FACE[f.mood] ?? f.mood}</td><td>${esc(names.get(f.region) ?? f.region)}</td><td class="text">${esc(f.text ?? "")}</td><td>${esc(f.lang ?? "")}</td><td class="slug">${esc(f.version ?? "")}</td></tr>`)
+      .map((f) => {
+        const done = f.done_at ? `<span class="slug" title="${esc(f.done_by ?? "")}">erledigt ${esc(f.done_at.slice(0, 10))}</span> <button data-done="${f.id}" data-to="0">wieder offen</button>` : `<button data-done="${f.id}" data-to="1">erledigt</button>`;
+        return `<tr${f.done_at ? ' class="done"' : ""}><td>${esc(f.day)}</td><td class="mood" title="${f.mood}">${FACE[f.mood] ?? f.mood}</td><td>${esc(names.get(f.region) ?? f.region)}</td><td class="text">${esc(f.text ?? "")}</td><td>${esc(f.lang ?? "")}</td><td class="slug">${esc(f.version ?? "")}</td><td>${f.id === undefined ? "" : done}</td></tr>`;
+      })
       .join("");
 }
 
@@ -150,11 +155,34 @@ function feedbackRegions() {
       .map(([s, n]) => `<option value="${esc(s)}">${esc(names.get(s) ?? s)} (${n})</option>`)
       .join("");
   sel.value = keep;
-  // Badge: feedback with text in the last 7 days.
-  const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-  const recent = feedback.filter((f) => f.day >= since && f.text?.trim()).length;
-  $("badge-fb").textContent = recent ? String(recent) : "";
+  badge();
 }
+
+/** Badge: open feedback with text. */
+function badge() {
+  const n = feedback.filter((f) => !f.done_at && f.text?.trim()).length;
+  $("badge-fb").textContent = n ? String(n) : "";
+}
+
+$("feedback").addEventListener("click", async (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-done]");
+  if (!b) return;
+  const id = Number(b.dataset.done);
+  const done = b.dataset.to === "1";
+  b.disabled = true;
+  const res = await api(`/api/ops/feedback/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ done }) }).catch(() => null);
+  if (!res?.ok) {
+    b.disabled = false;
+    return void msg(`Rückmeldung ${id}: ${res ? `Fehler ${res.status}` : "kein Netz"}`);
+  }
+  const f = feedback.find((x) => x.id === id);
+  if (f) {
+    f.done_at = done ? new Date().toISOString() : null;
+    f.done_by = done ? (logoutTo?.user ?? "Token") : null;
+  }
+  renderFeedback();
+  badge();
+});
 
 // --- wishes ---------------------------------------------------------------
 
@@ -234,6 +262,7 @@ $("region-q").oninput = renderRegions;
 $("region-active").onchange = renderRegions;
 $("fb-region").onchange = renderFeedback;
 $("fb-text").onchange = renderFeedback;
+$("fb-open").onchange = renderFeedback;
 const tokenInput = $<HTMLInputElement>("token");
 tokenInput.value = token;
 tokenInput.onchange = () => {
