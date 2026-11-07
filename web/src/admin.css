@@ -1,7 +1,8 @@
 /* Admin page (admin.html): tables over the shared dashboard/editor look. */
 .shards { display: flex; gap: 6px; margin-left: auto; align-self: flex-end; flex-wrap: wrap; }
-.shards a { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-secondary); text-decoration: none; font-size: 13px; }
-.shards a.on { color: var(--text-primary); border-color: var(--text-primary); font-weight: 600; }
+.shards .shard { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-secondary); font-size: 13px; }
+.shards .shard.on { color: var(--text-primary); border-color: var(--text-primary); font-weight: 600; }
+.shards .shard.bad { color: #c92a2a; border-color: #c92a2a; }
 .tab .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0 0 10px; font-size: 14px; }
 .tab .bar input[type="search"], .tab .bar select { padding: 6px 8px; font: inherit; min-width: 240px; max-width: 100%; }
 .scroll { overflow-x: auto; }

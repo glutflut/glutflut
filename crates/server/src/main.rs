@@ -16,6 +16,7 @@ use clap::Parser;
 use elements_shared::prelude::*;
 
 mod actions;
+mod admin;
 mod analytics;
 mod area;
 mod bench;

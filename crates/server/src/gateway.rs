@@ -375,6 +375,11 @@ fn csp(shards: &[String]) -> Arc<str> {
         connect.push(' ');
         connect.push_str(w);
     }
+    // The admin page asks the other shards' admin sites (`admin.rs`).
+    for (_, u) in crate::admin::peers() {
+        connect.push(' ');
+        connect.push_str(u);
+    }
     for u in shards {
         connect.push(' ');
         connect.push_str(u.trim_end_matches('/'));
@@ -623,6 +628,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                 let app = app
                     .layer(axum::middleware::from_fn(cache_headers))
                     .layer(axum::middleware::from_fn_with_state(csp, guard))
+                    .layer(axum::middleware::from_fn(crate::admin::cors))
                     .layer(CompressionLayer::new());
                 let listener = tokio::net::TcpListener::bind(bind)
                     .await
@@ -2276,14 +2282,19 @@ struct FeedbackDone {
 }
 
 /// `POST /api/ops/feedback/{id} {done}` (admin for all regions): mark a
-/// feedback entry done (or open again), with who did it.
+/// feedback entry done (or open again), with who did it. The body is read as
+/// JSON whatever its type: the admin page on another shard sends text/plain
+/// (no preflight through the login proxy).
 async fn ops_feedback_done(
     State(s): State<AppState>,
     headers: HeaderMap,
     Extension(c): Extension<Client>,
     axum::extract::Path(id): axum::extract::Path<i64>,
-    Json(b): Json<FeedbackDone>,
+    body: String,
 ) -> Response {
+    let Ok(b) = serde_json::from_str::<FeedbackDone>(&body) else {
+        return (StatusCode::BAD_REQUEST, "body: {\"done\": true|false}").into_response();
+    };
     let w = who(&s, c, &headers).await;
     if !matches!(w.access(), Access::All) || w.role() < Role::Admin {
         return StatusCode::UNAUTHORIZED.into_response();
@@ -2366,7 +2377,12 @@ async fn ops_regions(
             })
         })
         .collect();
-    Json(serde_json::json!({ "shard": s.host.shard(), "regions": items })).into_response()
+    let peers: Vec<serde_json::Value> = crate::admin::peers()
+        .iter()
+        .map(|(shard, base)| serde_json::json!({ "shard": shard, "base": base }))
+        .collect();
+    Json(serde_json::json!({ "shard": s.host.shard(), "regions": items, "peers": peers }))
+        .into_response()
 }
 
 /// screen secrets are in here: admins only.

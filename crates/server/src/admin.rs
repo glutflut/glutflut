@@ -1,0 +1,114 @@
+//! The admin page across shards (`web/admin.html`): the page asks the other
+//! shards' servers itself, with the same login or token.
+//!
+//!   ELEMENTS_ADMIN_PEERS=sa=https://ops-sa.example.org,na=https://ops-na.example.org
+//!       (on the page's server: the other shards' admin sites; listed in
+//!       `GET /api/ops/regions` and allowed in the page's connect-src)
+//!   ELEMENTS_ADMIN_ORIGINS=https://ops.example.org
+//!       (on the other shards: the page's origin, allowed to read the admin
+//!       endpoints with credentials)
+//!
+//! With a login (forward auth) the page sends only simple requests (GET, POST
+//! with a text body), so no preflight has to pass the proxy's login; a token
+//! goes in a header and needs the preflight answered here.
+
+use axum::http::{header, HeaderValue, Method, StatusCode};
+use axum::response::{IntoResponse, Response};
+
+fn list(var: &str) -> Vec<String> {
+    std::env::var(var)
+        .ok()
+        .map(|v| {
+            v.split(',')
+                .map(|s| s.trim().trim_end_matches('/').to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// The other shards' admin sites: (shard, base URL).
+pub fn peers() -> &'static [(String, String)] {
+    static P: std::sync::OnceLock<Vec<(String, String)>> = std::sync::OnceLock::new();
+    P.get_or_init(|| {
+        list("ELEMENTS_ADMIN_PEERS")
+            .into_iter()
+            .filter_map(|e| {
+                let (s, u) = e.split_once('=')?;
+                let u = u.trim();
+                (u.starts_with("https://") || u.starts_with("http://"))
+                    .then(|| (s.trim().to_string(), u.to_string()))
+            })
+            .collect()
+    })
+}
+
+fn origins() -> &'static [String] {
+    static O: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    O.get_or_init(|| list("ELEMENTS_ADMIN_ORIGINS"))
+}
+
+/// The endpoints the admin page reads or writes on another shard.
+fn admin_path(p: &str) -> bool {
+    matches!(
+        p,
+        "/api/access" | "/api/feedback" | "/api/wishes" | "/api/ops/regions" | "/api/ops/reload"
+    ) || p.starts_with("/api/ops/feedback/")
+}
+
+/// CORS for the admin endpoints, only for `ELEMENTS_ADMIN_ORIGINS`.
+pub async fn cors(
+    req: axum::http::Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> Response {
+    let origin = req
+        .headers()
+        .get(header::ORIGIN)
+        .and_then(|o| o.to_str().ok())
+        .filter(|o| admin_path(req.uri().path()) && origins().iter().any(|a| a == o))
+        .and_then(|o| HeaderValue::from_str(o).ok());
+    let Some(origin) = origin else {
+        return next.run(req).await;
+    };
+    let mut res = if req.method() == Method::OPTIONS {
+        let mut r = StatusCode::NO_CONTENT.into_response();
+        let h = r.headers_mut();
+        h.insert(
+            header::ACCESS_CONTROL_ALLOW_METHODS,
+            HeaderValue::from_static("GET, POST"),
+        );
+        h.insert(
+            header::ACCESS_CONTROL_ALLOW_HEADERS,
+            HeaderValue::from_static("authorization, content-type"),
+        );
+        h.insert(
+            header::ACCESS_CONTROL_MAX_AGE,
+            HeaderValue::from_static("600"),
+        );
+        r
+    } else {
+        next.run(req).await
+    };
+    let h = res.headers_mut();
+    h.insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+    h.insert(
+        header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
+        HeaderValue::from_static("true"),
+    );
+    h.append(header::VARY, HeaderValue::from_static("Origin"));
+    res
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn admin_paths() {
+        assert!(admin_path("/api/ops/regions"));
+        assert!(admin_path("/api/ops/feedback/12"));
+        assert!(admin_path("/api/feedback"));
+        assert!(!admin_path("/api/ops/indoor"), "secrets stay same-origin");
+        assert!(!admin_path("/api/ops/chapters"));
+    }
+}

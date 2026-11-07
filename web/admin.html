@@ -16,13 +16,13 @@
         <h1>Betrieb <span id="shard-name" class="city"></span></h1>
       </header>
 
-      <form id="filters" class="filters" onsubmit="return false">
+      <form id="filters" class="filters">
         <label id="token-field">Zugang (Admin für alle Regionen)
           <input id="token" type="password" autocomplete="off" placeholder="Token, dann Enter" />
         </label>
         <small id="token-state" class="token-state"></small>
         <button type="button" id="logout" class="linkish" hidden>Abmelden</button>
-        <nav id="shards" class="shards" aria-label="Shards"></nav>
+        <nav id="shards" class="shards" aria-label="Shards" title="Shards: ⚠ nicht erreichbar"></nav>
       </form>
 
       <nav id="tabs" class="ed-tabs" role="tablist" hidden>
@@ -52,7 +52,16 @@
       </section>
 
       <section id="tab-wuensche" class="tab" hidden>
-        <p class="hint">„Hier will ich spielen“ aus der App, je H3-Zelle (Auflösung 6, etwa 36 km²), meiste zuerst. Liegt eine Zelle in einer Region, steht sie dabei.</p>
+        <p class="hint">„Hier will ich spielen“ aus der App, je H3-Zelle (Auflösung 6, etwa 36 km²), aus allen Shards zusammengezählt, meiste zuerst. „In Region“: die Mitte der Zelle liegt in einer aktiven Region.</p>
+        <div class="bar">
+          <select id="wish-filter">
+            <option value="none" selected>nur ohne Region</option>
+            <option value="unlisted">in ungelisteter Region</option>
+            <option value="in">in einer Region</option>
+            <option value="all">alle</option>
+          </select>
+          <small id="wish-sum"></small>
+        </div>
         <div class="scroll"><table class="ed-table" id="wishes"></table></div>
       </section>
 

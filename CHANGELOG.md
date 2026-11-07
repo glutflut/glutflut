@@ -13,7 +13,11 @@ All notable changes to Glut & Flut. Versions follow
   with their region, indoor QR sheets; ops token or a login with admin for all
   regions. New `GET /api/ops/regions`. Feedback can be marked done
   (`POST /api/ops/feedback/{id}`, migration V17: `done_at`, `done_by`); the
-  page shows open ones by default.
+  page shows open ones by default. All shards on one page: the page asks
+  the other shards' admin sites itself (`ELEMENTS_ADMIN_PEERS` here,
+  `ELEMENTS_ADMIN_ORIGINS` there, CORS for the admin endpoints only); wishes
+  summed over shards, filtered to cells outside any region by default, the
+  region marked listed or not.
 - Indoors (`[indoor]`, `rules/indoor.toml`): in halls without GPS a scanned
   code places the player at a junction for three minutes. Sheets on the
   wall carry a fixed code, screens (`/knoten.html`, offline, also e-ink) a code
