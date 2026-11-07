@@ -76,6 +76,8 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
   const ABILITY_LEVEL: Record<AbilityName, number> = { reach: 2, nourish: 3, boost: 4, double: 5 };
   let abilitiesOn = false;
   let reachM = CLAIM_RADIUS_M;
+  /** The region's claim radius (welcome; indoors smaller). */
+  let baseM = CLAIM_RADIUS_M;
   /** Supply on (rule set): the anchor gap in m, else null. */
   let supply: number | null = null;
   /** Reinforcing on (rule set): own ground at the front takes a plain source. */
@@ -87,7 +89,7 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
     double: { armed: false, until: 0 },
   };
   const abLabel = (n: AbilityName) => t(n === "double" ? (`ab.double.${faction()}` as Key) : (`ab.${n}` as Key));
-  const claimRadius = () => (ab.reach.armed ? reachM : CLAIM_RADIUS_M);
+  const claimRadius = () => (ab.reach.armed ? reachM : baseM);
   function drawAbilities() {
     const el = $("abilities");
     const level = mine?.level ?? 1;
@@ -183,6 +185,7 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
     welcome(m: Msg<"welcome">) {
       abilitiesOn = !!m.abilities;
       reachM = m.reach_m ?? CLAIM_RADIUS_M;
+      baseM = m.claim_m ?? CLAIM_RADIUS_M;
       supply = m.supply ? (m.anchor_gap_m ?? 200) : null;
       reinforce = m.reinforce ?? false;
     },

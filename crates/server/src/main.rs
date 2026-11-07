@@ -815,7 +815,8 @@ fn load_geo(
     let mut nodes = graph.nodes;
     nodes.sort_by_key(|n| n.id);
     for (i, mut node) in nodes.into_iter().enumerate() {
-        if !node.node_type.ends_with("_source") {
+        // Kept: sources, and screens indoors (`indoor.rs`).
+        if !node.node_type.ends_with("_source") && node.node_type != "screen" {
             node.node_type = String::new();
         }
         node.control_state = String::new();

@@ -1726,6 +1726,8 @@ body.kiosk #lapse-play, body.kiosk #lapse-close { visibility: hidden; }
   background: var(--gold);
 }
 body.watching #scan { display: none; }
+/* Indoors the scan button takes the place of "Wie ist es hier?" (a city survey). */
+body.indoor #rate { display: none; }
 body.indoor #gps { cursor: pointer; }
 #scanner {
   position: fixed;

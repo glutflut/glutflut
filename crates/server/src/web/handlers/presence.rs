@@ -102,9 +102,13 @@ pub(super) fn scan(game: &mut Game, c: &Ctx, conn: u64, code: &str) {
     // Codes far apart in too short a time (photos passed around): locked
     // like a GPS jump. The same junction again only extends the hold.
     let again = motion.held.is_some_and(|h| h.node == node);
-    if motion.locked(now) || (!again && !motion.fix(at, now, None)) {
+    if motion.locked(now)
+        || !crate::indoor::walkable(motion.last_scan, node, at, now)
+        || (!again && !motion.fix(at, now, None))
+    {
         return refuse("moving");
     }
+    motion.last_scan = Some((node, at, now));
     pos.0 = at;
     motion.last_fix = Some((at, now));
     motion.held = Some(crate::indoor::Held {

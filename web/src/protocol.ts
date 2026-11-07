@@ -10,7 +10,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "busy" }
   | { "t": "recover", ok: boolean, reason: "unknown" | "wait", }
   | { "t": "pow", c: string, bits: number, }
-  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, invite: string, invite_points: number, watch: boolean, indoor: boolean, }
+  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, invite: string, invite_points: number, watch: boolean, indoor: boolean, claim_m: number, }
   | { "t": "state", nodes: Array<[number, number, number]>, }
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }

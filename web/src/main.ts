@@ -26,7 +26,7 @@ import { setupFeedback } from "./feedback";
 import { Sound } from "./sound";
 import { isCounted } from "./consent";
 import { presenceAnswer, takePresenceCode } from "./presence";
-import { setupIndoor, takeScanCode } from "./indoor";
+import { scanPending, setupIndoor, takeScanCode } from "./indoor";
 import { setupCampaign } from "./campaign";
 import { setupTunnel } from "./tunnel";
 import { setupTop } from "./top";
@@ -57,7 +57,7 @@ import { onProfile, renderProfiles, sendProfile } from "./profile";
 import { CLAIM_RADIUS_M, COLORS, distM, owner } from "./geo";
 import { $, params, toast } from "./page";
 import { KEYS, blocked, load, save } from "./store";
-import { joinGate, kiosk, tryJoin, watching } from "./watch";
+import { join, joinFree, joinGate, kiosk, tryJoin, watching } from "./watch";
 import { freshSources, setupLive, startKiosk } from "./live";
 import { setupTimelapse } from "./timelapse";
 import { setupMood } from "./mood";
@@ -432,7 +432,11 @@ async function main() {
           $("nav-rank").hidden = false;
           $("nav-rank").onclick = board.openRank;
         }
-        if (!kiosk) void joinGate(meta.region.slug, knownRegions);
+        // Indoors no GPS check: a scanned code is being there.
+        if (!kiosk && m.indoor) {
+          if (scanPending()) return join();
+          joinFree();
+        } else if (!kiosk) void joinGate(meta.region.slug, knownRegions);
         if (!live) {
           live = setupLive(map, () => t("watch.label"), (node, side) => burst(node, side, "other"));
           if (kiosk) startKiosk(map, meta.hotspot ?? meta.region.centroid, live, hotspots.at, lapse, board);

@@ -175,6 +175,7 @@ pub(super) fn hello(
             invite_points: rules.score.invite,
             watch,
             indoor: rules.indoor.enabled,
+            claim_m: rules.claim_radius_m,
         },
     );
     // By tiles: state follows with the first `view`.

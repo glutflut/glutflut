@@ -19,6 +19,10 @@ use crate::shards::{hex, hmac, same};
 
 /// Windows a screen code is good for after its own: e-ink refreshes slowly.
 const LATE_WINDOWS: u64 = 2;
+/// Codes are exact (no GPS noise): from one junction to another at most
+/// this fast, plus `SCAN_SLACK_M`.
+const WALK_MS: f32 = 3.0;
+const SCAN_SLACK_M: f32 = 10.0;
 /// While held, a fix at the junction this often (time played, "on site").
 const STAY_EVERY_S: f64 = 5.0;
 
@@ -178,6 +182,13 @@ pub fn check(
     }
 }
 
+/// From the last scan to `at` (junction `node`) on foot in time.
+pub fn walkable(last: Option<(i64, Vec3, f64)>, node: i64, at: Vec3, now: f64) -> bool {
+    last.is_none_or(|(n, p, t)| {
+        n == node || p.distance(at) <= WALK_MS * (now - t).max(0.0) as f32 + SCAN_SLACK_M
+    })
+}
+
 /// Held junctions run out; while held, a fix at the junction now and then.
 pub fn hold(
     rules: Res<crate::sim::GameRules>,
@@ -233,6 +244,16 @@ mod tests {
         bad.pop();
         bad.push(if sheet.ends_with('a') { 'b' } else { 'a' });
         assert_eq!(verify(&s, &bad, 5), Err("unknown"));
+    }
+
+    #[test]
+    fn walking_between_codes() {
+        let a = Vec3::ZERO;
+        let b = Vec3::new(90.0, 0.0, 0.0);
+        assert!(walkable(None, 2, b, 10.0));
+        assert!(!walkable(Some((1, a, 0.0)), 2, b, 10.0));
+        assert!(walkable(Some((1, a, 0.0)), 2, b, 30.0));
+        assert!(walkable(Some((2, a, 0.0)), 2, b, 1.0));
     }
 
     #[test]

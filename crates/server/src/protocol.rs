@@ -101,6 +101,8 @@ pub enum ServerMsg<'a> {
         watch: bool,
         /// Indoors: codes to scan instead of GPS (`[indoor]`).
         indoor: bool,
+        /// Claim radius of this region's rules (m).
+        claim_m: f32,
     },
     State {
         nodes: Vec<(i64, f32, f32)>,

@@ -20,6 +20,8 @@ export const watching = (): boolean =>
 
 let gate: { slug: string; regions: () => RegionInfo[] } | null = null;
 let pending = false;
+/** Indoors: no position to check (a scanned code places the player). */
+let free = false;
 
 type JoinKey = "watch.join" | "watch.locate" | "watch.locating" | "watch.away" | "watch.nopos";
 function show(key: JoinKey, on: boolean) {
@@ -30,6 +32,7 @@ function show(key: JoinKey, on: boolean) {
 
 /** Ask for the position; "Mitspielen" only with one in this city. */
 export async function tryJoin() {
+  if (free) return join();
   if (!gate) return void (pending = true);
   const { slug, regions } = gate;
   show("watch.locating", false);
@@ -56,4 +59,12 @@ export function join() {
   const u = new URL(location.href);
   u.searchParams.delete("watch");
   location.href = u.toString();
+}
+
+/** Indoors: "Mitspielen" without a position check. */
+export function joinFree() {
+  free = true;
+  show("watch.join", true);
+  ($("join") as HTMLButtonElement).onclick = join;
+  if (pending) join();
 }

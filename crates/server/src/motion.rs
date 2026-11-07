@@ -49,6 +49,8 @@ pub struct Motion {
     pub trusted: bool,
     /// Indoors: the junction scanned last, held for a while (`indoor.rs`).
     pub held: Option<crate::indoor::Held>,
+    /// Indoors: where and when the last code was taken (stays after the hold).
+    pub last_scan: Option<(i64, Vec3, f64)>,
 }
 
 /// New identities claim with this share of their strength until they have

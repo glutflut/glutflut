@@ -8,18 +8,36 @@ import { codeFromScan } from "./indoor-code";
 import type { Net } from "./net";
 import { $, toast } from "./page";
 
-let fromLink: string | null = null;
+// Kept for this tab across the reload that joining makes.
+const PENDING = "elements.scan";
+const pendingGet = () => {
+  try {
+    return sessionStorage.getItem(PENDING);
+  } catch {
+    return null;
+  }
+};
+const pendingSet = (code: string | null) => {
+  try {
+    if (code) sessionStorage.setItem(PENDING, code);
+    else sessionStorage.removeItem(PENDING);
+  } catch {}
+};
 
 /** Take `?q=` from the address (call once at start; a shared link doesn't pass it on). */
 export function takeScanCode() {
   const u = new URL(location.href);
   const q = u.searchParams.get("q");
-  if (q) fromLink = codeFromScan(q);
+  const code = q && codeFromScan(q);
+  if (code) pendingSet(code);
   if (u.searchParams.has("q")) {
     u.searchParams.delete("q");
     history.replaceState(history.state, "", u);
   }
 }
+
+/** A code came with the link: whoever scans one is there and wants to play. */
+export const scanPending = () => pendingGet() !== null;
 
 type Detector = { detect(src: CanvasImageSource): Promise<{ rawValue: string }[]> };
 
@@ -120,8 +138,9 @@ export function setupIndoor(d: {
       if (!on) return;
       if (!timer) $("gps").textContent = t("indoor.scan");
       $("gps").onclick = () => void open();
-      if (fromLink) send(fromLink);
-      fromLink = null;
+      const code = pendingGet();
+      pendingSet(null);
+      if (code) send(code);
     },
     answer(m: { ok: boolean; reason?: string; lat?: number; lon?: number; hold_s: number }) {
       if (!m.ok || m.lat === undefined || m.lon === undefined) {
