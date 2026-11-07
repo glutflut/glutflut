@@ -1,0 +1,22 @@
+/* Admin page (admin.html): tables over the shared dashboard/editor look. */
+.shards { display: flex; gap: 6px; margin-left: auto; align-self: flex-end; flex-wrap: wrap; }
+.shards a { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-secondary); text-decoration: none; font-size: 13px; }
+.shards a.on { color: var(--text-primary); border-color: var(--text-primary); font-weight: 600; }
+.tab .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0 0 10px; font-size: 14px; }
+.tab .bar input[type="search"], .tab .bar select { padding: 6px 8px; font: inherit; min-width: 240px; max-width: 100%; }
+.scroll { overflow-x: auto; }
+.ed-table { width: 100%; font-size: 14px; border-collapse: collapse; }
+.ed-table th { font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.ed-table td.num, .ed-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.ed-table td.text { max-width: 60ch; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ed-table .slug { color: var(--text-secondary); font-size: 12px; }
+.ed-table .links a { margin-right: 8px; white-space: nowrap; }
+.ed-table button { font: inherit; font-size: 13px; padding: 3px 8px; cursor: pointer; }
+.tag { display: inline-block; padding: 0 6px; margin: 1px 4px 1px 0; border-radius: 4px; font-size: 12px; line-height: 18px; background: var(--grid); color: var(--text-secondary); }
+.tag.ok { background: #2b8a3e; color: #fff; }
+.tag.in { background: #1c7ed6; color: #fff; }
+.tag.off { background: transparent; border: 1px solid var(--border); }
+.mood { font-size: 18px; }
+.hint { color: var(--text-secondary); font-size: 14px; max-width: 80ch; }
+.codes li { margin: 8px 0; }
+.msg { color: #c92a2a; min-height: 1.2em; }

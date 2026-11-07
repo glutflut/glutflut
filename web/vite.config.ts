@@ -59,6 +59,7 @@ export default defineConfig({
         sounds: "sounds.html",
         knoten: "knoten.html",
         indoor: "indoor.html",
+        admin: "admin.html",
       },
     },
   },

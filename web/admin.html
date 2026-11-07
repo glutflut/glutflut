@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <script src="/handover.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glut &amp; Flut – Betrieb</title>
+    <link rel="stylesheet" href="/src/dashboard.css" />
+    <link rel="stylesheet" href="/src/editor.css" />
+    <link rel="stylesheet" href="/src/admin.css" />
+  </head>
+  <body>
+    <main class="viz-root">
+      <header class="page-head">
+        <h1>Betrieb <span id="shard-name" class="city"></span></h1>
+      </header>
+
+      <form id="filters" class="filters" onsubmit="return false">
+        <label id="token-field">Zugang (Admin für alle Regionen)
+          <input id="token" type="password" autocomplete="off" placeholder="Token, dann Enter" />
+        </label>
+        <small id="token-state" class="token-state"></small>
+        <button type="button" id="logout" class="linkish" hidden>Abmelden</button>
+        <nav id="shards" class="shards" aria-label="Shards"></nav>
+      </form>
+
+      <nav id="tabs" class="ed-tabs" role="tablist" hidden>
+        <button type="button" role="tab" data-tab="regionen">Regionen</button>
+        <button type="button" role="tab" data-tab="rueckmeldungen">Rückmeldungen <span class="badge" id="badge-fb"></span></button>
+        <button type="button" role="tab" data-tab="wuensche">Standortwünsche</button>
+        <button type="button" role="tab" data-tab="codes">QR-Codes</button>
+      </nav>
+
+      <section id="tab-regionen" class="tab" hidden>
+        <div class="bar">
+          <input id="region-q" type="search" placeholder="Suchen (Name, Slug, Regelsatz)" />
+          <label><input id="region-active" type="checkbox" checked /> nur aktive</label>
+          <small id="region-sum"></small>
+        </div>
+        <div class="scroll"><table class="ed-table" id="regions"></table></div>
+      </section>
+
+      <section id="tab-rueckmeldungen" class="tab" hidden>
+        <div class="bar">
+          <select id="fb-region"><option value="">alle Regionen</option></select>
+          <label><input id="fb-text" type="checkbox" /> nur mit Text</label>
+          <small id="fb-sum"></small>
+        </div>
+        <div class="scroll"><table class="ed-table" id="feedback"></table></div>
+      </section>
+
+      <section id="tab-wuensche" class="tab" hidden>
+        <p class="hint">„Hier will ich spielen“ aus der App, je H3-Zelle (Auflösung 6, etwa 36 km²), meiste zuerst. Liegt eine Zelle in einer Region, steht sie dabei.</p>
+        <div class="scroll"><table class="ed-table" id="wishes"></table></div>
+      </section>
+
+      <section id="tab-codes" class="tab" hidden>
+        <p class="hint">Regionen im Innenmodus (Regelsatz mit <code>[indoor]</code>): Aushänge A4 und Bildschirm-Links. Später auch Ortscodes draußen.</p>
+        <ul id="codes" class="codes"></ul>
+      </section>
+
+      <p id="msg" class="msg"></p>
+    </main>
+    <script type="module" src="/src/admin.ts"></script>
+  </body>
+</html>

@@ -553,6 +553,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/reload", post(ops_reload))
                     .route("/api/ops/nodes", get(ops_nodes))
                     .route("/api/ops/indoor", get(ops_indoor))
+                    .route("/api/ops/regions", get(ops_regions))
                     .route("/api/ops/live", get(live_handler))
                     .route("/api/ops/layers", get(layers::list))
                     .route("/api/ops/layers/{id}/{z}/{x}/{y}", get(layers::tile))
@@ -1931,7 +1932,7 @@ async fn feedback_list_handler(
     let rows = tokio::task::spawn_blocking(move || {
         s.with_db(|c| {
             c.query(
-                "SELECT region, day::text, mood, text, lang, version FROM game.feedback \
+                "SELECT region, day::text, mood, text, lang, version, id FROM game.feedback \
                  WHERE $1::text IS NULL OR region = $1 ORDER BY id DESC LIMIT 500",
                 &[&region],
             )
@@ -1953,6 +1954,7 @@ async fn feedback_list_handler(
                 "text": r.get::<_, Option<&str>>(3),
                 "lang": r.get::<_, Option<&str>>(4),
                 "version": r.get::<_, Option<&str>>(5),
+                "id": r.get::<_, i64>(6),
             })
         })
         .collect();
@@ -2259,6 +2261,70 @@ async fn ops_nodes(
 
 /// `GET /api/ops/indoor?region=` (admin): every junction's codes for the
 /// sheets and screens (`indoor.rs`; `web/indoor.html` prints them). The
+/// `GET /api/ops/regions` (admin for all regions): every region of this shard,
+/// also inactive and unlisted ones, with its rule set, whether it is indoor
+/// and loaded now, players today and in 7 days, and feedback in 30 days (the
+/// admin page, `admin.html`).
+async fn ops_regions(
+    State(s): State<AppState>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+) -> Response {
+    let w = who(&s, c, &headers).await;
+    if !matches!(w.access(), Access::All) || w.role() < Role::Admin {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let shard = s.host.shard().to_string();
+    let st = s.clone();
+    let rows = tokio::task::spawn_blocking(move || {
+        st.with_db(|c| {
+            c.query(
+                "SELECT r.slug, r.name, r.active, r.listed, r.rules, r.cell, r.language, \
+                   (SELECT count(*) FROM game.player_region p WHERE p.region = r.slug AND p.last_seen = current_date), \
+                   (SELECT count(*) FROM game.player_region p WHERE p.region = r.slug AND p.last_seen >= current_date - 6), \
+                   (SELECT count(*) FROM game.feedback f WHERE f.region = r.slug AND f.day >= current_date - 29) \
+                 FROM geo.regions r WHERE r.shard = $1 ORDER BY r.name",
+                &[&shard],
+            )
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    let Some(rows) = rows else {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
+    let loaded: std::collections::HashSet<String> = s.host.loaded_slugs().into_iter().collect();
+    // Indoor is a property of the rule set: load each named set once.
+    let mut indoor: std::collections::HashMap<Option<String>, bool> =
+        std::collections::HashMap::new();
+    let items: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            let slug: &str = r.get(0);
+            let rules: Option<String> = r.get(4);
+            let is_indoor = *indoor
+                .entry(rules.clone())
+                .or_insert_with(|| crate::actions::load_rules(rules.as_deref()).indoor.enabled);
+            serde_json::json!({
+                "slug": slug,
+                "name": r.get::<_, &str>(1),
+                "active": r.get::<_, bool>(2),
+                "listed": r.get::<_, bool>(3),
+                "rules": rules,
+                "cell": r.get::<_, &str>(5),
+                "language": r.get::<_, &str>(6),
+                "indoor": is_indoor,
+                "loaded": loaded.contains(slug),
+                "players_today": r.get::<_, i64>(7),
+                "players_7d": r.get::<_, i64>(8),
+                "feedback_30d": r.get::<_, i64>(9),
+            })
+        })
+        .collect();
+    Json(serde_json::json!({ "shard": s.host.shard(), "regions": items })).into_response()
+}
+
 /// screen secrets are in here: admins only.
 async fn ops_indoor(
     State(s): State<AppState>,
