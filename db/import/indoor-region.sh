@@ -24,7 +24,8 @@ FILE="${3:?graph.geojson}"
 [[ "$SLUG" =~ ^region-[a-z0-9-]+$ ]] || { echo "slug: region-<lowercase>"; exit 2; }
 case "${SHARD:-eu}" in
   eu) LO=1000000 ;; na) LO=1000000000 ;; sa) LO=2000000000 ;;
-  *) echo "SHARD: eu, na or sa"; exit 2 ;;
+  oc) LO=3000000000 ;; as) LO=4000000000 ;; af) LO=5000000000 ;;
+  *) echo "SHARD: eu, na, sa, oc, as or af"; exit 2 ;;
 esac
 python3 - "$FILE" "$SLUG" "$NAME" "${LANGUAGE:-de}" "${TIMEZONE:-Europe/Berlin}" "${SHARD:-eu}" "${RULES:-indoor}" "$LO" <<'PY' |
 import json, math, sys

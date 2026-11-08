@@ -70,7 +70,7 @@ Every region with `active = true` in `geo.regions` is playable. The app gets `GE
 
 1. **Database:** a new one for the shard, roles as above.
 2. **Schema:** `db/flyway.sh bootstrap`. From then on every migration runs on every shard.
-3. **Region rows:** every shard's database needs the `geo.regions` rows of all regions (copy the missing rows over); the graph only where the region runs. Each shard has its own node id band, picked by `SHARD` in `new-region.sh` (eu below 1e9, na 1e9–2e9, sa 2e9–3e9; a new shard needs its band there).
+3. **Region rows:** every shard's database needs the `geo.regions` rows of all regions (copy the missing rows over); the graph only where the region runs. Each shard has its own node id band, picked by `SHARD` in `new-region.sh` (eu below 1e9, na 1e9–2e9, sa 2e9–3e9, reserved: oc 3e9–4e9, as 4e9–5e9, af 5e9–6e9; another shard needs its band there and in `indoor-region.sh`).
 4. **DNS and proxy:** a name for the shard, a site block.
 5. **Host:** a `.env` for the shard's container: `ELEMENTS_DB`, `ELEMENTS_SHARD=<shard>`, `ELEMENTS_REGION`, `ELEMENTS_SHARDS=<other>=https://…,…`, the shared `ELEMENTS_SHARD_KEY`, the same `ELEMENTS_NOISE_KEY`, its own `ELEMENTS_OPS_TOKEN`, `ELEMENTS_PUBLIC_URL`.
 6. **Other shards:** add the new one to their `ELEMENTS_SHARDS`, redeploy them. CSP and region links follow from that; the web app has no shard list.

@@ -47,10 +47,11 @@ if [ -z "$UUID" ]; then
   echo ">> new region $SLUG ($UUID), unlisted"
 fi
 # Each shard its own id band, so regions can move between databases without
-# clashes: eu below 1e9, na 1e9-2e9, sa 2e9-3e9.
+# clashes: eu below 1e9, na 1e9-2e9, sa 2e9-3e9, oc 3e9-4e9, as 4e9-5e9, af 5e9-6e9.
 case "${SHARD:-eu}" in
   eu) LO=1000000 ;; na) LO=1000000000 ;; sa) LO=2000000000 ;;
-  *) echo "SHARD: eu, na or sa (add its id band here)"; exit 2 ;;
+  oc) LO=3000000000 ;; as) LO=4000000000 ;; af) LO=5000000000 ;;
+  *) echo "SHARD: eu, na, sa, oc, as or af (add its id band here)"; exit 2 ;;
 esac
 HI=$(( LO < 1000000000 ? 1000000000 : LO + 1000000000 ))
 OFFSET="$(q "SELECT coalesce((SELECT (min(n.id) / 1000000) * 1000000 FROM geo.nodes n WHERE n.region_id = '$UUID'),
