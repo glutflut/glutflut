@@ -26,8 +26,13 @@ pub struct Ask {
     /// The asking region (slug), for the answer.
     pub from: String,
     pub id: u64,
-    /// Ticket of the source in Y (from the app; passed on, never stored).
+    /// Ticket of the source in Y, or a key to it (from the app; passed on,
+    /// never stored here).
     pub key: String,
+    /// The link's mark: hash of the near end's ticket (`keep::link_mark`),
+    /// to which Y binds a link key at its first claim.
+    #[serde(default)]
+    pub mark: Option<[u8; 32]>,
     pub faction: Faction,
     /// The player's strength in X (level, new identity), before link factors.
     pub mult: f32,
@@ -115,7 +120,7 @@ const REASONS: &[&str] = &[
     "nokey", "linked", "worn", "linkdown", "asleep", "cooldown", "unknown", "range", "own",
     "strong", "supplied",
 ];
-pub(crate) const ORIGINS: &[&str] = &["gift", "bottle", "ember", "city"];
+pub(crate) const ORIGINS: &[&str] = &["gift", "bottle", "ember", "city", "link"];
 
 fn de_reason<'de, D: Deserializer<'de>>(d: D) -> Result<Option<&'static str>, D::Error> {
     let s = Option::<String>::deserialize(d)?;

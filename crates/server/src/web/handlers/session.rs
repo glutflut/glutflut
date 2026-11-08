@@ -164,6 +164,11 @@ pub(super) fn hello(
             },
             keep_gap_m: rules.keep.gap_m,
             keep_link: rules.keep.link,
+            keep_link_keys: if rules.keep.link {
+                rules.keep.link_keys
+            } else {
+                0
+            },
             mottos: crate::protocol::MottoItem::all(&game.campaign.mottos),
             hotspot_m: rules.hotspot_radius_m,
             version: crate::gateway::version(),

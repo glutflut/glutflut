@@ -171,6 +171,16 @@ impl Keep {
     pub fn allowed(&self, level: u8) -> u32 {
         self.per_player + self.per_level * u32::from(level.saturating_sub(1))
     }
+
+    /// Link keys a new source comes with at `level`, `roll` in 0..1:
+    /// one, a second with the level's chance (never above `link_keys`).
+    pub fn start_keys(&self, level: u8, roll: f32) -> u32 {
+        if self.link_keys == 0 {
+            return 0;
+        }
+        let p = self.link_key2 + self.link_key2_level * f32::from(level.saturating_sub(1));
+        (1 + u32::from(roll < p.clamp(0.0, 1.0))).min(self.link_keys)
+    }
 }
 
 impl Supply {
@@ -214,6 +224,19 @@ pub struct Keep {
     /// be topped up that way. Others see only that a source is linked.
     pub link: bool,
     pub link_factor: f32,
+    /// Link keys (with `link`; 0 = off: links need no key and a far link
+    /// uses the source's ticket): a source holds at most this many unused
+    /// keys. Linking B (standing at it) to A takes one of A's keys; a link
+    /// into another region takes one key of each end, bound to that link at
+    /// its first claim. A new source comes with one key, a second with
+    /// chance `link_key2` (+ `link_key2_level` per level above 1); a top-up
+    /// adds one at most every `link_key_every_s`; unused keys are gone after
+    /// `link_key_days`.
+    pub link_keys: u32,
+    pub link_key2: f32,
+    pub link_key2_level: f32,
+    pub link_key_every_s: f32,
+    pub link_key_days: f32,
     /// Gifts (with `link`): an owner hands out a key to a permanent source,
     /// good for `gift_uses` claims through it within `gift_days`; one per
     /// source every `gift_every_days`; the owner gets `gift_share` of the
@@ -253,6 +276,11 @@ impl Default for Keep {
             expire_s: 3.0 * 86_400.0,
             link: false,
             link_factor: 0.7,
+            link_keys: 0,
+            link_key2: 0.2,
+            link_key2_level: 0.1,
+            link_key_every_s: 86_400.0,
+            link_key_days: 7.0,
             gift_uses: 5,
             gift_days: 14.0,
             gift_every_days: 7.0,
@@ -356,6 +384,22 @@ impl Streets {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn start_keys_one_or_two_by_level() {
+        let k = Keep {
+            link_keys: 2,
+            ..Keep::default()
+        };
+        assert_eq!(k.start_keys(1, 0.5), 1, "level 1: 20 %");
+        assert_eq!(k.start_keys(1, 0.1), 2);
+        assert_eq!(k.start_keys(4, 0.45), 2, "level 4: 50 %");
+        assert_eq!(k.start_keys(20, 0.99), 2, "capped at 100 %");
+        let one = Keep { link_keys: 1, ..k };
+        assert_eq!(one.start_keys(9, 0.0), 1, "never above the cap");
+        assert_eq!(Keep::default().start_keys(9, 0.0), 0, "off");
+    }
+
     use super::*;
 
     fn line(n: usize, len: f32) -> Vec<EdgeCosts> {

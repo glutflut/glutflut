@@ -170,6 +170,7 @@ fn ask_far(game: &mut Game, c: &Ctx, conn: u64, far: &Far, via: &str, look: bool
             tries: 0,
             player: slot.and_then(|s| game.scores.get(s.0)).map(|r| r.id),
             owner: slot.and_then(|s| game.scores.owner(s.0)),
+            mark: crate::keep::link_mark(via),
         }),
     );
     if sent {
@@ -270,7 +271,8 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         id: a.id,
         ..Default::default()
     };
-    // The key: the source's own ticket, or a key made for others (a gift).
+    // The key: the source's own ticket (not with link keys), or a key made
+    // for it (a gift, a found key, a link key).
     let hk = rules
         .keep
         .link
@@ -278,12 +280,21 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         .flatten()
         .map(|h| h.0);
     let gift = hk.filter(|h| !game.keep_info.iter().any(|(_, k)| k.ticket == *h));
-    let key = gift.and_then(|g| game.keeps.key(&g, c.now));
+    let key = gift.and_then(|g| game.keeps.key(&g, c.now)).cloned();
+    // A link key opens only for the link it was first used for.
+    let key = match (gift, key) {
+        (Some(g), Some(k)) if k.origin == "link" => game
+            .keeps
+            .bind_link_key(&g, a.mark.as_ref(), c.now)
+            .then_some(k),
+        (_, k) => k,
+    };
+    let link_key = key.as_ref().is_some_and(|k| k.origin == "link");
     // A city key (editor) opens a junction of the city's, for either side.
-    let spot = key.and_then(|k| k.spot);
+    let spot = key.as_ref().and_then(|k| k.spot);
     let keep = match gift {
-        Some(_) => key.filter(|k| k.spot.is_none()).map(|k| k.keep),
-        None => hk,
+        Some(_) => key.as_ref().filter(|k| k.spot.is_none()).map(|k| k.keep),
+        None => hk.filter(|_| rules.keep.link_keys == 0),
     };
     debug!(
         tries = a.tries,
@@ -347,7 +358,7 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
             }
             // A gift: one use less; its owner gets a share of the points
             // (a city key has no owner).
-            if let (true, Some(g)) = (ans.ok, gift) {
+            if let (true, Some(g), false) = (ans.ok, gift, link_key) {
                 game.keeps.use_key(&g);
                 let (fire, water) = ans.prior.unwrap_or_default();
                 let pts = rules

@@ -18,7 +18,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
     let Ok((&faction, pos, mut cd, _, slot, motion)) = game.players.get_mut(*e) else {
         return;
     };
-    let reply = |ok: bool, reason: Option<&'static str>, ticket, topup, wait| {
+    let reply = |ok: bool, reason: Option<&'static str>, ticket, topup, wait, keys: Vec<String>| {
         send(
             out,
             &ServerMsg::Keep {
@@ -28,6 +28,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
                 ticket,
                 topup,
                 wait,
+                keys: (!keys.is_empty()).then_some(keys),
             },
         )
     };
@@ -36,7 +37,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         .map(|r| r.id)
         .filter(|_| game.keeps.enabled());
     let Some(player) = player else {
-        reply(false, Some("off"), None, false, 0.0);
+        reply(false, Some("off"), None, false, 0.0, Vec::new());
         return;
     };
     // The player's strength now (level; new identities half): placing
@@ -49,7 +50,14 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         crate::motion::NEW_STRENGTH
     };
     if motion.locked(now) {
-        reply(false, Some("moving"), None, false, motion.lock_left(now));
+        reply(
+            false,
+            Some("moving"),
+            None,
+            false,
+            motion.lock_left(now),
+            Vec::new(),
+        );
         return;
     }
     let at = |g: &GeoNode| {
@@ -57,16 +65,16 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         Vec2::new(w.x, w.z)
     };
     let Some(&ent) = game.node_by_id.get(&node) else {
-        reply(false, Some("unknown"), None, false, 0.0);
+        reply(false, Some("unknown"), None, false, 0.0, Vec::new());
         return;
     };
     let Ok((g, src)) = game.sources.get(ent) else {
-        reply(false, Some("notclaim"), None, false, 0.0);
+        reply(false, Some("notclaim"), None, false, 0.0, Vec::new());
         return;
     };
     let here = at(g);
     if here.distance(Vec2::new(pos.0.x, pos.0.z)) > rules.claim_radius_m {
-        reply(false, Some("range"), None, false, 0.0);
+        reply(false, Some("range"), None, false, 0.0, Vec::new());
         return;
     }
     let hashes = ticket.as_deref().and_then(crate::keep::hashes);
@@ -78,11 +86,11 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
             .ok()
             .filter(|k| hashes.is_some_and(|h| h.0 == k.1.ticket))
         else {
-            reply(false, Some("notyours"), None, false, 0.0);
+            reply(false, Some("notyours"), None, false, 0.0, Vec::new());
             return;
         };
         if cd.0 > 0.0 {
-            reply(false, Some("cooldown"), None, false, cd.0);
+            reply(false, Some("cooldown"), None, false, cd.0, Vec::new());
             return;
         }
         k.1.wear = 0.0;
@@ -91,7 +99,21 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         }
         cd.0 = rules.claim_cooldown_s;
         game.keeps.dirty = true;
-        reply(true, None, None, true, cd.0);
+        // A link key, at most one per `link_key_every_s` and up to `link_keys` unused.
+        let lk = &rules.keep;
+        let kh = k.1.ticket;
+        let keys = if lk.link
+            && lk.link_keys > 0
+            && game.keeps.open_link_keys(&kh, now) < lk.link_keys as usize
+            && !game
+                .keeps
+                .made_since(&kh, "link", now - f64::from(lk.link_key_every_s))
+        {
+            game.keeps.mint_link_keys(&kh, 1, now, lk.link_key_days)
+        } else {
+            Vec::new()
+        };
+        reply(true, None, None, true, cd.0, keys);
         return;
     }
     // Placing: the player's own claim, of their side, not natural.
@@ -101,7 +123,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         || src.by != slot.map(|s| s.0)
         || game.naturals.contains(ent)
     {
-        reply(false, Some("notclaim"), None, false, 0.0);
+        reply(false, Some("notclaim"), None, false, 0.0, Vec::new());
         return;
     }
     let gap = rules.keep.gap_m;
@@ -111,7 +133,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
             og.id != node && os.kind == SourceKind::Keep && at(og).distance(here) < gap
         });
     if crowded {
-        reply(false, Some("near"), None, false, 0.0);
+        reply(false, Some("near"), None, false, 0.0, Vec::new());
         return;
     }
     // Moving: give up the source of the ticket sent (one of the player's).
@@ -122,7 +144,7 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
     let mine = game.keeps.slots(&player);
     let moving = hashes.filter(|h| mine.contains(&h.1));
     if moving.is_none() && mine.len() as u32 >= rules.keep.allowed(level) {
-        reply(false, Some("slot"), None, false, 0.0);
+        reply(false, Some("slot"), None, false, 0.0, Vec::new());
         return;
     }
     // Moving takes the tag line along.
@@ -175,9 +197,17 @@ pub(super) fn keep(game: &mut Game, c: &Ctx, conn: u64, node: i64, ticket: Optio
         link: None,
     });
     game.keeps.add_slot(player, h2);
+    // Link keys it comes with (one, a second by chance and level).
+    let keys = if rules.keep.link {
+        let n = rules.keep.start_keys(level, rand::random::<f32>());
+        game.keeps
+            .mint_link_keys(&h1, n, now, rules.keep.link_key_days)
+    } else {
+        Vec::new()
+    };
     // Debug only: a permanent source is a place (log privacy).
     debug!(node, ?faction, "permanent source placed");
-    reply(true, None, Some(t), false, cd.0);
+    reply(true, None, Some(t), false, cd.0, keys);
 }
 
 /// Clear the link of the source with ticket hash `h` (its partner went).
@@ -198,6 +228,9 @@ fn unlink(
 
 /// Link two own permanent sources (`[keep] link`), or unlink one (`to`
 /// none). Both tickets prove ownership; a source has one partner at most.
+/// With link keys (`[keep] link_keys`) a link needs the player at `node`
+/// and takes `key`, an unused link key of `to`; unlinking is free.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn link(
     game: &mut Game,
     c: &Ctx,
@@ -206,11 +239,12 @@ pub(super) fn link(
     ticket: &str,
     to: Option<i64>,
     to_ticket: Option<&str>,
+    key: Option<&str>,
 ) {
-    let Some((_, out)) = game.clients.0.get(&conn) else {
+    let Some((pe, out)) = game.clients.0.get(&conn) else {
         return;
     };
-    let out = out.clone();
+    let (pe, out) = (*pe, out.clone());
     let reply = |ok: bool, reason: Option<&'static str>| {
         send(&out, &ServerMsg::Link { node, ok, reason });
     };
@@ -247,6 +281,26 @@ pub(super) fn link(
     let Some((b, hb)) = to_ticket.and_then(|t| own(game, to, t)) else {
         return reply(false, Some("notyours"));
     };
+    if c.rules.keep.link_keys > 0 {
+        // Standing at `node`, with a key of `to`.
+        let here = game.players.get(pe).ok().map(|p| p.1 .0);
+        let at_a = game
+            .sources
+            .get(a)
+            .ok()
+            .zip(here)
+            .is_some_and(|((g, _), pos)| {
+                let w = project_enu(g.lat, g.lon, c.region.centroid_lat, c.region.centroid_lon);
+                Vec2::new(w.x, w.z).distance(Vec2::new(pos.x, pos.z)) <= c.rules.claim_radius_m
+            });
+        if !at_a {
+            return reply(false, Some("range"));
+        }
+        let kh = key.and_then(crate::keep::hashes).map(|h| h.0);
+        if !kh.is_some_and(|kh| game.keeps.take_link_key(&kh, &hb, c.now)) {
+            return reply(false, Some("nokey"));
+        }
+    }
     // Earlier partners of either end lose their link.
     for e in [a, b] {
         if let Some(p) = game.keep_info.get(e).ok().and_then(|(_, k)| k.link) {

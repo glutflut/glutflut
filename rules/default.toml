@@ -49,6 +49,11 @@ survive = 0.6
 # Linked permanent sources: at one of two linked own sources, claims reach
 # the junctions around the other (0.7 of the strength).
 link = true
+# Link keys: linking B (standing there) to A takes one of A's keys; a link
+# into another city one key of each end. A new source has 1 key (a second
+# with 20 % + 10 % per level above 1), a top-up adds one at most once a day,
+# at most 2 unused per source, unused ones gone after 7 days.
+link_keys = 2
 
 # A source rises where a player waits a minute at a sink (water) or a peak
 # (fire), and with it the hollow / hilltop around: up to 8 junctions within

@@ -10,7 +10,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "busy" }
   | { "t": "recover", ok: boolean, reason: "unknown" | "wait", }
   | { "t": "pow", c: string, bits: number, }
-  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, mottos: Array<MottoItem>, hotspot_m: number, version: string, invite: string, invite_points: number, watch: boolean, indoor: boolean, claim_m: number, }
+  | { "t": "welcome", token: string, faction: Faction, sim: boolean, levels: boolean, abilities: boolean, reach_m: number, supply: boolean, anchor_gap_m: number, reinforce: boolean, keep: boolean, keep_used: number, keep_base: number, keep_per_level: number, keep_gap_m: number, keep_link: boolean, keep_link_keys: number, mottos: Array<MottoItem>, hotspot_m: number, version: string, invite: string, invite_points: number, watch: boolean, indoor: boolean, claim_m: number, }
   | { "t": "state", nodes: Array<[number, number, number]>, }
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
@@ -43,7 +43,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "ability", name: AbilityName, ok: boolean, reason?: "level" | "cooldown" | "nothing", armed: boolean, ready_in: number, }
   | { "t": "sources", items: Array<SourceRow>, }
   | { "t": "sourcesdiff", set: Array<SourceRow>, gone: Array<number>, }
-  | { "t": "keep", node: number, ok: boolean, reason?: string, ticket?: string, topup: boolean, wait: number, }
+  | { "t": "keep", node: number, ok: boolean, reason?: string, ticket?: string, topup: boolean, wait: number, keys?: Array<string>, }
   | { "t": "kept", ticket: string, state: "standing" | "fallen" | "gone", node?: number, points: number, }
   | { "t": "released", ok: boolean, }
   | { "t": "motto", node: number, ok: boolean, reason?: string, }
@@ -83,7 +83,7 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "motto", node: number, ticket: string, motto?: string | null, }
   | { "t": "peek", via: string, far?: Far | null, }
   | { "t": "gift", node: number, ticket: string, }
-  | { "t": "link", node: number, ticket: string, to?: number | null, to_ticket?: string | null, }
+  | { "t": "link", node: number, ticket: string, to?: number | null, to_ticket?: string | null, key?: string | null, }
   | { "t": "collect", on: boolean, }
   | { "t": "stats", on: boolean, }
   | { "t": "presence", code: string, }

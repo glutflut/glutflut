@@ -99,7 +99,7 @@ class Player {
       this.send({ t: "keep", node: n.id });
       const k = await this.next("keep");
       if (process.env.FAR_DEBUG) console.log(this.name, "keep", n.id, k.ok, k.reason ?? "", k.wait);
-      if (k.ok && k.ticket) return { node: n, ticket: k.ticket };
+      if (k.ok && k.ticket) return { node: n, ticket: k.ticket, keys: k.keys ?? [] };
       await sleep(1200);
     }
     throw new Error(`${this.name}: no permanent source placed`);
@@ -118,12 +118,11 @@ const distM = (a, b) => {
   return Math.hypot((a.lon - b.lon) * k, (a.lat - b.lat) * 110_540);
 };
 const dense = (ns, n) => ns.filter((m) => Math.abs(m.lat - n.lat) < 0.001 && distM(m, n) <= 80).length >= 8;
-const spread = (ns, from) =>
-  ns
-    .filter((_, i) => i % 40 === from % 40)
-    .slice(shift % 200)
-    .filter((n) => dense(ns, n))
-    .slice(0, 25);
+const spread = (ns, from) => {
+  const c = ns.filter((_, i) => i % 40 === from % 40).filter((n) => dense(ns, n));
+  const k = shift % Math.max(1, c.length);
+  return [...c.slice(k), ...c.slice(0, k)].slice(0, 25);
+};
 
 const [nx, ny] = [await nodes(X), await nodes(Y)];
 console.log(`${X}: ${nx.length} junctions, ${Y}: ${ny.length}`);
@@ -144,7 +143,8 @@ const px = await new Player("P@X", X, py.token).open();
 const a = await px.place(spread(nx, 11));
 check(true, `A placed in ${X}`, `node ${a.node.id}`);
 await sleep(1200);
-const far = { region: Y, key: b.ticket };
+// With link keys (rules/default.toml) a far link takes a key of B, not its ticket.
+const far = { region: Y, key: b.keys[0] ?? b.ticket };
 px.send({ t: "peek", via: a.ticket, far });
 const pk = await px.next("peek");
 // "linked": the far end answered, there's just nothing to take (test regions fill up).

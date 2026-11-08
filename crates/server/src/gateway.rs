@@ -203,6 +203,7 @@ pub enum FromWeb {
         ticket: String,
         to: Option<i64>,
         to_ticket: Option<String>,
+        key: Option<String>,
     },
     /// Opt in to (or out of) collecting finds.
     Collect {
@@ -1617,12 +1618,14 @@ async fn handle_socket(
                 ticket,
                 to,
                 to_ticket,
+                key,
             } => FromWeb::Link {
                 conn,
                 node,
                 ticket,
                 to,
                 to_ticket,
+                key,
             },
             ClientMsg::Collect { on } => FromWeb::Collect { conn, on },
             ClientMsg::Stats { on } => FromWeb::Stats { conn, on },

@@ -99,6 +99,8 @@ pub enum ServerMsg<'a> {
         keep_gap_m: f32,
         /// Permanent sources can be linked (`[keep] link`).
         keep_link: bool,
+        /// Links take keys: at most this many unused per source (0: no keys).
+        keep_link_keys: u32,
         /// Tag lines for permanent sources: all, with what unlocks them.
         mottos: Vec<MottoItem>,
         /// Hotspot bonus radius (`hotspot_radius_m`), for the "you're here" hint.
@@ -328,7 +330,8 @@ pub enum ServerMsg<'a> {
     },
     /// Answer to `keep`: placed (with the new ticket, shown to nobody
     /// else), topped up, or why not (`off`, `moving`, `range`, `unknown`,
-    /// `notclaim`, `near`, `slot`, `notyours`, `cooldown`).
+    /// `notclaim`, `near`, `slot`, `notyours`, `cooldown`). `keys`: new link
+    /// keys to this source (`[keep] link_keys`), shown to nobody else.
     Keep {
         node: i64,
         ok: bool,
@@ -340,6 +343,9 @@ pub enum ServerMsg<'a> {
         ticket: Option<String>,
         topup: bool,
         wait: f32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        keys: Option<Vec<String>>,
     },
     /// Answer to `redeem`: the ticket's source `standing` (at `node`),
     /// `fallen` or `gone`, and the points paid now; `ticket` as sent (the
@@ -408,7 +414,9 @@ pub enum ServerMsg<'a> {
         #[ts(type = "\"off\" | \"notyours\" | \"soon\"", optional)]
         reason: Option<&'static str>,
     },
-    /// Answer to `link`: linked or unlinked, or why not (`off`, `notyours`, `same`).
+    /// Answer to `link`: linked or unlinked, or why not (`off`, `notyours`,
+    /// `same`; with link keys `range`: not at the source, `nokey`: the key
+    /// to the other one is used up, gone or not that source's).
     Link {
         node: i64,
         ok: bool,
@@ -804,7 +812,8 @@ pub enum ClientMsg {
         ticket: String,
     },
     /// Link the own permanent source at `node` with the one at `to` (both
-    /// tickets), or unlink it (no `to`).
+    /// tickets), or unlink it (no `to`). With link keys: standing at `node`,
+    /// with a link key `key` of `to`.
     Link {
         node: i64,
         ticket: String,
@@ -814,6 +823,9 @@ pub enum ClientMsg {
         #[serde(default)]
         #[ts(optional = nullable)]
         to_ticket: Option<String>,
+        #[serde(default)]
+        #[ts(optional = nullable)]
+        key: Option<String>,
     },
     /// Keep the finds one uncovers (opt-in), or stop and forget them.
     Collect {

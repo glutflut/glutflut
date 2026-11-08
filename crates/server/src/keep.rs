@@ -59,6 +59,13 @@ pub fn hashes(ticket: &str) -> Option<(Hash, Hash)> {
         .then(|| (hash("keep", ticket), hash("slot", ticket)))
 }
 
+/// The mark of a link into another region from the source with this ticket
+/// (`[keep] link_keys`): Y binds a link key to it, and can't tell which
+/// source it is.
+pub fn link_mark(ticket: &str) -> Option<Hash> {
+    hashes(ticket).map(|_| hash("mark", ticket))
+}
+
 /// A new ticket (128 random bits) and its hashes.
 pub fn new_ticket() -> (String, Hash, Hash) {
     let t = format!("{:032x}", rand::random::<u128>());
@@ -98,20 +105,28 @@ pub struct Key {
     /// A city key: its batch and the city's label for it.
     pub batch: Option<String>,
     pub label: Option<String>,
-    /// `gift`, `bottle`, `ember`, `city`.
+    /// `gift`, `bottle`, `ember`, `city`, `link`.
     #[serde(deserialize_with = "crate::remote::de_origin")]
     pub origin: crate::remote::Fixed,
     pub uses: u32,
     /// Unix s.
     pub made: f64,
     pub expires: f64,
+    /// A link key (`[keep] link_keys`) in use for a link into another region:
+    /// that link's mark (hash of its near end), set at its first claim.
+    #[serde(default)]
+    pub bound: Option<Hash>,
 }
+
+/// A link key bound to a link lasts as long as its source (10 years).
+const BOUND_S: f64 = 10.0 * 365.0 * 86_400.0;
 
 fn origin(s: &str) -> &'static str {
     match s {
         "bottle" => "bottle",
         "ember" => "ember",
         "city" => "city",
+        "link" => "link",
         _ => "gift",
     }
 }
@@ -313,6 +328,85 @@ impl Keeps {
     pub fn add_key(&mut self, h: Hash, key: Key) {
         self.keys.insert(h, key);
         self.dirty = true;
+    }
+
+    /// Unused link keys of the source with ticket hash `keep`.
+    pub fn open_link_keys(&self, keep: &Hash, now: f64) -> usize {
+        self.keys
+            .values()
+            .filter(|k| {
+                k.origin == "link"
+                    && k.keep == *keep
+                    && k.bound.is_none()
+                    && k.uses > 0
+                    && k.expires > now
+            })
+            .count()
+    }
+
+    /// `n` new link keys to the source `keep`, good for `days` unused.
+    pub fn mint_link_keys(&mut self, keep: &Hash, n: u32, now: f64, days: f32) -> Vec<String> {
+        (0..n)
+            .map(|_| {
+                let (t, h, _) = new_ticket();
+                self.add_key(
+                    h,
+                    Key {
+                        keep: *keep,
+                        origin: "link",
+                        uses: 1,
+                        made: now,
+                        expires: now + f64::from(days) * 86_400.0,
+                        ..Default::default()
+                    },
+                );
+                t
+            })
+            .collect()
+    }
+
+    /// Use up the unused link key `h` of the source `keep` (a link here);
+    /// false if it isn't one. It stays a week for `made_since`.
+    pub fn take_link_key(&mut self, h: &Hash, keep: &Hash, now: f64) -> bool {
+        match self.keys.get_mut(h) {
+            Some(k)
+                if k.origin == "link"
+                    && k.keep == *keep
+                    && k.bound.is_none()
+                    && k.uses > 0
+                    && k.expires > now =>
+            {
+                k.uses = 0;
+                k.expires = now;
+                self.dirty = true;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// A claim from another region through link key `h` (valid, see [`key`]):
+    /// an unused one binds to that link (`mark`), a bound one opens only for
+    /// its own link. Other keys pass.
+    pub fn bind_link_key(&mut self, h: &Hash, mark: Option<&Hash>, now: f64) -> bool {
+        let Some(k) = self.keys.get_mut(h) else {
+            return false;
+        };
+        if k.origin != "link" {
+            return true;
+        }
+        let Some(mark) = mark else {
+            return false;
+        };
+        match k.bound {
+            Some(b) => b == *mark,
+            None => {
+                k.bound = Some(*mark);
+                k.expires = now + BOUND_S;
+                self.dirty = true;
+                true
+            }
+        }
     }
 
     /// The city withdrew a batch of its keys (editor).
@@ -632,7 +726,7 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
     let keys = c
         .query(
             "SELECT key, keep, origin, uses, extract(epoch FROM made)::float8, extract(epoch FROM expires)::float8, \
-             spot, batch, label FROM game.keep_keys WHERE region = $1",
+             spot, batch, label, bound FROM game.keep_keys WHERE region = $1",
             &[&region],
         )?
         .into_iter()
@@ -651,6 +745,7 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
                     uses: r.get::<_, i32>(3).max(0) as u32,
                     made: r.get(4),
                     expires: r.get(5),
+                    bound: r.get::<_, Option<Vec<u8>>>(9).and_then(h),
                 },
             ))
         })
@@ -736,12 +831,17 @@ fn write(c: &mut postgres::Client, region: &str, s: &Snapshot) -> Result<(), pos
     let ku: Vec<i32> = s.keys.iter().map(|k| k.1.uses as i32).collect();
     let km: Vec<f64> = s.keys.iter().map(|k| k.1.made).collect();
     let ke: Vec<f64> = s.keys.iter().map(|k| k.1.expires).collect();
+    let kd: Vec<Option<&[u8]>> = s
+        .keys
+        .iter()
+        .map(|k| k.1.bound.as_ref().map(|b| &b[..]))
+        .collect();
     t.execute(
-        "INSERT INTO game.keep_keys (key, region, keep, origin, uses, made, expires, spot, batch, label) \
-         SELECT k, $1, p, o, u, to_timestamp(m), to_timestamp(e), n, b, l \
+        "INSERT INTO game.keep_keys (key, region, keep, origin, uses, made, expires, spot, batch, label, bound) \
+         SELECT k, $1, p, o, u, to_timestamp(m), to_timestamp(e), n, b, l, d \
          FROM unnest($2::bytea[], $3::bytea[], $4::text[], $5::int4[], $6::float8[], $7::float8[], \
-                     $8::int8[], $9::text[], $10::text[]) AS x(k, p, o, u, m, e, n, b, l)",
-        &[&region, &kk, &kp, &ko, &ku, &km, &ke, &kn, &kb, &kl],
+                     $8::int8[], $9::text[], $10::text[], $11::bytea[]) AS x(k, p, o, u, m, e, n, b, l, d)",
+        &[&region, &kk, &kp, &ko, &ku, &km, &ke, &kn, &kb, &kl, &kd],
     )?;
     if let Some(at) = s.reset {
         t.execute(
@@ -776,7 +876,7 @@ impl crate::writers::Lane for Writer {
                         }
                     }
                     Ok(None) => {}
-                    Err(e) => pg.failed(db, "keeps: campaign boundary", &e),
+                    Err(e) => pg.failed(db, "keeps: campaign boundary", &crate::db::detail(&e)),
                 }
             }
         }
@@ -797,7 +897,7 @@ impl crate::writers::Lane for Writer {
         if let Some(s) = save {
             if let Some(c) = pg.get(db) {
                 if let Err(e) = write(c, &self.region, &s) {
-                    pg.failed(db, "keeps write", &e);
+                    pg.failed(db, "keeps write", &crate::db::detail(&e));
                 }
             }
         }
@@ -820,6 +920,43 @@ mod tests {
     use crate::sim::expire_sources;
     use crate::testkit::*;
     use elements_shared::rules::Rules;
+
+    #[test]
+    fn link_keys_are_used_once_and_bind_to_one_link() {
+        let mut k = Keeps::new(None, "test".into(), true);
+        let (_, a, _) = new_ticket();
+        let (_, other, _) = new_ticket();
+        let now = 1_000_000.0;
+        let keys = k.mint_link_keys(&a, 2, now, 7.0);
+        assert_eq!(keys.len(), 2);
+        assert_eq!(k.open_link_keys(&a, now), 2);
+        let h0 = hashes(&keys[0]).unwrap().0;
+        let h1 = hashes(&keys[1]).unwrap().0;
+        // A link here: only for its own source, once.
+        assert!(!k.take_link_key(&h0, &other, now), "key of another source");
+        assert!(k.take_link_key(&h0, &a, now));
+        assert!(!k.take_link_key(&h0, &a, now), "used up");
+        assert_eq!(k.open_link_keys(&a, now), 1);
+        // A used key still counts as made today (one new key a day).
+        assert!(k.made_since(&a, "link", now - 86_400.0));
+        // A link into another region: bound at the first claim, then only that link.
+        let m1 = link_mark(&keys[1]).unwrap();
+        let m2 = [7u8; 32];
+        assert!(!k.bind_link_key(&h1, None, now), "no mark");
+        assert!(k.bind_link_key(&h1, Some(&m1), now));
+        assert!(k.bind_link_key(&h1, Some(&m1), now + 10.0));
+        assert!(!k.bind_link_key(&h1, Some(&m2), now + 20.0), "another link");
+        assert_eq!(k.open_link_keys(&a, now), 0, "bound keys are not unused");
+        assert!(
+            !k.take_link_key(&h1, &a, now),
+            "a bound key can't link here"
+        );
+        // Unused keys expire.
+        let late = k.mint_link_keys(&a, 1, now, 7.0);
+        assert_eq!(k.open_link_keys(&a, now + 8.0 * 86_400.0), 0);
+        let hl = hashes(&late[0]).unwrap().0;
+        assert!(!k.take_link_key(&hl, &a, now + 8.0 * 86_400.0));
+    }
 
     #[test]
     fn gift_keys_count_down_and_expire() {

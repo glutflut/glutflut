@@ -23,8 +23,9 @@ const REDEEM_EVERY_MS = 10 * 60_000;
 const REDEEM_GAP_MS = 25_000;
 
 /** `link`: the partner's ticket (linked permanent sources, server `[keep] link`).
- * `far`: the partner in another region of this server (only this device knows it). */
-type Stored = { ticket: string; node: number; ll?: [number, number]; link?: string; far?: FarEnd };
+ * `far`: the partner in another region of this server (only this device knows it).
+ * `keys`: unused link keys to this source (server `[keep] link_keys`). */
+type Stored = { ticket: string; node: number; ll?: [number, number]; link?: string; far?: FarEnd; keys?: string[] };
 /** The far end of a link: its region, its ticket (the key), where it is and the region's name. */
 type FarEnd = { region: string; key: string; ll?: [number, number]; name?: string };
 
@@ -67,6 +68,15 @@ function elsewhere(): Map<string, Stored[]> {
     // Storage blocked: no far links.
   }
   return out;
+}
+
+/** Take one link key of the source `ticket` in region `slug`'s list. */
+function takeKeyThere(slug: string, ticket: string): string | undefined {
+  const key = `${PREFIX}${slug}` as StoreKey;
+  const list = (loadJson<Stored[]>(key) ?? []).filter(valid);
+  const k = list.find((x) => x.ticket === ticket)?.keys?.shift();
+  if (k) saveJson(key, list);
+  return k;
 }
 
 /** Set (or with `to` null clear) the far end on a source of region `slug`'s list. */
@@ -145,8 +155,12 @@ export function setupPerm(
   let levels = false;
   /** Linked permanent sources are on (`[keep] link`). */
   let linkOn = false;
+  /** Links take keys (`[keep] link_keys`; 0: no keys). */
+  let linkKeys = 0;
+  const keysOf = (m: Stored) => m.keys ?? [];
+  const keyText = (m: Stored) => (linkKeys ? ` · ${keysOf(m).length ? t("perm.keys", { n: keysOf(m).length }) : t("perm.link.needkey")}` : "");
   /** A link (or unlink, `b` null) sent, until the server answers. */
-  let pendingLink: { a: Stored; b: Stored | null } | null = null;
+  let pendingLink: { a: Stored; b: Stored | null; key?: string } | null = null;
   /** Tag lines just chosen, until the source list shows them. */
   const chosen = new Map<number, string>();
   /** Own sources' tag lines as last seen on the map (kept when out of view). */
@@ -351,9 +365,11 @@ export function setupPerm(
             if (b.far && !b.link) btn.textContent += ` · ${t("perm.linked.to", { city: b.far.name ?? b.far.region })}`;
             else if (b.link) btn.textContent += ` · ${t("perm.linked")}`;
             // Linked within its own city: only that city's server can undo it.
-            if (b.link) {
+            // With link keys: a key of each end.
+            const noKeys = linkKeys > 0 && (!keysOf(b).length || !keysOf(a).length);
+            if (b.link || noKeys) {
               btn.disabled = true;
-              btn.textContent += ` (${t("perm.linked.there", { city: r.name })})`;
+              btn.textContent += ` (${b.link ? t("perm.linked.there", { city: r.name }) : t("perm.link.needkeys")})`;
               list.append(btn);
               return;
             }
@@ -370,11 +386,14 @@ export function setupPerm(
         const b = document.createElement("button");
         // Linked already (here or to another city): linking moves that link.
         const p = partner(r.m);
-        b.textContent = label(r.m) + (line(r) ? ` · ${line(r)}` : "") + (p ? ` · ${t("perm.linked.to", { city: partnerName(p) })}` : "");
+        b.textContent = label(r.m) + (line(r) ? ` · ${line(r)}` : "") + (p ? ` · ${t("perm.linked.to", { city: partnerName(p) })}` : "") + keyText(r.m);
+        // With link keys: one of the other one's, standing here (the server checks).
+        b.disabled = linkKeys > 0 && !keysOf(r.m).length;
         b.onclick = () => {
           box.hidden = true;
-          pendingLink = { a, b: r.m };
-          net.send({ t: "link", node: a.node, ticket: a.ticket, to: r.m.node, to_ticket: r.m.ticket });
+          const key = linkKeys ? keysOf(r.m)[0] : undefined;
+          pendingLink = { a, b: r.m, key };
+          net.send({ t: "link", node: a.node, ticket: a.ticket, to: r.m.node, to_ticket: r.m.ticket, ...(key ? { key } : {}) });
         };
         return b;
       }),
@@ -393,9 +412,14 @@ export function setupPerm(
         if (x) delete x.far;
       } else setFarThere(old.region, old.key, null);
     }
-    a.far = { region: slug, key: b.ticket, ll: b.ll, name: regionName };
+    // With link keys: a key of each end instead of the tickets; each binds
+    // to this link at its first claim.
+    const bKey = linkKeys ? takeKeyThere(slug, b.ticket) : b.ticket;
+    const aKey = linkKeys ? a.keys?.shift() : a.ticket;
+    if (!bKey || !aKey) return toast(t("perm.link.nokey"), 7000);
+    a.far = { region: slug, key: bKey, ll: b.ll, name: regionName };
     save(mine);
-    setFarThere(slug, b.ticket, { region, key: a.ticket, ll: where(a), name: hereName });
+    setFarThere(slug, b.ticket, { region, key: aKey, ll: where(a), name: hereName });
     toast(t("perm.link.set"), 6000);
   }
 
@@ -460,7 +484,7 @@ export function setupPerm(
       ...ranked().map((r) => {
         const li = document.createElement("li");
         const b = document.createElement("button");
-        b.textContent = label(r.m) + (line(r) ? ` · ${line(r)}` : "");
+        b.textContent = label(r.m) + (line(r) ? ` · ${line(r)}` : "") + (linkOn ? keyText(r.m) : "");
         b.onclick = () => {
           ($("board-close") as HTMLButtonElement).click();
           focus(r.m.node);
@@ -526,7 +550,7 @@ export function setupPerm(
     },
     drawList,
     onWelcome(
-      m: { keep?: boolean; keep_used?: number; keep_base?: number; keep_per_level?: number; keep_gap_m?: number; keep_link?: boolean; mottos?: MottoItem[]; levels?: boolean },
+      m: { keep?: boolean; keep_used?: number; keep_base?: number; keep_per_level?: number; keep_gap_m?: number; keep_link?: boolean; keep_link_keys?: number; mottos?: MottoItem[]; levels?: boolean },
       f: Faction,
     ) {
       mottos = m.mottos ?? [];
@@ -538,6 +562,7 @@ export function setupPerm(
       perLevel = m.keep_per_level ?? 0;
       gap = m.keep_gap_m ?? 60;
       linkOn = !!m.keep_link;
+      linkKeys = m.keep_link_keys ?? 0;
       faction = f;
       drawLinks();
       redeemTimers.forEach(clearTimeout);
@@ -561,7 +586,7 @@ export function setupPerm(
           const carried = from === undefined ? "" : (shownMotto.get(from) ?? "");
           if (moved) forget(moved);
           else used++;
-          const placed = { ticket: m.ticket, node: m.node, ...(spot ? { ll: spot.ll } : {}) };
+          const placed: Stored = { ticket: m.ticket, node: m.node, ...(spot ? { ll: spot.ll } : {}), ...(m.keys?.length ? { keys: m.keys } : {}) };
           mine.push(placed);
           save(mine);
           if (carried) shownMotto.set(m.node, carried);
@@ -569,7 +594,12 @@ export function setupPerm(
           focus(m.node);
           if (!carried) offerMotto(placed);
         } else if (m.ok && m.topup) {
-          toast(name("topped"));
+          const own = mine.find((x) => x.node === m.node);
+          if (own && m.keys?.length) {
+            own.keys = [...keysOf(own), ...m.keys];
+            save(mine);
+          }
+          toast(name("topped") + (m.keys?.length ? `. ${t("perm.key.new")}` : ""), m.keys?.length ? 7000 : undefined);
         } else if (m.reason === "slot") {
           // Slots taken by tickets this device doesn't have (new phone, cleared browser).
           void ask(name("release.confirm")).then((yes) => yes && net.send({ t: "release", tickets: mine.map((x) => x.ticket) }));
@@ -607,6 +637,11 @@ export function setupPerm(
       } else if (m.t === "link") {
         const p = pendingLink;
         pendingLink = null;
+        // The key went with the link (or was no good any more).
+        if (p?.b && p.key && (m.ok || m.reason === "nokey")) {
+          p.b.keys = keysOf(p.b).filter((k) => k !== p.key);
+          save(mine);
+        }
         if (m.ok && p) {
           // A far link of either end goes (one link per source).
           const moved = [p.a, p.b].find((x) => x?.far)?.far?.name;
@@ -628,7 +663,7 @@ export function setupPerm(
           save(mine);
           drawLinks();
           toast(p.b && moved ? t("perm.link.moved", { city: moved }) : t(p.b ? "perm.link.set" : "perm.link.off"), 6000);
-        } else toast(t("perm.failed"));
+        } else toast(t(m.reason === "nokey" ? "perm.link.nokey" : m.reason === "range" ? "perm.link.range" : "perm.failed"), 7000);
       } else if (m.t === "released") {
         if (m.ok) {
           used = mine.length;

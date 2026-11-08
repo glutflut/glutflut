@@ -376,6 +376,11 @@ Permanent player sources. They fade from `strength` to `floor` over `fade_s`; ea
 | `expire_s` | 259200 (3 days) | – | server | Gone after this long without a top-up. |
 | `link` | false | true | server | Linked permanent sources: a player connects two of their own (app: list in the player sheet); at one of them, claims reach the junctions around the other, both ways, any distance (ticket of the near one as `via` in `claim`). The partner itself can't be topped up that way. Others see only that a source is linked. |
 | `link_factor` | 0.7 | – | server | Strength of a claim through a link, as a factor. |
+| `link_keys` | 0 | 2 | server | Link keys (with `link`; 0 = off: links need no key, a far link uses the source's ticket). At most this many unused keys per source. Linking B (standing within `claim_radius_m` of it) to A takes one of A's keys; a link into another region takes one key of each end, bound to that link at its first claim (V18). Unlinking is free. |
+| `link_key2` | 0.2 | – | server | A new source comes with one key, a second with this chance … |
+| `link_key2_level` | 0.1 | – | server | … plus this per level above 1. |
+| `link_key_every_s` | 86400 | – | server | A top-up adds a key at most this often (and only below `link_keys` unused). |
+| `link_key_days` | 7 | – | server | Unused keys are gone after this many days. |
 | `survive` | 0 | 0.6 | server | A campaign start or end clears the map of permanent sources, except those at least this strong (0 = none survive). A link survives only with both ends. |
 
 #### `[weather]` (`weather.rs`)
