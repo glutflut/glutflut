@@ -559,6 +559,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/nodes", get(ops_nodes))
                     .route("/api/ops/indoor", get(ops_indoor))
                     .route("/api/ops/regions", get(ops_regions))
+                    .route("/api/ops/pending", get(ops_pending))
                     .route("/api/ops/feedback/{id}", post(ops_feedback_done))
                     .route("/api/ops/live", get(live_handler))
                     .route("/api/ops/layers", get(layers::list))
@@ -2383,6 +2384,35 @@ async fn ops_regions(
         .collect();
     Json(serde_json::json!({ "shard": s.host.shard(), "regions": items, "peers": peers }))
         .into_response()
+}
+
+/// `GET /api/ops/pending` (admin for all regions): images and campaign
+/// phrases waiting for approval in this shard's regions (admin page).
+async fn ops_pending(
+    State(s): State<AppState>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+) -> Response {
+    let w = who(&s, c, &headers).await;
+    if !matches!(w.access(), Access::All) || w.role() < Role::Admin {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let shard = s.host.shard().to_string();
+    let st = s.clone();
+    let out = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let media = editor_media::pending(db, &shard)?;
+            let mottos = editor_mottos::pending(db, &shard)?;
+            Ok(serde_json::json!({ "media": media, "mottos": mottos }))
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match out {
+        Some(v) => Json(v).into_response(),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
 }
 
 /// screen secrets are in here: admins only.

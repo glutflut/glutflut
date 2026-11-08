@@ -347,6 +347,68 @@ pub(super) async fn list(
     }
 }
 
+/// Pending images of every region of `shard`, oldest first, each with its
+/// target's name and the image it would replace (admin page, `ops_pending`).
+pub(super) fn pending(
+    db: &mut postgres::Client,
+    shard: &str,
+) -> Result<Vec<Value>, postgres::Error> {
+    let store = media::store();
+    let url = |key: &str, id: i64| {
+        store.map(|s| {
+            if s.private {
+                s.presigned(key)
+            } else {
+                s.url(key, id)
+            }
+        })
+    };
+    Ok(db
+        .query(
+            "SELECT m.id, m.region, r.name, m.kind, m.target, m.s3_key, m.width, m.height, m.author, \
+               m.licence, m.licence_version, m.licence_url, m.source_url, m.alt, m.uploaded_by, \
+               extract(epoch FROM m.created_at)::float8, m.bytes, \
+               CASE m.kind \
+                 WHEN 'find' THEN (SELECT f.name FROM geo.finds f WHERE f.region = m.region AND f.id::text = m.target) \
+                 WHEN 'zone' THEN (SELECT z.name FROM geo.zones z WHERE z.region = m.region AND z.id = m.target) \
+                 ELSE (SELECT coalesce(c.names -> r.language ->> 'title', c.names -> 'de' ->> 'title', c.key) \
+                       FROM game.chapters c WHERE c.region = m.region AND c.key = m.target AND c.kind IS NULL) END, \
+               a.id, a.s3_key \
+             FROM geo.media m JOIN geo.regions r ON r.slug = m.region \
+             LEFT JOIN LATERAL (SELECT id, s3_key FROM geo.media x WHERE x.region = m.region AND x.kind = m.kind \
+               AND x.target = m.target AND x.status = 'approved' LIMIT 1) a ON true \
+             WHERE m.status = 'pending' AND r.shard = $1 ORDER BY m.created_at",
+            &[&shard],
+        )?
+        .iter()
+        .map(|r| {
+            let id: i64 = r.get(0);
+            let lic = stored_licence(r.get(9), r.get(10));
+            let was = r.get::<_, Option<i64>>(18).zip(r.get::<_, Option<String>>(19));
+            json!({
+                "id": id,
+                "region": r.get::<_, String>(1),
+                "region_name": r.get::<_, String>(2),
+                "kind": r.get::<_, String>(3),
+                "target": r.get::<_, String>(4),
+                "target_name": r.get::<_, Option<String>>(17),
+                "url": url(r.get(5), id),
+                "width": r.get::<_, i32>(6),
+                "height": r.get::<_, i32>(7),
+                "author": r.get::<_, String>(8),
+                "licence_label": lic.label(),
+                "licence_url": r.get::<_, Option<String>>(11),
+                "source_url": r.get::<_, Option<String>>(12),
+                "alt": r.get::<_, Option<String>>(13),
+                "by": r.get::<_, String>(14),
+                "created": r.get::<_, f64>(15),
+                "bytes": r.get::<_, i32>(16),
+                "replaces": was.and_then(|(wid, k)| url(&k, wid)),
+            })
+        })
+        .collect())
+}
+
 /// `POST /api/ops/media?region=` (editor): upload an image (base64 JSON,
 /// at most 8 MB); it waits for a second person's approval.
 pub(super) async fn upload(
@@ -511,13 +573,18 @@ fn answer(res: Result<Result<i64, String>, tokio::task::JoinError>) -> Response 
 /// `POST /api/ops/media/decide?region=` (editor): approve or reject a
 /// pending image; not by the one who uploaded it. Approving replaces the
 /// target's image; rejecting deletes the file (the row stays for the record).
+/// The body is read as JSON whatever its type (admin page on another shard:
+/// text/plain, no preflight through the login proxy).
 pub(super) async fn decide(
     State(s): State<AppState>,
     Query(q): Query<RegionQ>,
     headers: HeaderMap,
     Extension(c): Extension<Client>,
-    Json(req): Json<DecideIn>,
+    body: String,
 ) -> Response {
+    let Ok(req) = serde_json::from_str::<DecideIn>(&body) else {
+        return bad("body: {\"id\": n, \"approve\": true|false}");
+    };
     let slug = match s.slug(q.region.as_deref()) {
         Ok(v) => v,
         Err(e) => return e,

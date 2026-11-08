@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/src/dashboard.css" />
     <link rel="stylesheet" href="/src/editor.css" />
     <link rel="stylesheet" href="/src/admin.css" />
+    <link rel="stylesheet" href="/src/indoor.css" />
   </head>
   <body>
     <main class="viz-root">
@@ -28,6 +29,7 @@
       <nav id="tabs" class="ed-tabs" role="tablist" hidden>
         <button type="button" role="tab" data-tab="regionen">Regionen</button>
         <button type="button" role="tab" data-tab="rueckmeldungen">Rückmeldungen <span class="badge" id="badge-fb"></span></button>
+        <button type="button" role="tab" data-tab="freigaben">Freigaben <span class="badge" id="badge-pend"></span></button>
         <button type="button" role="tab" data-tab="wuensche">Standortwünsche</button>
         <button type="button" role="tab" data-tab="codes">QR-Codes</button>
       </nav>
@@ -51,6 +53,14 @@
         <div class="scroll"><table class="ed-table" id="feedback"></table></div>
       </section>
 
+      <section id="tab-freigaben" class="tab" hidden>
+        <p class="hint">Was in den Redaktionen auf Freigabe wartet, aus allen Regionen und Shards. Bilder gibt eine zweite Person frei (nicht wer sie hochgeladen hat); Mottos gibt ein Admin frei. Ändern und Löschen in der Redaktion der Stadt.</p>
+        <h2>Bilder <small id="pend-media-sum"></small></h2>
+        <div id="pend-media" class="pend-media"></div>
+        <h2>Mottos <small id="pend-mottos-sum"></small></h2>
+        <div class="scroll"><table class="ed-table" id="pend-mottos"></table></div>
+      </section>
+
       <section id="tab-wuensche" class="tab" hidden>
         <p class="hint">„Hier will ich spielen“ aus der App, je H3-Zelle (Auflösung 6, etwa 36 km²), aus allen Shards zusammengezählt, meiste zuerst. „In Region“: die Mitte der Zelle liegt in einer aktiven Region.</p>
         <div class="bar">
@@ -66,12 +76,23 @@
       </section>
 
       <section id="tab-codes" class="tab" hidden>
-        <p class="hint">Regionen im Innenmodus (Regelsatz mit <code>[indoor]</code>): Aushänge A4 und Bildschirm-Links. Später auch Ortscodes draußen.</p>
-        <ul id="codes" class="codes"></ul>
+        <p class="hint">Regionen im Innenmodus (Regelsatz mit <code>[indoor]</code>): Aushänge A4 und Bildschirm-Links. Regionen anderer Shards öffnen sich auf deren Seite (die Geheimnisse der Bildschirme verlassen ihren Server nicht). Später auch Ortscodes draußen.</p>
+        <div class="bar">
+          <select id="code-region"></select>
+          <button type="button" id="code-load">Anzeigen</button>
+          <button type="button" id="code-print" hidden>Drucken</button>
+          <small id="code-sum"></small>
+        </div>
+        <section id="code-screens" hidden>
+          <h2>Bildschirm-Knoten</h2>
+          <p class="hint">Diese Links enthalten das Geheimnis des Knotens: nur auf dem Gerät am Knoten öffnen, nicht weitergeben. <code>&amp;eink</code> anhängen für langsame Anzeigen.</p>
+          <ul id="code-screen-list" class="screens"></ul>
+        </section>
       </section>
 
       <p id="msg" class="msg"></p>
     </main>
+    <div id="code-sheets" class="sheets" hidden></div>
     <script type="module" src="/src/admin.ts"></script>
   </body>
 </html>

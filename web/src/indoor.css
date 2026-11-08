@@ -1,0 +1,19 @@
+/* Indoor QR sheets (indoor-render.ts): A4 pages, printed without the rest. */
+.sheets .sheet { width: 210mm; height: 297mm; box-sizing: border-box; padding: 18mm 16mm; margin: 12px auto; background: #fff; color: #111;
+  font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  page-break-after: always; break-after: page; box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
+.sheet .kicker { font-size: 20pt; font-weight: 800; letter-spacing: .02em; }
+.sheet .kicker .f { color: #e8590c; } .sheet .kicker .w { color: #1c7ed6; }
+.sheet .name { font-size: 30pt; font-weight: 700; text-align: center; }
+.sheet .qr { width: 150mm; height: 150mm; } .sheet .qr svg { width: 100%; height: 100%; }
+.sheet .how { font-size: 14pt; text-align: center; line-height: 1.4; }
+.sheet .id { font-size: 9pt; color: #555; }
+.screens li { margin: 6px 0; word-break: break-all; }
+/* On screen, scaled to fit narrow windows. */
+@media screen and (max-width: 840px) { .sheets { zoom: .45; } }
+@media print {
+  @page { size: A4; margin: 0; }
+  body { background: #fff !important; }
+  body > :not(.sheets) { display: none !important; }
+  .sheets .sheet { margin: 0; box-shadow: none; }
+}

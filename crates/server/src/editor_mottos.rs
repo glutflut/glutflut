@@ -125,16 +125,51 @@ pub(super) async fn list(
     }
 }
 
+/// Phrases waiting for approval in every region of `shard` (admin page,
+/// `ops_pending`), with the city's language.
+pub(super) fn pending(
+    db: &mut postgres::Client,
+    shard: &str,
+) -> Result<Vec<Value>, postgres::Error> {
+    Ok(db
+        .query(
+            "SELECT m.region, r.name, r.language, m.num, m.campaign, m.side, m.names::text, m.created_by \
+             FROM game.campaign_mottos m JOIN geo.regions r ON r.slug = m.region \
+             WHERE m.status <> 'approved' AND r.shard = $1 ORDER BY r.name, m.campaign, m.num",
+            &[&shard],
+        )?
+        .iter()
+        .map(|r| {
+            let lang: Option<String> = r.get(2);
+            json!({
+                "region": r.get::<_, String>(0),
+                "region_name": r.get::<_, String>(1),
+                "language": lang.filter(|l| LANGS.contains(&l.as_str())).unwrap_or_else(|| "de".into()),
+                "num": r.get::<_, i16>(3),
+                "campaign": r.get::<_, String>(4),
+                "side": r.get::<_, String>(5),
+                "names": serde_json::from_str::<Value>(r.get(6)).unwrap_or(Value::Null),
+                "by": r.get::<_, Option<String>>(7),
+            })
+        })
+        .collect())
+}
+
 /// `POST /api/ops/mottos?region=` (editor): propose or change a phrase; an
 /// admin may approve it with the same call. The region takes approved ones
-/// within 5 minutes (apps on their next connect).
+/// within 5 minutes (apps on their next connect). The body is read as JSON
+/// whatever its type (admin page on another shard: text/plain).
 pub(super) async fn save(
     State(s): State<AppState>,
     Query(q): Query<RegionQ>,
     headers: HeaderMap,
     Extension(c): Extension<Client>,
-    Json(req): Json<MottoIn>,
+    body: String,
 ) -> Response {
+    let req = match serde_json::from_str::<MottoIn>(&body) {
+        Ok(r) => r,
+        Err(_) => return bad("body: {num?, campaign, side, names, approve?}"),
+    };
     let slug = match s.slug(q.region.as_deref()) {
         Ok(v) => v,
         Err(e) => return e,

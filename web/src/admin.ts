@@ -1,11 +1,13 @@
 // Admin page (admin.html): one place for the operator across regions and
 // shards — regions (`/api/ops/regions`), feedback (`/api/feedback`, mark
-// done), "play here" wishes (`/api/wishes`) and indoor QR sheets
-// (indoor.html). Needs admin for all regions: the ops token, or a login
+// done), images and campaign phrases waiting for approval (`/api/ops/pending`),
+// "play here" wishes (`/api/wishes`) and indoor QR sheets (indoor-render.ts;
+// other shards' on their own indoor.html). Needs admin for all regions: the ops token, or a login
 // (opsauth.ts) in the group `<prefix>admin`. The other shards come from
 // this server's `peers` (ELEMENTS_ADMIN_PEERS, server admin.rs): the page asks
 // them itself with the same login (cookie) or token.
 import { authHeaders, getAccess, type Access } from "./opsauth";
+import { renderIndoor, type IndoorReply } from "./indoor-render";
 
 type Region = {
   slug: string;
@@ -22,6 +24,27 @@ type Region = {
   feedback_30d: number;
 };
 type Feedback = { id?: number; region: string; day: string; mood: number; text: string | null; lang: string | null; version: string | null; done_at?: string | null; done_by?: string | null };
+type PendMedia = {
+  id: number;
+  region: string;
+  region_name: string;
+  kind: "find" | "zone" | "challenge";
+  target: string;
+  target_name: string | null;
+  url: string | null;
+  width: number;
+  height: number;
+  author: string;
+  licence_label: string | null;
+  licence_url: string | null;
+  source_url: string | null;
+  alt: string | null;
+  by: string;
+  created: number;
+  bytes: number;
+  replaces: string | null;
+};
+type PendMotto = { region: string; region_name: string; language: string; num: number; campaign: string; side: "fire" | "water" | "both"; names: Record<string, string>; by: string | null };
 type Wish = { cell: string; wishes: number; last: string; center: [number, number] | null };
 type Listed = { slug: string; name: string; listed?: boolean; outline?: { type: string; coordinates: number[][][] | number[][][][] } };
 /** A shard's server: `base` "" for this one, else its admin site. */
@@ -52,6 +75,8 @@ let token = get(TOKEN_KEY);
 let shards: Shard[] = [];
 let regions: (Region & At)[] = [];
 let feedback: (Feedback & At)[] = [];
+let pendMedia: (PendMedia & At)[] = [];
+let pendMottos: (PendMotto & At)[] = [];
 let logoutTo: Access | null = null;
 const msg = (s: string) => ($("msg").textContent = s);
 
@@ -215,6 +240,88 @@ $("feedback").addEventListener("click", async (e) => {
   badge();
 });
 
+// --- approvals ------------------------------------------------------------
+
+const KIND: Record<PendMedia["kind"], string> = { find: "Fund", zone: "Gebiet", challenge: "Kapitel" };
+const SIDE: Record<PendMotto["side"], string> = { fire: "Glut", water: "Flut", both: "beide" };
+/** An image URL from another shard: relative ones (private bucket) are its own. */
+const abs = (base: string, u: string) => (u.startsWith("/") ? base + u : u);
+const day = (t: number) => new Date(t * 1000).toLocaleDateString("de-DE");
+async function errText(res: Response | null) {
+  if (!res) return "kein Netz";
+  const t = (await res.text().catch(() => "")).trim().slice(0, 200);
+  return `Fehler ${res.status}${t ? `: ${t}` : ""}`;
+}
+
+function renderPending() {
+  const n = pendMedia.length + pendMottos.length;
+  $("badge-pend").textContent = n ? String(n) : "";
+  $("pend-media-sum").textContent = pendMedia.length ? `(${pendMedia.length})` : "";
+  $("pend-mottos-sum").textContent = pendMottos.length ? `(${pendMottos.length})` : "";
+  $("pend-media").innerHTML = pendMedia.length
+    ? pendMedia
+        .map((m) => {
+          const k = esc(`${m.shard}:${m.id}`);
+          const img = m.url ? `<img src="${esc(abs(m.base, m.url))}" alt="${esc(m.alt ?? "")}" loading="lazy" />` : "";
+          const author = m.source_url ? `<a href="${esc(m.source_url)}" target="_blank" rel="noopener noreferrer">${esc(m.author)}</a>` : esc(m.author);
+          const lic = m.licence_label ? (m.licence_url ? `, <a href="${esc(m.licence_url)}" target="_blank" rel="noopener noreferrer">${esc(m.licence_label)}</a>` : `, ${esc(m.licence_label)}`) : "";
+          const was = m.replaces ? `<br><small>ersetzt</small> <img class="was" src="${esc(abs(m.base, m.replaces))}" alt="" loading="lazy" />` : "";
+          const ed = `<a href="${m.base}/editor.html?region=${encodeURIComponent(m.region)}" target="_blank">Redaktion</a>`;
+          return `<div class="card">${img}<div><b>${esc(KIND[m.kind] ?? m.kind)}: ${esc(m.target_name ?? m.target)}</b><br>${esc(m.region_name)}${many() ? ` · ${esc(m.shard)}` : ""}<br><small>Foto: ${author}${lic}</small><br><small>${m.width}×${m.height}, ${Math.round(m.bytes / 1000)} kB · von ${esc(m.by)} · ${day(m.created)}</small>${m.alt ? `<br><small>Alt: ${esc(m.alt)}</small>` : ""}${was}<div class="row"><button data-media="${k}" data-approve="1">Freigeben</button><button data-media="${k}" data-approve="0">Ablehnen</button>${ed}</div></div></div>`;
+        })
+        .join("")
+    : `<p class="empty">Keine Bilder offen.</p>`;
+  $("pend-mottos").innerHTML = pendMottos.length
+    ? `<tr><th>Text</th><th>Region</th><th>Kampagne</th><th>Seite</th><th>von</th><th></th></tr>` +
+      pendMottos
+        .map((m) => {
+          const k = esc(`${m.shard}:${m.region}:${m.num}`);
+          const main = m.names[m.language] ?? Object.values(m.names)[0] ?? "";
+          const more = Object.entries(m.names).filter(([l, v]) => l !== m.language && v);
+          const ed = `<a href="${m.base}/editor.html?region=${encodeURIComponent(m.region)}" target="_blank">Redaktion</a>`;
+          return `<tr><td class="text"><b>${esc(main)}</b>${more.length ? `<div class="slug">${more.map(([l, v]) => `${esc(l)}: ${esc(v)}`).join(" · ")}</div>` : ""}</td><td>${esc(m.region_name)}${many() ? `<div class="slug">${esc(m.shard)}</div>` : ""}</td><td>${esc(m.campaign)}</td><td>${esc(SIDE[m.side] ?? m.side)}</td><td>${esc(m.by ?? "")}</td><td class="links"><button data-motto="${k}">Freigeben</button> ${ed}</td></tr>`;
+        })
+        .join("")
+    : `<tr><td class="empty">Keine Mottos offen.</td></tr>`;
+}
+
+$("pend-media").addEventListener("click", async (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-media]");
+  if (!b) return;
+  const m = pendMedia.find((x) => `${x.shard}:${x.id}` === b.dataset.media);
+  if (!m) return;
+  const approve = b.dataset.approve === "1";
+  const name = `${KIND[m.kind] ?? m.kind} „${m.target_name ?? m.target}“ (${m.region_name})`;
+  if (!confirm(approve ? `Bild für ${name} freigeben?${m.replaces ? " Das bisherige wird ersetzt." : ""}` : `Bild für ${name} ablehnen? Die Datei wird gelöscht.`)) return;
+  b.disabled = true;
+  // A text body: a simple request, also to another shard.
+  const res = await api(m.base, `/api/ops/media/decide?region=${encodeURIComponent(m.region)}`, { method: "POST", body: JSON.stringify({ id: m.id, approve }) }).catch(() => null);
+  if (!res?.ok) {
+    b.disabled = false;
+    return void msg(`Bild ${m.shard}/${m.id}: ${await errText(res)}`);
+  }
+  pendMedia = pendMedia.filter((x) => x !== m);
+  msg("");
+  renderPending();
+});
+
+$("pend-mottos").addEventListener("click", async (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-motto]");
+  if (!b) return;
+  const m = pendMottos.find((x) => `${x.shard}:${x.region}:${x.num}` === b.dataset.motto);
+  if (!m) return;
+  b.disabled = true;
+  const body = { num: m.num, campaign: m.campaign, side: m.side, names: m.names, approve: true };
+  const res = await api(m.base, `/api/ops/mottos?region=${encodeURIComponent(m.region)}`, { method: "POST", body: JSON.stringify(body) }).catch(() => null);
+  if (!res?.ok) {
+    b.disabled = false;
+    return void msg(`Motto ${m.region}/${m.num}: ${await errText(res)}`);
+  }
+  pendMottos = pendMottos.filter((x) => x !== m);
+  msg("");
+  renderPending();
+});
+
 // --- wishes ---------------------------------------------------------------
 
 /** Ray casting over the outer ring(s). */
@@ -273,13 +380,52 @@ function renderWishes() {
 
 // --- QR codes -------------------------------------------------------------
 
+const indoorKey = (r: At & { slug: string }) => `${r.shard}:${r.slug}`;
+let codesShown = false;
+
 function renderCodes() {
   const indoor = regions.filter((r) => r.indoor);
-  $("codes").innerHTML = indoor.length
+  const sel = $<HTMLSelectElement>("code-region");
+  const keep = sel.value;
+  sel.innerHTML = indoor.length
     ? indoor
-        .map((r) => `<li><a href="${r.base}/indoor.html?region=${encodeURIComponent(r.slug)}" target="_blank">${esc(r.name)}</a> <span class="slug">${esc(r.slug)}${many() ? ` · ${esc(r.shard)}` : ""}${r.active ? "" : " · aus"}${r.listed ? "" : " · ungelistet"}</span></li>`)
+        .map((r) => `<option value="${esc(indoorKey(r))}">${esc(r.name)} (${esc(r.slug)}${many() ? ` · ${esc(r.shard)}` : ""}${r.active ? "" : " · aus"}${r.listed ? "" : " · ungelistet"})</option>`)
         .join("")
-    : "<li>Keine Region im Innenmodus.</li>";
+    : `<option value="">Keine Region im Innenmodus</option>`;
+  if (indoor.some((r) => indoorKey(r) === keep)) sel.value = keep;
+  $<HTMLButtonElement>("code-load").disabled = !indoor.length;
+  codeChoice();
+}
+
+/** The button says where the sheets open: here, or on the region's shard;
+ * another region clears the shown sheets. */
+function codeChoice() {
+  const r = regions.find((x) => x.indoor && indoorKey(x) === $<HTMLSelectElement>("code-region").value);
+  codesShown = false;
+  $("code-sheets").innerHTML = "";
+  $("code-sheets").hidden = true;
+  $("code-screens").hidden = true;
+  $("code-print").hidden = true;
+  $("code-sum").textContent = "";
+  $("code-load").textContent = r?.base ? `Auf Shard ${r.shard} öffnen ↗` : "Anzeigen";
+}
+
+async function loadCodes() {
+  const r = regions.find((x) => x.indoor && indoorKey(x) === $<HTMLSelectElement>("code-region").value);
+  if (!r) return;
+  if (r.base) return void window.open(`${r.base}/indoor.html?region=${encodeURIComponent(r.slug)}`, "_blank", "noopener");
+  $("code-sum").textContent = "lädt …";
+  const res = await api("", `/api/ops/indoor?region=${encodeURIComponent(r.slug)}`).catch(() => null);
+  if (!res?.ok) {
+    $("code-sum").textContent = await errText(res);
+    return;
+  }
+  const out = renderIndoor((await res.json()) as IndoorReply, $("code-sheets"), $("code-screen-list"));
+  $("code-screens").hidden = !out.screens;
+  $("code-sum").textContent = out.text;
+  $("code-print").hidden = !out.sheets;
+  codesShown = true;
+  $("code-sheets").hidden = false;
 }
 
 // --- tabs and start -------------------------------------------------------
@@ -288,6 +434,7 @@ async function show(tab: string) {
   put(TAB_KEY, tab);
   for (const b of document.querySelectorAll<HTMLButtonElement>("#tabs button")) b.classList.toggle("on", b.dataset.tab === tab);
   for (const s of document.querySelectorAll<HTMLElement>(".tab")) s.hidden = s.id !== `tab-${tab}`;
+  $("code-sheets").hidden = tab !== "codes" || !codesShown;
   if (tab === "wuensche" && !wishes) {
     $("wish-sum").textContent = "lädt …";
     await loadWishes();
@@ -311,18 +458,25 @@ async function start() {
   }
   drawShards();
   const replies = await Promise.all(shards.map(async (s) => [s, s === here ? first : await load<RegionsReply>(s, "/api/ops/regions")] as const));
-  const fbs = await Promise.all(shards.map(async (s) => [s, s.state === "wait" || s.state === "ok" ? await load<Feedback[]>(s, "/api/feedback") : null] as const));
+  const up = (s: Shard) => s.state === "wait" || s.state === "ok";
+  const [fbs, pends] = await Promise.all([
+    Promise.all(shards.map(async (s) => [s, up(s) ? await load<Feedback[]>(s, "/api/feedback") : null] as const)),
+    Promise.all(shards.map(async (s) => [s, up(s) ? await load<{ media: PendMedia[]; mottos: PendMotto[] }>(s, "/api/ops/pending") : null] as const)),
+  ]);
   for (const [s, r] of replies) if (r && s.state === "wait") s.state = "ok";
   regions = replies
     .flatMap(([s, r]) => (r?.regions ?? []).map((x) => ({ ...x, shard: s.shard || r?.shard || "", base: s.base })))
     // Busiest first, then by name.
     .sort((a, b) => b.players_7d - a.players_7d || b.players_today - a.players_today || a.name.localeCompare(b.name));
   feedback = fbs.flatMap(([s, f]) => (f ?? []).map((x) => ({ ...x, shard: s.shard, base: s.base }))).sort((a, b) => b.day.localeCompare(a.day));
+  pendMedia = pends.flatMap(([s, p]) => (p?.media ?? []).map((x) => ({ ...x, shard: s.shard, base: s.base }))).sort((a, b) => a.created - b.created);
+  pendMottos = pends.flatMap(([s, p]) => (p?.mottos ?? []).map((x) => ({ ...x, shard: s.shard, base: s.base })));
   $("shard-name").textContent = many() ? `· ${shards.length} Shards` : first ? `· Shard ${first.shard}` : "";
   drawShards();
   renderRegions();
   feedbackRegions();
   renderFeedback();
+  renderPending();
   renderCodes();
   wishes = null;
   await show(get(TAB_KEY) || "regionen");
@@ -336,6 +490,9 @@ $("fb-region").onchange = renderFeedback;
 $("fb-text").onchange = renderFeedback;
 $("fb-open").onchange = renderFeedback;
 $("wish-filter").onchange = renderWishes;
+$("code-region").onchange = codeChoice;
+$("code-load").onclick = () => void loadCodes();
+$("code-print").onclick = () => print();
 const tokenInput = $<HTMLInputElement>("token");
 tokenInput.value = token;
 tokenInput.onchange = () => {

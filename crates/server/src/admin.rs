@@ -66,7 +66,14 @@ fn trusted_in(headers: &axum::http::HeaderMap, allowed: &[String]) -> bool {
 fn admin_path(p: &str) -> bool {
     matches!(
         p,
-        "/api/access" | "/api/feedback" | "/api/wishes" | "/api/ops/regions" | "/api/ops/reload"
+        "/api/access"
+            | "/api/feedback"
+            | "/api/wishes"
+            | "/api/ops/regions"
+            | "/api/ops/reload"
+            | "/api/ops/pending"
+            | "/api/ops/media/decide"
+            | "/api/ops/mottos"
     ) || p.starts_with("/api/ops/feedback/")
 }
 
@@ -162,6 +169,9 @@ mod tests {
         assert!(admin_path("/api/ops/regions"));
         assert!(admin_path("/api/ops/feedback/12"));
         assert!(admin_path("/api/feedback"));
+        assert!(admin_path("/api/ops/pending"));
+        assert!(admin_path("/api/ops/media/decide"));
+        assert!(!admin_path("/api/ops/media"), "uploads stay same-origin");
         assert!(!admin_path("/api/ops/indoor"), "secrets stay same-origin");
         assert!(!admin_path("/api/ops/chapters"));
     }

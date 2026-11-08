@@ -1,50 +1,42 @@
-// Ops page (indoor.html): A4 sheets with each junction's fixed code, and the
-// links for screen junctions (knoten.html), from `GET /api/ops/indoor` (admin).
-import qrcode from "qrcode-generator";
-import { codeLink } from "./indoor-code";
+// Ops page (indoor.html): the QR sheets of one indoor region, also opened from
+// another shard's admin page (login there; the token of this site if stored).
 import { authHeaders } from "./opsauth";
+import { renderIndoor, type IndoorReply } from "./indoor-render";
 
-type Node = { id: number; lat: number; lon: number; label: string; screen: boolean; code?: string; secret?: string };
-type Reply = { region: string; base: string; window_s: number; hold_s: number; nodes: Node[] };
-
+const TOKEN_KEY = "elements.ops"; // shared with the admin page, dashboard, editor
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
-const qr = (text: string) => {
-  const q = qrcode(0, "M");
-  q.addData(text);
-  q.make();
-  return q.createSvgTag({ cellSize: 4, margin: 4, scalable: true });
+const stored = () => {
+  try {
+    return localStorage.getItem(TOKEN_KEY) ?? "";
+  } catch {
+    return "";
+  }
 };
 
 $<HTMLInputElement>("region").value = new URLSearchParams(location.search).get("region") ?? "";
+$<HTMLInputElement>("token").value = stored();
 $("print").onclick = () => print();
-$("form").onsubmit = async (e) => {
-  e.preventDefault();
+
+async function load() {
   $("msg").textContent = "";
   const region = $<HTMLInputElement>("region").value.trim();
+  if (!region) return;
   const res = await fetch(`/api/ops/indoor?region=${encodeURIComponent(region)}`, { headers: authHeaders($<HTMLInputElement>("token").value.trim()) }).catch(() => null);
-  if (!res?.ok) return void ($("msg").textContent = `Fehler ${res?.status ?? "Netz"}: ${(await res?.text().catch(() => "")) ?? ""}`);
-  const r = (await res.json()) as Reply;
-  const sheets = r.nodes.filter((n) => !n.screen && n.code);
-  $("sheets").innerHTML = sheets
-    .map(
-      (n) => `<section class="sheet">
-        <div class="kicker"><span class="f">Glut</span> &amp; <span class="w">Flut</span></div>
-        <div class="name">${esc(n.label || `Knoten ${n.id}`)}</div>
-        <div class="qr">${qr(codeLink(r.base, r.region, n.code!))}</div>
-        <div class="how">Spielst du schon? In der App „Scannen“ tippen.<br>Neu? Mit der Kamera scannen und mitspielen.<br><small>Already playing? Tap “Scan” in the app. New? Scan with your camera.</small></div>
-        <div class="id">${esc(r.region)} · ${n.id} · glutflut.com</div>
-      </section>`,
-    )
-    .join("");
-  const screens = r.nodes.filter((n) => n.screen && n.secret);
-  $("screens").hidden = !screens.length;
-  $("screen-list").innerHTML = screens
-    .map((n) => {
-      const f = new URLSearchParams({ r: r.region, n: String(n.id), k: n.secret!, w: String(r.window_s), b: r.base, l: n.label || `Knoten ${n.id}` });
-      const url = `${location.origin}/knoten.html#${f}`;
-      return `<li><b>${esc(n.label || String(n.id))}</b>: <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></li>`;
-    })
-    .join("");
-  $("msg").textContent = `${sheets.length} Aushänge, ${screens.length} Bildschirme · Code gilt ${r.window_s} s, man steht ${Math.round(r.hold_s / 60)} min am Knoten.`;
+  if (!res?.ok) {
+    $("token-field").hidden = false;
+    return void ($("msg").textContent = `Fehler ${res?.status ?? "Netz"}: ${(await res?.text().catch(() => "")) ?? ""}`);
+  }
+  const out = renderIndoor((await res.json()) as IndoorReply, $("sheets"), $("screen-list"));
+  $("screens").hidden = !out.screens;
+  $("msg").textContent = out.text;
+}
+
+$("form").onsubmit = (e) => {
+  e.preventDefault();
+  void load();
 };
+// Opened with ?region= (admin page): straight away, with the login or stored token.
+if ($<HTMLInputElement>("region").value) {
+  $("token-field").hidden = true;
+  void load();
+}

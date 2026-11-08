@@ -22,3 +22,20 @@
 .codes li { margin: 8px 0; }
 .msg { color: #c92a2a; min-height: 1.2em; }
 .ed-table tr.done td { opacity: .55; }
+.pend-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; margin-bottom: 24px; }
+.pend-media .card { display: flex; gap: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+.pend-media .card img { width: 160px; max-height: 140px; object-fit: cover; border-radius: 6px; flex: 0 0 auto; }
+.pend-media .card .was { width: 64px; max-height: 64px; opacity: .7; vertical-align: middle; }
+.pend-media .card small { color: var(--text-secondary); }
+.pend-media .card .row { display: flex; gap: 8px; margin-top: 8px; }
+.pend-media .card button, #pend-mottos button { font: inherit; font-size: 13px; padding: 3px 10px; cursor: pointer; }
+.pend-media .empty, #pend-mottos .empty { color: var(--text-secondary); }
+@media (max-width: 480px) { .pend-media .card { flex-direction: column; } .pend-media .card img { width: 100%; } }
+#code-sheets { padding-bottom: 24px; }
+/* Phones: phrases as stacked rows instead of a squeezed table. */
+@media (max-width: 600px) {
+  #pend-mottos tr:first-child:has(th) { display: none; }
+  #pend-mottos tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  #pend-mottos td { display: inline-block; border: 0; padding: 2px 8px 2px 0; vertical-align: top; }
+  #pend-mottos td.text { display: block; max-width: none; }
+}
