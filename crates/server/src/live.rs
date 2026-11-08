@@ -196,7 +196,7 @@ impl crate::writers::Lane for Writer {
                      ON CONFLICT (region) DO UPDATE SET saved_at = now(), sources = EXCLUDED.sources",
                     &[&self.region, &json],
                 ) {
-                    pg.failed(db, "live sources write", &e);
+                    pg.failed(db, "live sources write", &crate::db::detail(&e));
                 }
             }
         }

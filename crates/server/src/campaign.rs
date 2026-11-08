@@ -481,7 +481,7 @@ impl crate::writers::Lane for Worker {
                             return false;
                         }
                     }
-                    Err(e) => pg.failed(db, "campaign load", &e),
+                    Err(e) => pg.failed(db, "campaign load", &crate::db::detail(&e)),
                 }
             }
         }
@@ -490,7 +490,7 @@ impl crate::writers::Lane for Worker {
                 Ok(s) => {
                     if let Some(c) = pg.get(db) {
                         if let Err(e) = save(c, &self.region, &s) {
-                            pg.failed(db, "campaign save", &e);
+                            pg.failed(db, "campaign save", &crate::db::detail(&e));
                         }
                     }
                 }

@@ -357,7 +357,7 @@ impl crate::writers::Lane for Writer {
             let n = rows.len();
             let t = std::time::Instant::now();
             if let Err(e) = write_rows(c, &self.region, rows) {
-                pg.failed(db, "analytics write", &e);
+                pg.failed(db, "analytics write", &crate::db::detail(&e));
             } else {
                 debug!(
                     rows = n,

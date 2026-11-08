@@ -507,6 +507,15 @@ impl Reconnecting {
     }
 }
 
+/// A database error with the server's code and message (its `Display` says
+/// only "db error").
+pub fn detail(e: &postgres::Error) -> String {
+    match e.as_db_error() {
+        Some(d) => format!("{}: {}", d.code().code(), d.message()),
+        None => e.to_string(),
+    }
+}
+
 /// Demo day when neither the region nor `ELEMENTS_DEMO_DAY` sets one.
 pub const DEFAULT_DEMO_DAY: &str = "2025-12-06";
 
