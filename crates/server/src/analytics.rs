@@ -65,6 +65,9 @@ const MAX_GAP_S: f64 = 10.0;
 /// A position belongs to the nearest flow zone within this distance: a
 /// measurement for the city, kept when `[progression] zone_r_m` is tuned.
 pub const ZONE_R_M: f32 = 400.0;
+/// A zone change counts as a route only if the person was seen within this
+/// many seconds before (app closed in A, opened hours later in B: no route).
+pub const FLOW_GAP_S: f64 = 1800.0;
 
 pub fn now_s() -> f64 {
     SystemTime::now()
@@ -1160,6 +1163,11 @@ impl Aggregator {
             .or_default()
             .insert(t.pseudo, t.profile.keys());
         let zone = self.zone(p2);
+        // Seen recently (any fix, in a zone or not): a zone change is a walk.
+        let recent = self
+            .last_seen
+            .get(&t.pseudo)
+            .is_some_and(|&(last, _)| now - last <= FLOW_GAP_S);
         let window = (now as i64).div_euclid(window_s()) * window_s();
         if self.live_k.is_some() && window >= self.live_from {
             let w = self.live.entry((window, t.synthetic)).or_default();
@@ -1180,7 +1188,11 @@ impl Aggregator {
             }
         }
         if let Some(z) = zone {
-            if let Some(prev) = self.zone_of.insert(t.pseudo, z).filter(|&p| p != z) {
+            let prev = self
+                .zone_of
+                .insert(t.pseudo, z)
+                .filter(|&p| p != z && recent);
+            if let Some(prev) = prev {
                 let hour = (now as i64).div_euclid(3600) * 3600;
                 self.flows
                     .entry((prev, z, hour, t.synthetic))
@@ -2038,6 +2050,41 @@ mod tests {
             .collect();
         assert_eq!(day, vec![("a".into(), "b".into(), 3)]);
         assert!(agg.flow_rest.is_empty());
+    }
+
+    #[test]
+    fn flows_skip_a_gap_in_sight() {
+        let (tx, rx) = crossbeam_channel::unbounded();
+        let zones = vec![
+            ("a".to_string(), Vec2::new(0.0, 0.0), Some(50.0)),
+            ("b".to_string(), Vec2::new(500.0, 0.0), Some(50.0)),
+        ];
+        let mut agg = Aggregator::new(Snapper::new(&[]), zones, AnalyticsTx(Out::Chan(tx)));
+        agg.k = 1;
+        agg.standing.need = 0.0;
+        let h = 3600.0 * 24.0 * 20_000.0;
+        // Person 1 walks a->b in 10 min; person 2 closes the app in a, opens it in b 2 h later.
+        agg.observe(&tracked(1), Vec3::new(0.0, 0.0, 0.0), h, false);
+        agg.observe(&tracked(1), Vec3::new(500.0, 0.0, 0.0), h + 600.0, false);
+        agg.observe(&tracked(2), Vec3::new(0.0, 0.0, 0.0), h, false);
+        agg.observe(&tracked(2), Vec3::new(500.0, 0.0, 0.0), h + 7200.0, false);
+        // Person 2 then walks back b->a within minutes: that counts.
+        agg.observe(&tracked(2), Vec3::new(0.0, 0.0, 0.0), h + 7500.0, false);
+        agg.flush(h + 86_400.0 + 1.0, false);
+        let mut flows: Vec<(String, String, i32)> = all_rows(&rx)
+            .into_iter()
+            .filter_map(|r| match r {
+                Row::Flow {
+                    from, to, persons, ..
+                } => Some((from, to, persons)),
+                _ => None,
+            })
+            .collect();
+        flows.sort();
+        assert_eq!(
+            flows,
+            vec![("a".into(), "b".into(), 1), ("b".into(), "a".into(), 1)]
+        );
     }
 
     #[test]
