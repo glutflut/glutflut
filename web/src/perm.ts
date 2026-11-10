@@ -135,6 +135,8 @@ export function setupPerm(
 ) {
   const btn = document.getElementById("perm") as HTMLButtonElement;
   let on = false;
+  /** A browser's first visit: the keep button waits (one thing less to learn). */
+  let firstVisit = false;
   /** Slots in use on the server (also by tickets this device lacks). */
   let used = 0;
   let base = 1;
@@ -534,6 +536,11 @@ export function setupPerm(
     });
 
   return {
+    /** First visit of this browser: no keep button yet (its list in the profile stays). */
+    quietFirstVisit() {
+      firstVisit = true;
+      btn.hidden = true;
+    },
     /** The nodes of this device's permanent sources here. */
     nodes,
     links,
@@ -723,7 +730,7 @@ export function setupPerm(
           else if (spot) action = { node: spot.node, kind: "place" }; // the server asks to free a slot
         }
       }
-      btn.hidden = !action;
+      btn.hidden = !action || firstVisit;
       if (action) {
         btn.className = faction ?? "";
         btn.textContent = label || name(action.kind);

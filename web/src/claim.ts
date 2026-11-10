@@ -313,6 +313,13 @@ export function setupClaim(d: {
   return {
     update,
     send,
+    /** How far the nearest junction that isn't ours is (Weitblick shows only for one beyond reach). */
+    frontDist(): number | null {
+      const me = d.me();
+      const faction = d.faction();
+      if (!me || !faction) return null;
+      return nearestFront(me, faction === "fire" ? 1 : 2)?.[1] ?? null;
+    },
     /** Seconds left of the button's wait (cooldown or moving), if any. */
     wait: () => (wait && Date.now() < wait.until ? { s: Math.ceil((wait.until - Date.now()) / 1000), moving: wait.moving } : null),
     target,

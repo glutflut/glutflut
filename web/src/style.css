@@ -149,6 +149,8 @@ body.watching #board .you { display: none; }
   border-radius: 8px;
 }
 #gps.tap { cursor: pointer; text-decoration: underline dotted; }
+/* A good fix: no line (indoors it names the junction). */
+body:not(.indoor) #gps.good { display: none; }
 /* Indoors the line carries the junction's name: one line, cut off. */
 body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -179,6 +181,8 @@ body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflo
 }
 
 .legal a { color: var(--soft); }
+.board-links { font-size: 14px; line-height: 2; margin: 8px 0; }
+.board-links a { color: var(--soft); }
 
 #zoom-hint {
   font-size: 14px;
@@ -440,6 +444,14 @@ body.watching #nav-me { display: none; }
 }
 
 #intro p { margin: 6px 0 12px; }
+#intro-side { padding: 8px 10px; border-left: 4px solid var(--fg); border-radius: 6px; background: rgba(255, 255, 255, 0.05); }
+#intro-side.fire { border-color: var(--fire); }
+#intro-side.water { border-color: var(--water); }
+#intro-side.fire b { color: var(--fire-pale); }
+#intro-side.water b { color: var(--water-pale); }
+#profile-ask { --card-top: 108px; z-index: 6; font-size: 15px; line-height: 1.45; }
+#profile-ask .row { display: flex; justify-content: flex-end; margin-top: 10px; }
+#profile-ask-ok { padding: 10px 18px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; color: var(--ink); background: var(--fg); }
 #intro .row { display: flex; justify-content: space-between; align-items: center; }
 #intro a { color: var(--water-pale); }
 
@@ -570,6 +582,8 @@ body.watching #nav-me { display: none; }
 }
 .help-pane .legal { margin-top: 8px; font-size: 13px; }
 .help-pane .legal a { color: var(--soft); }
+.board-links { font-size: 14px; line-height: 2; margin: 8px 0; }
+.board-links a { color: var(--soft); }
 .danger { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--raised); }
 #my-name { font-weight: 600; }
 .me-box button {

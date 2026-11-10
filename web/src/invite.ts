@@ -40,7 +40,8 @@ export function inviteUsed() {
   } catch {}
 }
 
-/** Claims in a day before the nav button pulses once (a nudge, no popup). */
+/** Claims in a day before the nav button shows up and pulses once (a nudge,
+ * no popup); until then the profile has the invite. */
 const NUDGE_AFTER = 3;
 const today = () => Math.floor(Date.now() / 86_400_000);
 
@@ -49,6 +50,9 @@ export function setupInvite() {
   const navBtn = $("nav-invite");
   let url = "";
   let claims = 0;
+  let code = "";
+  /** Shown today already (third claim of the day reached). */
+  const ready = () => load(KEYS.inviteNudge) === String(today());
   const text = () => t("invite.text");
   function open() {
     const q = qrcode(0, "M");
@@ -69,8 +73,10 @@ export function setupInvite() {
     navigator.clipboard?.writeText(url).then(() => toast(t("invite.copied")), () => {});
   };
   return {
-    welcome(code: string, points: number) {
-      navBtn.hidden = $("invite-me").hidden = !code;
+    welcome(c: string, points: number) {
+      code = c;
+      $("invite-me").hidden = !code;
+      navBtn.hidden = !code || !ready();
       if (!code) return;
       const q = region ? `?region=${encodeURIComponent(region)}` : "";
       url = `${location.origin}/${q}#i=${code}`;
@@ -78,9 +84,9 @@ export function setupInvite() {
     },
     /** A claim took: on the third of the day, once a day, the button pulses. */
     claimed() {
-      if (navBtn.hidden || ++claims !== NUDGE_AFTER) return;
-      if (load(KEYS.inviteNudge) === String(today())) return;
+      if (!code || ++claims !== NUDGE_AFTER || ready()) return;
       save(KEYS.inviteNudge, String(today()));
+      navBtn.hidden = false;
       navBtn.classList.remove("nudge");
       void navBtn.offsetWidth;
       navBtn.classList.add("nudge");

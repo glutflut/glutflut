@@ -397,6 +397,7 @@ export const pt: Dict = {
   "gps.unavailable": "Nenhuma posição disponível – melhor jogar pelo celular",
   "gps.none": "Este aparelho não tem GPS",
   "profile.note": "Opcional: ajuda a cidade a interpretar os dados. Só contamos quantas pessoas por dia deram cada resposta.",
+  "profile.ask.title": "Perguntas rápidas",
   "profile.age": "A sua idade",
   "profile.age.u30": "menos de 30",
   "profile.age.30_59": "30–59",

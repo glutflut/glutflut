@@ -396,6 +396,7 @@ export const de = {
   "gps.unavailable": "Kein Standort verfügbar – am besten auf dem Handy spielen",
   "gps.none": "Dieses Gerät hat kein GPS",
   "profile.note": "Freiwillig: Hilf der Stadt, die Daten einzuordnen. Gezählt wird nur, wie viele pro Tag so geantwortet haben.",
+  "profile.ask.title": "Kurz gefragt",
   "profile.age": "Dein Alter",
   "profile.age.u30": "unter 30",
   "profile.age.30_59": "30–59",

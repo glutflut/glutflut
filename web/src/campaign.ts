@@ -48,6 +48,12 @@ function storyOf(story: Record<string, StoryParts> | undefined): StoryParts {
   return pickLang(story, lang) ?? {};
 }
 
+/** A browser new to the game: endings of chapters it never saw are not told. */
+let fresh = false;
+export function freshPlayer() {
+  fresh = true;
+}
+
 /** The intro once when the chapter runs; the ending for the outcome once it is over. */
 function tell(key: string, title: string, story: Record<string, StoryParts> | undefined, phase: "intro" | "end", winner: string | null | undefined, extra = "") {
   const s = storyOf(story);
@@ -56,6 +62,8 @@ function tell(key: string, title: string, story: Record<string, StoryParts> | un
   const mark = `${phase}:${key}`;
   if (!text || storySeen(mark)) return;
   markStorySeen(mark);
+  // New here: the chronicle has it, the card would be backstory without context.
+  if (phase === "end" && fresh) return;
   const kicker = phase === "intro" ? t("chapter.intro") : winner ? t(`campaign.won.${winner}` as Key) : t("chapter.end");
   showStory({
     cls: phase === "end" && winner ? winner : "badge",
@@ -101,6 +109,8 @@ export function setupCampaign(
     });
   }
 
+  /** The chapter whose banner this page load showed for the first time. */
+  let bannerNew = "";
   function render() {
     const bar = $("chapter");
     const hide = () => {
@@ -117,6 +127,18 @@ export function setupCampaign(
     ring(shown ? m : null);
     if (!shown) return hide();
     bar.hidden = false;
+    // Read once: from the next visit on (or after a tap on it) one line,
+    // once per chapter; unfolding by hand stays.
+    if (!m.kind) {
+      const seen = `banner:${m.key}`, auto = `banner-fold:${m.key}`;
+      if (!storySeen(seen)) {
+        markStorySeen(seen);
+        bannerNew = m.key;
+      } else if (bannerNew !== m.key && !storySeen(auto)) {
+        markStorySeen(auto);
+        save(KEYS.chapterFolded, m.key);
+      }
+    }
     bar.classList.toggle("folded", folded() === m.key);
     // The chronicle: campaign chapters only (weather days are not in it).
     const chron = $("chapter-chron") as HTMLAnchorElement;
@@ -164,6 +186,11 @@ export function setupCampaign(
     // Folded: a tap unfolds it; unfolded: the chapter's text as a card.
     if ($("chapter").classList.contains("folded")) return fold(null);
     const name = texts(last);
+    // Read now: one line from here on.
+    if (!last.kind) {
+      markStorySeen(`banner-fold:${last.key}`);
+      fold(last.key);
+    }
     notice("badge", t(last.kind ? "campaign.weather" : "campaign.chapter"), name.title, [name.text, hint(last)].filter(Boolean).join(" "), last.kind ? undefined : ["challenge", last.key]);
   };
   // The link in the bar: not a tap on the bar.
@@ -184,7 +211,7 @@ export function setupCampaign(
       at = Date.now();
       render();
       // A side reached the target: once per chapter and device session.
-      if (m.winner && !before && announced !== m.key && m.starts_in <= 0) {
+      if (m.winner && !before && announced !== m.key && m.starts_in <= 0 && !(fresh && m.ends_in <= 0)) {
         announced = m.key;
         notice(m.winner, t(m.kind ? "campaign.weather" : "campaign.chapter"), t(`campaign.won.${m.winner}` as Key), texts(m).title);
       }

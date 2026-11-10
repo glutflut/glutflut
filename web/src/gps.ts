@@ -35,6 +35,7 @@ export function setupGps(
   const gpsEl = $("gps");
   const gpsHint = (k: Key) => {
     gpsEl.textContent = t(k);
+    gpsEl.classList.remove("good");
     gpsEl.classList.add("tap");
   };
   function startGps() {

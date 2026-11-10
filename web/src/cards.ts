@@ -3,7 +3,7 @@
 // due: letter > find > rating > badge (badges are mostly toasts now).
 import { $ } from "./page";
 
-const CARDS = ["intro", "story", "find-card", "sheet"] as const;
+const CARDS = ["intro", "story", "find-card", "sheet", "profile-ask"] as const;
 type Card = (typeof CARDS)[number];
 
 /** Another card than `self` is open. */

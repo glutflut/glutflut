@@ -5,6 +5,9 @@ import { t } from "./i18n";
 import { confirmAdult, isAdult } from "./consent";
 import type { Age } from "./net";
 import { KEYS, loadJson, saveJson } from "./store";
+import { markStorySeen, storySeen } from "./story";
+import { whenFree } from "./cards";
+import { $ } from "./page";
 
 export type Profile = { age: Age | null; local: boolean | null };
 let profile: Profile = { age: null, local: null, ...loadJson<Partial<Profile>>(KEYS.profile) };
@@ -24,6 +27,19 @@ export function setProfileIndoor(on: boolean) {
 }
 // Only from 16 (consent, Art. 8 GDPR); indoors "lives here" means nothing.
 export const sendProfile = () => send(isAdult() ? { ...profile, local: indoor() ? null : profile.local } : { age: null, local: null });
+
+// Not on the welcome card: once per browser, after the fourth claim of a
+// visit (after the rating card), if nothing is answered yet.
+const ASK_AT_CLAIM = 4;
+let claimsHere = 0;
+export function profileClaimed() {
+  if (++claimsHere !== ASK_AT_CLAIM || profile.age !== null || profile.local !== null || storySeen("profile-ask")) return;
+  markStorySeen("profile-ask");
+  const box = $("profile-ask");
+  $("profile-ask-ok").textContent = t("story.ok");
+  $("profile-ask-ok").onclick = () => (box.hidden = true);
+  whenFree("profile-ask", () => (box.hidden = false));
+}
 
 function save() {
   saveJson(KEYS.profile, profile);

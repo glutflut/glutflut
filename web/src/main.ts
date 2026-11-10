@@ -27,7 +27,7 @@ import { Sound } from "./sound";
 import { isCounted } from "./consent";
 import { presenceAnswer, takePresenceCode } from "./presence";
 import { indoorReach, introIndoor, scanPending, setupIndoor, takeScanCode } from "./indoor";
-import { setupCampaign } from "./campaign";
+import { freshPlayer, setupCampaign } from "./campaign";
 import { setupTunnel } from "./tunnel";
 import { setupTop } from "./top";
 import { setupPages } from "./pages";
@@ -53,7 +53,7 @@ import { setupBeam } from "./beam";
 import { setupInset } from "./inset";
 import { setupNavMore } from "./navmore";
 import { setupRecovery } from "./recovery";
-import { onProfile, renderProfiles, sendProfile } from "./profile";
+import { onProfile, profileClaimed, renderProfiles, sendProfile } from "./profile";
 import { COLORS, distM, owner } from "./geo";
 import { $, params, toast } from "./page";
 import { KEYS, blocked, load, save } from "./store";
@@ -67,6 +67,7 @@ import { openRegion } from "./region";
 // No token yet when the page loaded: the first `welcome` as a player makes
 // this browser a new player (the side reveal card below).
 const newcomer = !load(KEYS.token);
+if (newcomer) freshPlayer();
 
 // Graphics level per browser (see gfx.ts): game view unless "map"; tilt,
 // 3D buildings and moving elements only at "full".
@@ -318,8 +319,15 @@ async function main() {
     tunnel,
     card,
     claimed: () => invite.claimed(),
-    rate,
+    rate: {
+      onClaimed(at: [number, number] | null) {
+        rate.onClaimed(at);
+        profileClaimed();
+      },
+    },
   });
+  progress.setFrontDist(claim.frontDist);
+  if (newcomer) perm.quietFirstVisit();
   const lapse = setupTimelapse(map, () => meta.region.slug);
   setupMood(map, () => meta.region.slug);
   // Far out the globe, for players too; another city opens for watching there.
@@ -491,7 +499,15 @@ async function main() {
       if (newcomer && !storySeen("side") && !(m.sim && want && want !== m.faction)) {
         markStorySeen("side");
         const fire = m.faction === "fire";
-        showStory({ cls: m.faction, kicker: t("side.card.kicker"), title: t(fire ? "you.fire" : "you.water"), text: t(fire ? "side.card.fire" : "side.card.water") });
+        const text = t(fire ? "side.card.fire" : "side.card.water");
+        // Welcome still open: the side goes into it (one card, not two).
+        if (!$("intro").hidden) {
+          const parts = text.split(/\n\s*\n/);
+          const el = $("intro-side");
+          el.className = m.faction;
+          el.replaceChildren(Object.assign(document.createElement("b"), { textContent: t(fire ? "you.fire" : "you.water") }), ` ${parts[0]} ${parts.at(-1)}`);
+          el.hidden = false;
+        } else showStory({ cls: m.faction, kicker: t("side.card.kicker"), title: t(fire ? "you.fire" : "you.water"), text });
       }
     },
     side(m) {

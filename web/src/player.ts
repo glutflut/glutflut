@@ -10,6 +10,9 @@ import type { Meta, TileLayer } from "./tiles";
 import { circle } from "./geo";
 import { $, params, toast } from "./page";
 
+/** Accuracy (m) at which the GPS line goes away. */
+const GPS_GOOD_M = 25;
+
 export function setupPlayer(d: {
   map: maplibregl.Map;
   meta: Meta;
@@ -68,6 +71,8 @@ export function setupPlayer(d: {
   function setMe(p: [number, number], accuracy?: number, speed?: number) {
     show(p);
     $("gps").textContent = accuracy ? t("gps.accuracy", { m: Math.round(accuracy) }) : t("gps.set");
+    // A good fix needs no line (style.css: hidden outdoors).
+    $("gps").classList.toggle("good", !accuracy || accuracy <= GPS_GOOD_M);
     // A presence code from the game link, once there is a position.
     const code = presenceToSend();
     queueMicrotask(() => code && net.send({ t: "presence", code }));
