@@ -66,7 +66,8 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
     if (s.weeks > before.weeks) {
       toast(t("streak.done", { icon, n: s.weeks }));
       sound.motif();
-    } else if (s.days > before.days) {
+    } else if (s.days > before.days && (s.days > 1 || s.weeks > 0)) {
+      // Not "day 1 of 3" on someone's very first day.
       toast(t("streak.day", { n: s.days, need: s.need }));
     }
   }

@@ -2,6 +2,7 @@
 // (chapter intros and endings, letters found, news flashes). One at a time;
 // more wait their turn. What was shown is remembered per device (seen).
 import { $ } from "./page";
+import { preempt, whenFree } from "./cards";
 import { t } from "./i18n";
 import { figure, mediaFor, type Media } from "./media";
 import { KEYS, loadJson, saveJson } from "./store";
@@ -74,7 +75,9 @@ function render(s: Story & { done?: () => void }) {
     open = false;
     s.done?.();
     const next = queue.shift();
-    if (next) setTimeout(() => render(next), 300);
+    if (!next) return;
+    open = true;
+    setTimeout(() => start(next), 300);
   };
   $("story-close").onclick = close;
   $("story-ok").onclick = close;
@@ -86,11 +89,14 @@ export function showStory(s: Story, done?: () => void) {
   const item = { ...s, done };
   if (open) return queue.push(item);
   open = true;
-  const start = () => {
-    if ($("intro").hidden) return render(item);
-    setTimeout(start, 500);
-  };
-  start();
+  start(item);
+}
+
+/** After the welcome and an open find card; a rating sheet that asked by
+ * itself steps back. */
+function start(item: Story & { done?: () => void }) {
+  preempt();
+  whenFree("story", () => render(item));
 }
 
 /** Marks of what this device has seen (chapter intros, endings), newest last. */

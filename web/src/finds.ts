@@ -9,6 +9,7 @@ import { pickLang, showStory } from "./story";
 import type { FindItem, Net } from "./net";
 import { confirmAdult, onAdult } from "./consent";
 import { $ } from "./page";
+import { cardOpen, whenFree } from "./cards";
 import { KEYS, load, save } from "./store";
 import { ask as question } from "./ask";
 import { figure, mediaFor, preloadMedia, type Media } from "./media";
@@ -32,7 +33,7 @@ function asked(): boolean {
   return load(KEYS.findsAsked) === "1";
 }
 
-export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) => void) {
+export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string, ms?: number) => void) {
   let collect = false;
   let totals: Record<string, number> = {};
   const known = new Map<number, FindItem>();
@@ -161,6 +162,8 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
   let cardNo = 0;
   /** A letter to read once the find card (with its question) is closed. */
   let after: (() => void) | null = null;
+  /** A card waits for another card (story, sheet) to close. */
+  let waiting = false;
   preloadMedia();
   function hideCard() {
     clearTimeout(cardTimer);
@@ -187,7 +190,16 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
     const ask = !stored && !collect && !asked();
     const line = t("finds.progress", { coll: collName(f.c), n, of });
     // A letter: read it right away; after the question to collect, if that is due.
-    if (f.text && !ask && $("find-card").hidden) return letter(f, line);
+    if (f.text && !ask) return letter(f, line);
+    // Another find asks already: only the letter, after that card.
+    if (f.text && (!$("find-card").hidden || waiting)) {
+      const before = after;
+      after = () => {
+        before?.();
+        letter(f, line);
+      };
+      return;
+    }
     if (f.text) after = () => letter(f, line);
     show({
       cls: ELEMENT[f.c] ?? "other",
@@ -201,9 +213,17 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
   }
   function show(c: Card) {
     const box = $("find-card");
-    if (!box.hidden) {
+    if (!box.hidden || waiting) {
       queue.push(c);
       return;
+    }
+    // Not over a story card, the welcome or the rating sheet.
+    if (cardOpen("find-card")) {
+      waiting = true;
+      return whenFree("find-card", () => {
+        waiting = false;
+        show(c);
+      });
     }
     const ask = c.ask && !collect && !asked();
     box.className = `card ${c.cls}`;
@@ -287,10 +307,14 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string) 
       card(m, m.n, m.of, m.stored);
       navigator.vibrate?.([80, 60, 80, 60, 160]);
     },
-    onNear(c: string, m: number) {
-      toast(`${t(`finds.near.${c}` as Key)} ${t("finds.near.dist", { m })}`);
+    /** The line for a find nearby (shown in the hotspot pill). */
+    nearText(c: string, m: number) {
+      return `${t(`finds.near.${c}` as Key)} ${t("finds.near.dist", { m })}`;
     },
     onBadge(badge: string) {
+      // Small ones (claims, streaks, days) as a line; levels, full collections
+      // and chapter wins as a card.
+      if (!/^(level-|coll:|chapter-win:)/.test(badge)) return toast(`🏅 ${t("badge.new")} ${badgeLabel(badge)}`, 3500);
       show({ cls: "badge", kicker: t("badge.new"), name: badgeLabel(badge), line: "", ask: false, note: false });
       navigator.vibrate?.([30, 40, 30, 40, 60]);
     },

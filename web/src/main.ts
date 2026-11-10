@@ -520,7 +520,7 @@ async function main() {
       finds.onFind(m);
       sound.chime();
     },
-    near: (m) => finds.onNear(m.c, m.m),
+    near: (m) => hotspots.nearFind(finds.nearText(m.c, m.m)),
     beam: (m) => beams.beam(m.from, m.to, m.side),
     badge(m) {
       finds.onBadge(m.badge);

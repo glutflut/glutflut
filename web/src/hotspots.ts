@@ -1,9 +1,13 @@
 // Hotspots (web.rs `Hotspots`): pulsing markers, a hint with the distance to
-// the nearest, and the "hot" button that flies there.
+// the nearest, and the "hot" button that flies there. The same pill tells of
+// a find nearby for a minute (instead of a toast).
 import * as maplibregl from "maplibre-gl";
 import { t } from "./i18n";
 import { distM } from "./geo";
 import { $ } from "./page";
+
+/** How long a find nearby stays in the pill. */
+const NEAR_MS = 60_000;
 
 export function setupHotspots(map: maplibregl.Map, me: () => [number, number] | null, setFollow: (on: boolean) => void) {
   let hotspotMarkers: maplibregl.Marker[] = [];
@@ -20,9 +24,24 @@ export function setupHotspots(map: maplibregl.Map, me: () => [number, number] | 
     );
     hint();
   }
+  /** A find nearby (server `near`): takes the pill for a minute. */
+  let near: { text: string; at: number } | null = null;
+  let nearTimer = 0;
+  function nearFind(text: string) {
+    near = { text, at: Date.now() };
+    clearTimeout(nearTimer);
+    nearTimer = window.setTimeout(hint, NEAR_MS + 50);
+    hint();
+  }
   function hint() {
     const el = $("hotspot-hint");
     const p = me();
+    if (near && Date.now() - near.at < NEAR_MS) {
+      el.textContent = near.text;
+      el.classList.add("find");
+      return void (el.hidden = false);
+    }
+    el.classList.remove("find");
     if (!p || !hotspotAt.length) return void (el.hidden = true);
     const d = Math.min(...hotspotAt.map((ll) => distM(p, ll)));
     // Whole-city play area: a hotspot across town is no invitation.
@@ -41,5 +60,5 @@ export function setupHotspots(map: maplibregl.Map, me: () => [number, number] | 
     radiusM = m;
     hint();
   }
-  return { show, hint, setRadius, at: () => hotspotAt };
+  return { show, hint, nearFind, setRadius, at: () => hotspotAt };
 }

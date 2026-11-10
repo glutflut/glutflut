@@ -11,9 +11,10 @@ import type { Question } from "./protocol";
 import { pickLang } from "./story";
 import { CLAIM_RADIUS_M, distM } from "./geo";
 import { $, plus, toast } from "./page";
+import { cardOpen, onYield } from "./cards";
 
 const TOO_FAST = t("too.fast");
-/** Ask after the second claim of a visit, then after every sixth. */
+/** Ask after the third claim of a visit, then after every sixth. */
 const ASK_EVERY = 6;
 /** Asked cards at least this far apart; doubles after each one closed unanswered. */
 const ASK_MIN_MS = 20 * 60_000;
@@ -25,7 +26,7 @@ const ASK_MAX = 3;
 /** The card comes after the claim's own show, and goes away on its own. */
 const ASK_DELAY_MS = 1500;
 const ASK_SHOW_MS = 15_000;
-/** Wait this many seconds at most for an open story card to be closed. */
+/** Wait this many seconds at most for other cards to be closed. */
 const ASK_WAIT_TRIES = 30;
 
 export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>; me: () => [number, number] | null }) {
@@ -41,7 +42,7 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
   let questions: Question[] = [];
   /** City questions answered this visit. */
   const answered = new Set<number>();
-  let claims = ASK_EVERY - 2;
+  let claims = ASK_EVERY - 3;
   let asks = 0;
   let lastAsk = 0;
   let askGap = ASK_MIN_MS;
@@ -124,6 +125,15 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
   }
   const near = (me: [number, number]) => places.some((p) => Date.now() - p.at < ASK_GAP_MS && distM(me, p.ll) < ASK_GAP_M);
 
+  // A letter comes first: an asked card goes away unsent and is not counted.
+  onYield(() => {
+    if (sheet.hidden || !sheet.classList.contains("asked")) return;
+    clearTimeout(timer);
+    sheet.hidden = true;
+    sheet.classList.remove("asked");
+    picked.clear();
+    asks = Math.max(0, asks - 1);
+  });
   btn.onclick = () => (sheet.hidden ? show(false) : finish());
   close.onclick = finish;
   done.onclick = finish;
@@ -148,11 +158,11 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
       asks++;
       lastAsk = Date.now();
       places.push({ ll: me, at: Date.now() });
-      // Not over a story card (side, chapter, notice): after it is closed.
+      // Never over another card (welcome, story, find): after it is closed.
       let tries = 0;
       const ask = () => {
         if (!sheet.hidden) return;
-        if (!$("story").hidden) return void (++tries < ASK_WAIT_TRIES && window.setTimeout(ask, 1000));
+        if (cardOpen("sheet")) return void (++tries < ASK_WAIT_TRIES && window.setTimeout(ask, 1000));
         show(true);
       };
       window.setTimeout(ask, ASK_DELAY_MS);
