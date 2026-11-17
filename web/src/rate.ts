@@ -11,7 +11,7 @@ import type { Question } from "./protocol";
 import { pickLang } from "./story";
 import { CLAIM_RADIUS_M, distM } from "./geo";
 import { $, plus, toast } from "./page";
-import { cardOpen, onYield } from "./cards";
+import { onYield, whenFree } from "./cards";
 
 const TOO_FAST = t("too.fast");
 /** Ask after the third claim of a visit, then after every sixth. */
@@ -26,8 +26,8 @@ const ASK_MAX = 3;
 /** The card comes after the claim's own show, and goes away on its own. */
 const ASK_DELAY_MS = 1500;
 const ASK_SHOW_MS = 15_000;
-/** Wait this many seconds at most for other cards to be closed. */
-const ASK_WAIT_TRIES = 30;
+/** Wait this many half seconds at most for other cards to be closed. */
+const ASK_WAIT_TRIES = 60;
 
 export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>; me: () => [number, number] | null }) {
   const btn = $("rate") as HTMLButtonElement;
@@ -159,13 +159,7 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
       lastAsk = Date.now();
       places.push({ ll: me, at: Date.now() });
       // Never over another card (welcome, story, find): after it is closed.
-      let tries = 0;
-      const ask = () => {
-        if (!sheet.hidden) return;
-        if (cardOpen("sheet")) return void (++tries < ASK_WAIT_TRIES && window.setTimeout(ask, 1000));
-        show(true);
-      };
-      window.setTimeout(ask, ASK_DELAY_MS);
+      window.setTimeout(() => whenFree("sheet", () => sheet.hidden && show(true), ASK_WAIT_TRIES), ASK_DELAY_MS);
     },
     onQuestions(items: Question[]) {
       questions = items;
