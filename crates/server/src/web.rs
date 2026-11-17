@@ -351,20 +351,24 @@ pub fn campaign_tick(
     sun: Option<Res<crate::live_rain::LiveSun>>,
     node_by_id: Res<crate::sim::NodeById>,
     nodes: Query<&ElementState, Without<Player>>,
+    sim: Res<ElementSim>,
+    geo: Query<&GeoNode>,
     mut next: Local<f64>,
     mut weather: Local<(Option<elements_shared::weather::WeatherDay>, bool, bool)>,
 ) {
     let now = now_s();
     campaign.poll();
+    let owner = |id: i64| {
+        node_by_id
+            .get(&id)
+            .and_then(|&e| nodes.get(e).ok())
+            .and_then(|st| st.owner())
+    };
     // Hold: who holds the chapter's junctions now.
     let held = campaign.hold_nodes(now).map(|ids| {
         let mut n = [0i64; 2];
-        for id in ids {
-            let owner = node_by_id
-                .get(id)
-                .and_then(|&e| nodes.get(e).ok())
-                .and_then(|st| st.owner());
-            if let Some(f) = owner {
+        for &id in ids {
+            if let Some(f) = owner(id) {
                 n[f.index()] += 1;
             }
         }
@@ -377,9 +381,15 @@ pub fn campaign_tick(
     for (i, f) in [Faction::Fire, Faction::Water].into_iter().enumerate() {
         campaign.add(f, crate::campaign::Goal::Points, earned[i], now);
     }
-    if let Some((key, Some(w))) = campaign.take_end(now) {
-        info!(key, winner = ?w, "chapter ended");
-        scores.grant_winners(&key, w);
+    if let Some((key, w)) = campaign.take_end(now) {
+        if let Some(w) = w {
+            info!(key, winner = ?w, "chapter ended");
+            scores.grant_winners(&key, w);
+        }
+        // The map of the end is drawn from this, not from what came after.
+        if campaign.snapshot_due(now) {
+            campaign.snapshot(now, sides(&sim, &geo), owner);
+        }
     }
     campaign.save(now, false);
     let live_on = live.is_some_and(|l| l.on);
@@ -812,19 +822,26 @@ pub fn nodes_tick(share: Res<NodesJson>, sim: Res<ElementSim>, geo: Query<&GeoNo
     {
         return;
     }
-    let (mut fire, mut water, mut front) = (vec![], vec![], vec![]);
+    let s = sides(&sim, &geo);
+    let json =
+        serde_json::json!({ "t": now_s(), "fire": s.fire, "water": s.water, "front": s.front });
+    *share.0.json.write().unwrap() = Some(json.to_string().into());
+}
+
+/// Junction ids per side, from the simulation.
+fn sides(sim: &ElementSim, geo: &Query<&GeoNode>) -> crate::campaign::Sides {
+    let mut s = crate::campaign::Sides::default();
     for (&(f, w), &e) in sim.state().iter().zip(sim.nodes()) {
         let Ok(g) = geo.get(e) else { continue };
         let es = ElementState { fire: f, water: w };
         match es.owner() {
-            Some(Faction::Fire) => fire.push(g.id),
-            Some(Faction::Water) => water.push(g.id),
-            None if es.contested() => front.push(g.id),
+            Some(Faction::Fire) => s.fire.push(g.id),
+            Some(Faction::Water) => s.water.push(g.id),
+            None if es.contested() => s.front.push(g.id),
             None => {}
         }
     }
-    let json = serde_json::json!({ "t": now_s(), "fire": fire, "water": water, "front": front });
-    *share.0.json.write().unwrap() = Some(json.to_string().into());
+    s
 }
 
 fn totals(sim: &ElementSim) -> ServerMsg<'static> {

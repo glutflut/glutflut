@@ -18,6 +18,9 @@ const RELOAD: Duration = Duration::from_secs(300);
 /// Weather: a failed forecast is tried again after this long.
 const WEATHER_RETRY: Duration = Duration::from_secs(1800);
 const SAVE_EVERY_S: f64 = 30.0;
+/// A chapter's end found later than this (a restart over it): no snapshot,
+/// the state has moved on.
+const SNAPSHOT_LATE_S: f64 = 120.0;
 
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Debug, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
@@ -200,6 +203,32 @@ struct Save {
     hold: bool,
 }
 
+/// Junction ids per side (owned, or contested: front).
+#[derive(Default, Debug, PartialEq)]
+pub struct Sides {
+    pub fire: Vec<i64>,
+    pub water: Vec<i64>,
+    pub front: Vec<i64>,
+}
+
+/// The region when a campaign chapter ended (`game.chapter_snapshots`).
+#[derive(Debug, PartialEq)]
+struct Snapshot {
+    key: String,
+    taken_at: f64,
+    winner: Option<Faction>,
+    progress: [i64; 2],
+    sides: Sides,
+    /// Hold: `[{node, side}]` in the chapter's order.
+    hold: Option<serde_json::Value>,
+}
+
+/// To the campaign worker.
+enum Out {
+    Save(Save),
+    Snapshot(Box<Snapshot>),
+}
+
 #[derive(Resource)]
 pub struct Campaign {
     /// The current or next chapter.
@@ -236,7 +265,7 @@ pub struct Campaign {
     /// Something to send to the apps.
     pub changed: bool,
     save_at: f64,
-    tx: Option<crate::writers::LaneTx<Save>>,
+    tx: Option<crate::writers::LaneTx<Out>>,
     rx: Option<Receiver<Loaded>>,
 }
 
@@ -422,12 +451,12 @@ impl Campaign {
         self.save_at = now + SAVE_EVERY_S;
         self.dirty = false;
         if let (Some(tx), Some(ch)) = (&self.tx, &self.chapter) {
-            let _ = tx.send(Save {
+            let _ = tx.send(Out::Save(Save {
                 key: ch.key.clone(),
                 progress: self.progress,
                 reached: self.reached,
                 hold: ch.goal == Goal::Hold,
-            });
+            }));
         }
     }
 
@@ -448,6 +477,44 @@ impl Campaign {
         self.changed = true;
         Some((key, w))
     }
+
+    /// Right after `take_end`: a campaign chapter that ended moments ago
+    /// wants its snapshot (the caller then collects the sides).
+    pub fn snapshot_due(&self, now: f64) -> bool {
+        self.chapter
+            .as_ref()
+            .is_some_and(|c| c.badges() && now >= c.ends && now - c.ends < SNAPSHOT_LATE_S)
+    }
+
+    fn snap(
+        &self,
+        now: f64,
+        sides: Sides,
+        owner: impl Fn(i64) -> Option<Faction>,
+    ) -> Option<Snapshot> {
+        let ch = self.chapter.as_ref()?;
+        let hold = (ch.goal == Goal::Hold).then(|| {
+            ch.nodes
+                .iter()
+                .map(|&n| serde_json::json!({ "node": n, "side": owner(n).map(Faction::as_str) }))
+                .collect()
+        });
+        Some(Snapshot {
+            key: ch.key.clone(),
+            taken_at: now,
+            winner: self.winner(now),
+            progress: self.progress,
+            sides,
+            hold,
+        })
+    }
+
+    /// Store the region as it is at the chapter's end (once, see `snapshot_due`).
+    pub fn snapshot(&self, now: f64, sides: Sides, owner: impl Fn(i64) -> Option<Faction>) {
+        if let (Some(tx), Some(s)) = (&self.tx, self.snap(now, sides, owner)) {
+            let _ = tx.send(Out::Snapshot(Box::new(s)));
+        }
+    }
 }
 
 /// The region's campaign worker (a lane on the shared writer threads): loads
@@ -455,7 +522,7 @@ impl Campaign {
 struct Worker {
     db: String,
     region: String,
-    saves: Receiver<Save>,
+    saves: Receiver<Out>,
     out: Sender<Loaded>,
     fetched_at: Option<Instant>,
     reload_at: Instant,
@@ -487,10 +554,17 @@ impl crate::writers::Lane for Worker {
         }
         loop {
             match self.saves.try_recv() {
-                Ok(s) => {
+                Ok(Out::Save(s)) => {
                     if let Some(c) = pg.get(db) {
                         if let Err(e) = save(c, &self.region, &s) {
                             pg.failed(db, "campaign save", &crate::db::detail(&e));
+                        }
+                    }
+                }
+                Ok(Out::Snapshot(s)) => {
+                    if let Some(c) = pg.get(db) {
+                        if let Err(e) = save_snapshot(c, &self.region, &s) {
+                            pg.failed(db, "chapter snapshot", &crate::db::detail(&e));
                         }
                     }
                 }
@@ -787,6 +861,33 @@ fn save(c: &mut postgres::Client, region: &str, s: &Save) -> Result<(), postgres
     Ok(())
 }
 
+fn save_snapshot(
+    c: &mut postgres::Client,
+    region: &str,
+    s: &Snapshot,
+) -> Result<(), postgres::Error> {
+    c.execute(
+        "INSERT INTO game.chapter_snapshots \
+         (region, key, taken_at, winner, fire_value, water_value, fire, water, front, hold) \
+         VALUES ($1, $2, to_timestamp($3), $4, $5, $6, $7, $8, $9, $10::text::jsonb) \
+         ON CONFLICT (region, key) DO NOTHING",
+        &[
+            &region,
+            &s.key,
+            &s.taken_at,
+            &s.winner.map(Faction::as_str),
+            &s.progress[0],
+            &s.progress[1],
+            &s.sides.fire,
+            &s.sides.water,
+            &s.sides.front,
+            &s.hold.as_ref().map(|h| h.to_string()),
+        ],
+    )?;
+    info!(region, key = %s.key, "chapter snapshot");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -899,6 +1000,40 @@ mod tests {
         c.held([3, 0], 210.0);
         assert_eq!(c.progress, [1, 2], "after the end nothing changes");
         assert_eq!(c.take_end(210.0), Some(("k".into(), Some(Faction::Water))));
+    }
+
+    #[test]
+    fn snapshot_once_right_after_the_end() {
+        let mut c = with_chapter(Goal::Hold, 3);
+        c.chapter.as_mut().unwrap().nodes = vec![11, 12, 13];
+        c.held([1, 2], 190.0);
+        assert!(!c.snapshot_due(190.0), "still running");
+        assert!(c.take_end(210.0).is_some());
+        assert!(c.snapshot_due(210.0));
+        assert!(
+            !c.snapshot_due(200.0 + SNAPSHOT_LATE_S),
+            "too late after a restart"
+        );
+        let owner = |n: i64| match n {
+            11 => Some(Faction::Fire),
+            12 | 13 => Some(Faction::Water),
+            _ => None,
+        };
+        let sides = Sides {
+            fire: vec![11],
+            water: vec![12, 13],
+            front: vec![],
+        };
+        let s = c.snap(210.0, sides, owner).unwrap();
+        assert_eq!(s.winner, Some(Faction::Water));
+        assert_eq!(s.progress, [1, 2]);
+        assert_eq!(
+            s.hold.unwrap()[0],
+            serde_json::json!({ "node": 11, "side": "fire" })
+        );
+        let mut wx = with_chapter(Goal::Claims, 3);
+        wx.chapter.as_mut().unwrap().kind = Some("weather:rain".into());
+        assert!(!wx.snapshot_due(210.0), "weather days: none");
     }
 
     #[test]

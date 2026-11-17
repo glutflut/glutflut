@@ -16,7 +16,7 @@ export const pl: EDict = {
   "tab.fragen": "Pytania",
   "ch.draft.soon": "Szkic – nie gra!",
   "ch.story.sum": "Historia ({lang}, opcjonalnie)",
-  "ch.story.note": "Wstęp pojawia się raz, gdy rozdział się zaczyna; pasujące zakończenie, gdy się kończy, oraz w kronice. Akapity oddziel pustymi liniami, najwyżej 1500 znaków na tekst.",
+  "ch.story.note": "Wstęp pojawia się raz, gdy rozdział się zaczyna; pasujące zakończenie, gdy się kończy, oraz w kronice. Akapity oddziel pustymi liniami, najwyżej 1500 znaków na tekst. W zakończeniach gra wstawia {fire} i {water} (wynik każdej strony na końcu) oraz {target} (cel; przy „utrzymaj miejsca” liczba miejsc), np. „{water} z {target} miejsc”.",
   "ch.f.story.intro": "Wstęp – na początku rozdziału",
   "ch.f.story.fire": "Zakończenie, gdy wygra Ogień",
   "ch.f.story.water": "Zakończenie, gdy wygra Woda",

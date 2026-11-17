@@ -15,7 +15,7 @@ export const de = {
   "tab.fragen": "Fragen",
   "ch.draft.soon": "Entwurf – spielt nicht!",
   "ch.story.sum": "Geschichte ({lang}, optional)",
-  "ch.story.note": "Die Einleitung erscheint einmal, wenn das Kapitel beginnt; das passende Ende, wenn es vorbei ist, und in der Chronik. Absätze durch Leerzeilen, höchstens 1500 Zeichen je Text.",
+  "ch.story.note": "Die Einleitung erscheint einmal, wenn das Kapitel beginnt; das passende Ende, wenn es vorbei ist, und in der Chronik. Absätze durch Leerzeilen, höchstens 1500 Zeichen je Text. In den Enden setzt das Spiel {fire} und {water} (Stand je Seite am Ende) und {target} (Ziel; bei „Orte halten“ die Zahl der Orte) ein, z. B. „{water} von {target} Orten“.",
   "ch.f.story.intro": "Einleitung – beim Start des Kapitels",
   "ch.f.story.fire": "Ende, wenn Feuer gewinnt",
   "ch.f.story.water": "Ende, wenn Wasser gewinnt",

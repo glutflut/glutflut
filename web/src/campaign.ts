@@ -10,7 +10,7 @@ import { $ } from "./page";
 import type { Media } from "./media";
 import { withRegion } from "./region";
 import { KEYS, load, loadJson, save, saveJson } from "./store";
-import { markStorySeen, pickLang, showStory, storySeen } from "./story";
+import { fillEnding, markStorySeen, pickLang, showStory, storySeen } from "./story";
 
 
 /** To the nearest minute: the relative seconds arrive a little late, and 17:59:58 must not read "17:59". */
@@ -55,9 +55,11 @@ export function freshPlayer() {
 }
 
 /** The intro once when the chapter runs; the ending for the outcome once it is over. */
-function tell(key: string, title: string, story: Record<string, StoryParts> | undefined, phase: "intro" | "end", winner: string | null | undefined, extra = "") {
+type Counts = { fire: number; water: number; target: number };
+function tell(key: string, title: string, story: Record<string, StoryParts> | undefined, phase: "intro" | "end", winner: string | null | undefined, extra = "", n?: Counts) {
   const s = storyOf(story);
   let text = phase === "intro" ? s.intro : winner === "fire" ? s.fire : winner === "water" ? s.water : s.tie;
+  if (text && n && phase === "end") text = fillEnding(text, n);
   if (text && extra) text += `\n\n${extra}`;
   const mark = `${phase}:${key}`;
   if (!text || storySeen(mark)) return;
@@ -76,7 +78,7 @@ function tell(key: string, title: string, story: Record<string, StoryParts> | un
 }
 
 /** A finished chapter of the chronicle (`/api/chronicle`). */
-type Chron = { key: string; names: ChapterMsg["names"]; story?: Record<string, StoryParts>; ends: number; state: string; winner: string | null };
+type Chron = { key: string; names: ChapterMsg["names"]; story?: Record<string, StoryParts>; ends: number; state: string; winner: string | null; fire: number; water: number; target: number };
 
 function duration(s: number): string {
   const m = Math.round(s / 60);
@@ -218,7 +220,7 @@ export function setupCampaign(
       // The story: its intro while it runs, its ending once it is over.
       if (!m.kind && m.story) {
         if (m.starts_in <= 0 && m.ends_in > 0) tell(m.key, texts(m).title, m.story, "intro", null, hint(m));
-        if (m.ends_in <= 0) tell(m.key, texts(m).title, m.story, "end", m.winner ?? null);
+        if (m.ends_in <= 0) tell(m.key, texts(m).title, m.story, "end", m.winner ?? null, "", { fire: m.fire, water: m.water, target: m.target });
       }
     },
     /** Who wasn't there at the end: the newest ending of the last two weeks, once. */
@@ -234,7 +236,7 @@ export function setupCampaign(
           .sort((a, b) => b.ends - a.ends)[0];
         if (!over) return;
         const name = pickLang(over.names, lang)?.title ?? over.key;
-        tell(over.key, name, over.story, "end", over.winner);
+        tell(over.key, name, over.story, "end", over.winner, "", over);
       } catch {
         // offline: next time
       }

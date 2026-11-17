@@ -2237,9 +2237,16 @@ async fn ops_hotspot(
 /// Side of every junction now, for pictures of the game state.
 /// The first call asks the region to build it: 503 until it is fresher than
 /// the request, the client asks again.
+#[derive(Deserialize)]
+struct NodesQ {
+    region: Option<String>,
+    /// A finished chapter: the sides at its end (`game.chapter_snapshots`).
+    chapter: Option<String>,
+}
+
 async fn ops_nodes(
     State(s): State<AppState>,
-    Query(q): Query<RegionQ>,
+    Query(q): Query<NodesQ>,
     headers: HeaderMap,
     Extension(c): Extension<Client>,
 ) -> Response {
@@ -2249,6 +2256,29 @@ async fn ops_nodes(
     };
     if !who(&s, c, &headers).await.may(&slug, Role::Editor) {
         return StatusCode::UNAUTHORIZED.into_response();
+    }
+    if let Some(key) = q.chapter {
+        let st = s.clone();
+        let row = tokio::task::spawn_blocking(move || {
+            st.with_db(|db| {
+                db.query_opt(
+                    "SELECT json_build_object('t', extract(epoch FROM taken_at), 'chapter', key, \
+                       'winner', winner, 'fire_value', fire_value, 'water_value', water_value, \
+                       'fire', fire, 'water', water, 'front', front, 'hold', hold)::text \
+                     FROM game.chapter_snapshots WHERE region = $1 AND key = $2",
+                    &[&slug, &key],
+                )
+                .map(|r| r.map(|r| r.get::<_, String>(0)))
+            })
+        })
+        .await
+        .ok()
+        .flatten();
+        return match row {
+            Some(Some(j)) => json_response(&j, "no-store"),
+            Some(None) => (StatusCode::NOT_FOUND, "no snapshot for this chapter").into_response(),
+            None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+        };
     }
     let r = match s.region(Some(&slug)) {
         Ok(r) => r,

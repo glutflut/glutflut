@@ -5,7 +5,7 @@
 import { lang, loadCity, t, type Key } from "./i18n";
 import { figure, mediaFor } from "./media";
 import { withRegion } from "./region";
-import { paragraphs, pickLang } from "./story";
+import { fillEnding, paragraphs, pickLang } from "./story";
 
 type Parts = { intro?: string; fire?: string; water?: string; tie?: string };
 type Chapter = {
@@ -100,7 +100,7 @@ function chapter(c: Chapter): HTMLElement {
     p.textContent = c.winner ? t(`chron.won.${c.winner}` as Key) : t("chron.tie");
     art.append(p);
     const ending = c.winner ? story[c.winner] : story.tie;
-    if (ending) text.append(...paragraphs(ending));
+    if (ending) text.append(...paragraphs(fillEnding(ending, c)));
   }
   art.append(text);
   return art;

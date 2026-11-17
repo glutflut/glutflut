@@ -16,7 +16,7 @@ export const en: EDict = {
   "tab.fragen": "Questions",
   "ch.draft.soon": "Draft – doesn’t play!",
   "ch.story.sum": "Story ({lang}, optional)",
-  "ch.story.note": "The intro shows once when the chapter starts; the matching ending when it is over, and in the chronicle. Paragraphs by blank lines, at most 1500 characters per text.",
+  "ch.story.note": "The intro shows once when the chapter starts; the matching ending when it is over, and in the chronicle. Paragraphs by blank lines, at most 1500 characters per text. In the endings the game fills in {fire} and {water} (each side’s count at the end) and {target} (the goal; for “hold places”, how many places), e.g. “{water} of {target} places”.",
   "ch.f.story.intro": "Intro – when the chapter starts",
   "ch.f.story.fire": "Ending if Fire wins",
   "ch.f.story.water": "Ending if Water wins",

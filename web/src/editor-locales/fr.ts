@@ -16,7 +16,7 @@ export const fr: EDict = {
   "tab.fragen": "Questions",
   "ch.draft.soon": "Brouillon – ne joue pas !",
   "ch.story.sum": "Histoire ({lang}, facultatif)",
-  "ch.story.note": "L’introduction apparaît une fois au début du chapitre ; la fin correspondante quand il est terminé, et dans la chronique. Paragraphes séparés par des lignes vides, 1500 caractères au plus par texte.",
+  "ch.story.note": "L’introduction apparaît une fois au début du chapitre ; la fin correspondante quand il est terminé, et dans la chronique. Paragraphes séparés par des lignes vides, 1500 caractères au plus par texte. Dans les fins, le jeu remplace {fire} et {water} (le compte de chaque camp à la fin) et {target} (l’objectif ; pour « tenir des lieux », le nombre de lieux), p. ex. « {water} lieux sur {target} ».",
   "ch.f.story.intro": "Introduction – au début du chapitre",
   "ch.f.story.fire": "Fin si le Feu gagne",
   "ch.f.story.water": "Fin si l’Eau gagne",

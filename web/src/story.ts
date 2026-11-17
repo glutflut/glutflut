@@ -99,6 +99,13 @@ function start(item: Story & { done?: () => void }) {
   whenFree("story", () => render(item));
 }
 
+/** An ending's numbers at the chapter's end: `{fire}`, `{water}` (each side's
+ *  count) and `{target}` (the goal; hold: how many places), e.g. "{water} von
+ *  {target} Orten". Other braces stay as written. */
+export function fillEnding(text: string, n: { fire: number; water: number; target: number }): string {
+  return text.replace(/\{(fire|water|target)\}/g, (_, k: "fire" | "water" | "target") => String(n[k]));
+}
+
 /** Marks of what this device has seen (chapter intros, endings), newest last. */
 function seenList(): string[] {
   return loadJson<string[]>(KEYS.storySeen) ?? [];

@@ -16,7 +16,7 @@ export const pt: EDict = {
   "tab.fragen": "Perguntas",
   "ch.draft.soon": "Rascunho – não joga!",
   "ch.story.sum": "História ({lang}, opcional)",
-  "ch.story.note": "A introdução aparece uma vez quando o capítulo começa; o final correspondente quando termina, e na crônica. Parágrafos por linhas em branco, no máximo 1500 caracteres por texto.",
+  "ch.story.note": "A introdução aparece uma vez quando o capítulo começa; o final correspondente quando termina, e na crônica. Parágrafos por linhas em branco, no máximo 1500 caracteres por texto. Nos finais o jogo preenche {fire} e {water} (a contagem de cada lado no fim) e {target} (a meta; em “manter lugares”, quantos lugares), p. ex. “{water} de {target} lugares”.",
   "ch.f.story.intro": "Introdução – no início do capítulo",
   "ch.f.story.fire": "Final se o Fogo vencer",
   "ch.f.story.water": "Final se a Água vencer",

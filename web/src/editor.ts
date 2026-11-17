@@ -281,7 +281,7 @@ function drawLangs() {
   sum.textContent = t("ch.story.sum", { lang: langName(lang) });
   const note = document.createElement("p");
   note.className = "caption";
-  note.textContent = t("ch.story.note");
+  note.textContent = t("ch.story.note", { fire: "{fire}", water: "{water}", target: "{target}" });
   box.append(sum, note);
   for (const p of PARTS) {
     const l = document.createElement("label");

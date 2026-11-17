@@ -16,7 +16,7 @@ export const it: EDict = {
   "tab.fragen": "Domande",
   "ch.draft.soon": "Bozza – non gioca!",
   "ch.story.sum": "Storia ({lang}, facoltativa)",
-  "ch.story.note": "L’introduzione appare una volta quando il capitolo comincia; il finale corrispondente quando è finito, e nella cronaca. Paragrafi con righe vuote, al massimo 1500 caratteri per testo.",
+  "ch.story.note": "L’introduzione appare una volta quando il capitolo comincia; il finale corrispondente quando è finito, e nella cronaca. Paragrafi con righe vuote, al massimo 1500 caratteri per testo. Nei finali il gioco inserisce {fire} e {water} (il conteggio di ogni parte alla fine) e {target} (l’obiettivo; per «tenere luoghi», quanti luoghi), p. es. «{water} luoghi su {target}».",
   "ch.f.story.intro": "Introduzione – all’inizio del capitolo",
   "ch.f.story.fire": "Finale se vince il Fuoco",
   "ch.f.story.water": "Finale se vince l’Acqua",
