@@ -4,7 +4,7 @@ import { t, type Key } from "./i18n";
 import type { AbilityName, ChallengeKind, Faction, Mine, Net, ServerMsg } from "./net";
 import type { Sound } from "./sound";
 import { CLAIM_RADIUS_M } from "./geo";
-import { $, mmss, toast } from "./page";
+import { $, markedWithin, mmss, toast } from "./page";
 import { KEYS, load, save } from "./store";
 import { figure, mediaFor } from "./media";
 
@@ -34,7 +34,10 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
         ? t(mine.next ? "level.progress" : "level.max", { n: mine.level, name: levelName(mine.level), xp: mine.xp, next: mine.next ?? "" })
         : "";
     if (lastLevel && mine.level > lastLevel) {
-      toast(t("level.up", { name: levelName(mine.level) }));
+      // The level badge brings its own card; the line only without it
+      // (level reached again after a campaign reset).
+      const name = levelName(mine.level);
+      window.setTimeout(() => !markedWithin("level-card", 5000) && toast(t("level.up", { name })), 1500);
       sound.motif();
     }
     lastLevel = mine.level;
@@ -172,12 +175,12 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
     (el.querySelector(".ch-bar span") as HTMLElement).style.width = `${(100 * Math.min(ch.progress, ch.goal)) / ch.goal}%`;
   }
   setInterval(drawChallenge, 1000);
-  // Folded to one line (kept per device); a tap on it unfolds.
+  // One line unless opened by hand (kept per device); a tap on it unfolds.
   const foldChallenge = (on: boolean) => {
     $("challenge").classList.toggle("folded", on);
     save(KEYS.challengeFolded, on ? "1" : "0");
   };
-  $("challenge").classList.toggle("folded", load(KEYS.challengeFolded) === "1");
+  $("challenge").classList.toggle("folded", load(KEYS.challengeFolded) !== "0");
   $("ch-fold").onclick = (e) => {
     e.stopPropagation();
     foldChallenge(true);

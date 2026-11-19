@@ -8,7 +8,7 @@ import { lang, t, type Key } from "./i18n";
 import { pickLang, showStory } from "./story";
 import type { FindItem, Net } from "./net";
 import { confirmAdult, onAdult } from "./consent";
-import { $ } from "./page";
+import { $, mark } from "./page";
 import { cardOpen, whenFree } from "./cards";
 import { KEYS, load, save } from "./store";
 import { ask as question } from "./ask";
@@ -315,6 +315,7 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string, 
       // Small ones (claims, streaks, days) as a line; levels, full collections
       // and chapter wins as a card.
       if (!/^(level-|coll:|chapter-win:)/.test(badge)) return toast(`🏅 ${t("badge.new")} ${badgeLabel(badge)}`, 3500);
+      if (badge.startsWith("level-")) mark("level-card");
       show({ cls: "badge", kicker: t("badge.new"), name: badgeLabel(badge), line: "", ask: false, note: false });
       navigator.vibrate?.([30, 40, 30, 40, 60]);
     },

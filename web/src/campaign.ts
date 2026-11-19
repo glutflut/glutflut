@@ -111,8 +111,6 @@ export function setupCampaign(
     });
   }
 
-  /** The chapter whose banner this page load showed for the first time. */
-  let bannerNew = "";
   function render() {
     const bar = $("chapter");
     const hide = () => {
@@ -129,19 +127,7 @@ export function setupCampaign(
     ring(shown ? m : null);
     if (!shown) return hide();
     bar.hidden = false;
-    // Read once: from the next visit on (or after a tap on it) one line,
-    // once per chapter; unfolding by hand stays.
-    if (!m.kind) {
-      const seen = `banner:${m.key}`, auto = `banner-fold:${m.key}`;
-      if (!storySeen(seen)) {
-        markStorySeen(seen);
-        bannerNew = m.key;
-      } else if (bannerNew !== m.key && !storySeen(auto)) {
-        markStorySeen(auto);
-        save(KEYS.chapterFolded, m.key);
-      }
-    }
-    bar.classList.toggle("folded", folded() === m.key);
+    bar.classList.toggle("folded", !open(m.key));
     // The chronicle: campaign chapters only (weather days are not in it).
     const chron = $("chapter-chron") as HTMLAnchorElement;
     chron.hidden = !!m.kind;
@@ -173,10 +159,10 @@ export function setupCampaign(
     $("chapter-water-n").textContent = m.water.toLocaleString(lang);
   }
 
-  // The chapter folded to one line (until the next one).
-  const folded = () => load(KEYS.chapterFolded);
+  // One line unless opened by hand (until the next chapter).
+  const open = (key: string) => load(KEYS.chapterOpen) === key;
   const fold = (key: string | null) => {
-    save(KEYS.chapterFolded, key);
+    save(KEYS.chapterOpen, key ? null : (last?.key ?? null));
     render();
   };
   $("chapter-fold").onclick = (e) => {
@@ -188,11 +174,8 @@ export function setupCampaign(
     // Folded: a tap unfolds it; unfolded: the chapter's text as a card.
     if ($("chapter").classList.contains("folded")) return fold(null);
     const name = texts(last);
-    // Read now: one line from here on.
-    if (!last.kind) {
-      markStorySeen(`banner-fold:${last.key}`);
-      fold(last.key);
-    }
+    // Read now: one line again.
+    fold(last.key);
     notice("badge", t(last.kind ? "campaign.weather" : "campaign.chapter"), name.title, [name.text, hint(last)].filter(Boolean).join(" "), last.kind ? undefined : ["challenge", last.key]);
   };
   // The link in the bar: not a tap on the bar.

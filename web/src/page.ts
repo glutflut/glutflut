@@ -49,5 +49,10 @@ function toastPump() {
   toastTimer = window.setTimeout(toastDone, next.ms);
 }
 
+// Moments other modules ask about ("a level card just came").
+const marks = new Map<string, number>();
+export const mark = (key: string) => void marks.set(key, Date.now());
+export const markedWithin = (key: string, ms: number) => Date.now() - (marks.get(key) ?? 0) < ms;
+
 export const plus = (n: number) => (n > 0 ? ` +${n}` : "");
 export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;

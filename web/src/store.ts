@@ -28,9 +28,12 @@ export const KEYS = {
   storySeen: "elements.story.seen",
   /** News flashes shown on this device (notices.ts). */
   noticesSeen: "elements.notices.seen",
-  chapterFolded: "elements.chapter.folded",
+  /** Chapter bar opened by hand (its key); otherwise one line. */
+  chapterOpen: "elements.chapter.open",
   challengeFolded: "elements.challenge.folded",
   topFolded: "elements.top.folded",
+  /** Day of the last plain claim line (claim.ts): once a day, then the rising points. */
+  claimToastDay: "elements.claim.toast.day",
   gfx: "elements.gfx",
   gfxAuto: "elements.gfx.auto",
   /** Earlier switches, read once for `gfx`. */

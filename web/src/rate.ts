@@ -31,7 +31,6 @@ const ASK_WAIT_TRIES = 60;
 
 export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>; me: () => [number, number] | null }) {
   const btn = $("rate") as HTMLButtonElement;
-  const row = btn.parentElement!;
   const sheet = $("sheet");
   const sub = $("sheet-sub");
   const close = $("sheet-close") as HTMLButtonElement;
@@ -94,8 +93,6 @@ export function setupRate(d: { net: Net; nodePos: Map<number, [number, number]>;
     drawQuestion(q);
     sheet.classList.toggle("asked", asked);
     sub.hidden = !!q;
-    // Just above the buttons (the footer grows with its hints).
-    sheet.style.bottom = `${Math.max(0, innerHeight - row.getBoundingClientRect().top) + 8}px`;
     sheet.hidden = false;
     if (asked) timer = window.setTimeout(finish, ASK_SHOW_MS);
   }

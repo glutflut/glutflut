@@ -44,27 +44,31 @@ body {
   align-items: center;
   gap: 8px;
   margin: 10px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: var(--bg);
   border-radius: 12px;
   font-size: 15px;
 }
 
+/* Name and day points one line each, cut off: the bar stays two lines high. */
 #me {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-weight: 600;
+  text-align: left;
 }
 
 /* Playing: the eye beside the name switches to watching this city. */
-.me-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.me-row { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
 #eye {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 1.5px solid var(--soft);
   border-radius: 50%;
@@ -97,7 +101,10 @@ body.watching #board .you { display: none; }
 
 #score {
   display: flex;
-  gap: 10px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
@@ -162,9 +169,10 @@ body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflo
 
 #rate {
   flex: 0 0 auto;
-  padding: 16px 12px;
-  font-size: 14px;
-  font-weight: 600;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  padding: 0;
   border: none;
   border-radius: 14px;
   color: var(--fg);
@@ -174,8 +182,9 @@ body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflo
 #rate:disabled { opacity: 0.45; }
 
 .legal {
-  font-size: 12px;
-  padding: 2px 8px;
+  font-size: 10.5px;
+  line-height: 1.3;
+  padding: 1px 8px;
   border-radius: 6px;
   background: var(--bg);
 }
@@ -191,6 +200,14 @@ body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflo
   background: var(--bg);
 }
 
+/* One box above the buttons: a toast takes the place for a moment; a find
+   nearby beats the challenge, a running challenge the hotspot distance, and
+   the hotspot distance a finished or waiting challenge. */
+#toast:not([hidden]) ~ #challenge,
+#toast:not([hidden]) ~ #hotspot-hint,
+#actions:has(#hotspot-hint.find:not([hidden])) #challenge,
+#challenge:not([hidden]):not(.done) ~ #hotspot-hint:not(.find),
+#actions:has(#hotspot-hint:not([hidden]):not(.find)) #challenge.done { display: none; }
 #hotspot-hint.find { background: var(--panel); color: var(--fg); border: 1px solid var(--gold); font-weight: 500; }
 #hotspot-hint {
   font-size: 14px;
@@ -201,15 +218,19 @@ body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflo
   color: var(--ink);
 }
 
+/* From the bottom over the buttons (the rate button with them). */
 #sheet {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 130px;
-  padding: 12px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 62vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
   background: var(--panel);
-  border-radius: 14px;
-  /* Above the footer: its position line and hotspot hint reach up here. */
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.5);
   z-index: 8;
 }
 
@@ -231,11 +252,12 @@ body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflo
 /* Three pairs, one choice each (a two-way switch per row); then what stands out. */
 .pairs { display: grid; gap: 6px; margin-bottom: 10px; }
 .pair { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-.pair button { padding: 9px 12px; font-size: 15px; border: none; border-radius: 0; color: var(--fg); background: transparent; }
+.pair button { padding: 7px 10px; font-size: 15px; border: none; border-radius: 0; color: var(--fg); background: transparent; }
 .pair button + button { border-left: 1px solid var(--line); }
+#sheet .chips { gap: 6px; }
 #sheet .chips button {
-  padding: 9px 12px;
-  font-size: 15px;
+  padding: 8px 11px;
+  font-size: 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--fg);
@@ -308,9 +330,14 @@ body.indoor #gps { max-width: calc(100vw - 32px); overflow: hidden; text-overflo
   100% { box-shadow: 0 0 0 0 rgba(255, 212, 59, 0); }
 }
 
+/* One line always: the row keeps its height while counting down. */
 #claim {
   flex: 1;
-  padding: 16px;
+  min-width: 0;
+  padding: 16px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 19px;
   font-weight: 700;
   border: none;
@@ -484,7 +511,8 @@ body.watching #nav-me { display: none; }
   text-align: left;
 }
 
-.me-text { display: flex; flex-direction: column; line-height: 1.15; }
+.me-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+#me-label, #me-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #me-sub { font-size: 12px; font-weight: 500; color: var(--soft); }
 #me-sub:empty { display: none; }
 
@@ -710,12 +738,14 @@ button, a { touch-action: manipulation; }
 #ch-fold { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 20px; margin: -2px -6px -2px 0; padding: 0; border: none; background: none; color: var(--soft); }
 /* Folded: count, bar and time on one line; a tap unfolds it. */
 #challenge.folded { display: flex; align-items: center; gap: 10px; padding: 5px 12px; cursor: pointer; }
-#challenge.folded .ch-head { order: 2; }
-#challenge.folded .ch-bar { order: 1; flex: 0 0 90px; margin: 0; }
+#challenge.folded .ch-head { order: 3; }
+#challenge.folded .ch-bar { order: 1; flex: 0 0 48px; margin: 0; }
+#challenge.folded .ch-text { order: 2; flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #challenge.folded .ch-label,
+#challenge.folded .ch-time,
 #challenge.folded #ch-fold,
-#challenge.folded .ch-text,
 #challenge.folded .ch-hint { display: none; }
+#challenge.folded.done .ch-count { display: none; }
 #challenge.folded .ch-count { display: inline; }
 #challenge .ch-label { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
 #challenge .ch-text { font-weight: 600; margin-top: 2px; }
@@ -1305,6 +1335,10 @@ body.outside #actions { display: none; }
 #chapter.folded #chapter-goal,
 #chapter.folded .chapter-race > span { display: none; }
 #chapter.folded .chapter-race { margin: 0; flex: 0 0 64px; }
+/* Coming up: the start time instead of the race. */
+#chapter.folded.soon #chapter-time { display: inline; font-size: 12px; }
+/* Folds away with the header. */
+#hud.folded ~ #chapter { display: none; }
 .chapter-head b { color: var(--gold); }
 #chapter-time { color: var(--soft); white-space: nowrap; }
 .chapter-race { display: flex; align-items: center; gap: 8px; margin-top: 4px; }

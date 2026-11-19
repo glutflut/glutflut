@@ -7,6 +7,7 @@ import type { Link } from "./perm";
 import type { Far } from "./protocol";
 import { arrow, distM, owner } from "./geo";
 import { $, plus, toast } from "./page";
+import { KEYS, load, save } from "./store";
 
 const TOO_FAST = t("too.fast");
 /** Why a claim (or a link's offer) came to nothing. */
@@ -119,6 +120,14 @@ export function setupClaim(d: {
   // Wait after a claim (cooldown) or while moving too fast: the button is
   // off, fills up and counts down.
   let wait: { from: number; until: number; moving: boolean } | null = null;
+  /** A plain claim gets its line once a day (it explains the build-up);
+   *  after that the rising points say it. */
+  const plainLine = () => {
+    const day = new Date().toDateString();
+    if (load(KEYS.claimToastDay) === day) return false;
+    save(KEYS.claimToastDay, day);
+    return true;
+  };
   const drawWait = () => {
     const now = Date.now();
     const faction = d.faction();
@@ -131,7 +140,8 @@ export function setupClaim(d: {
     if (wait) {
       const p = (now - wait.from) / Math.max(1, wait.until - wait.from);
       claimBtn.style.setProperty("--p", `${Math.round(p * 100)}%`);
-      claimBtn.textContent = t(wait.moving ? "claim.wait.moving" : "claim.wait", { s: Math.ceil((wait.until - now) / 1000) });
+      // The fill shows the wait; only moving too fast says why.
+      claimBtn.textContent = wait.moving ? t("claim.wait.moving", { s: Math.ceil((wait.until - now) / 1000) }) : t("claim.button");
     } else {
       // Nothing to take nearby, but an anchor spot or the front to reinforce: the button says so.
       const tg = me ? target(me) : null;
@@ -387,9 +397,13 @@ export function setupClaim(d: {
           ? t(faction === "fire" ? "claim.anchor.fire" : "claim.anchor.water", { plus: plus(m.points) })
           : reinforcing
           ? t("claim.reinforced")
-          : m.build && m.build >= 2
-          ? t("claim.building", { plus: plus(m.points), s: Math.round(m.build) })
-          : t(m.bonus ? "claim.bonus" : "claim.ok", { plus: plus(m.points) })
+          : m.bonus
+          ? t("claim.bonus", { plus: plus(m.points) })
+          : plainLine()
+          ? m.build && m.build >= 2
+            ? t("claim.building", { plus: plus(m.points), s: Math.round(m.build) })
+            : t("claim.ok", { plus: plus(m.points) })
+          : ""
         : m.reason === "moving"
           ? TOO_FAST
           : t(why[m.reason ?? ""] ?? "claim.failed");
@@ -401,7 +415,7 @@ export function setupClaim(d: {
         drawWait();
       }
       reinforcing = false;
-      toast(msg);
+      if (msg) toast(msg);
     },
   };
 }

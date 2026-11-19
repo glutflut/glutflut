@@ -1,6 +1,6 @@
 // Top of the screen: the player bar (#hud) folds to a small pill, the chapter
-// bar below it to one line. Kept per device; a chapter stays folded until the
-// next one. The map buttons follow whatever is left.
+// bar below it is one line unless opened (and goes with a folded header).
+// Kept per device. The map buttons follow whatever is left.
 import { $ } from "./page";
 import { KEYS, load, save } from "./store";
 
@@ -13,7 +13,8 @@ export function layoutTop() {
   const inset = r.top - parseFloat(getComputedStyle(hud).marginTop);
   let bottom = r.bottom;
   const bar = $("chapter");
-  if (!bar.hidden) {
+  // Hidden or gone with the folded header.
+  if (!bar.hidden && bar.getClientRects().length) {
     bar.style.setProperty("--card-top", `${bottom + 6 - inset}px`);
     bottom = bar.getBoundingClientRect().bottom;
   }
