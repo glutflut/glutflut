@@ -3,7 +3,7 @@
 // more wait their turn. What was shown is remembered per device (seen).
 import { $ } from "./page";
 import { preempt, whenFree } from "./cards";
-import { t } from "./i18n";
+import { lang, t } from "./i18n";
 import { figure, mediaFor, type Media } from "./media";
 import { KEYS, loadJson, saveJson } from "./store";
 
@@ -101,9 +101,10 @@ function start(item: Story & { done?: () => void }) {
 
 /** An ending's numbers at the chapter's end: `{fire}`, `{water}` (each side's
  *  count) and `{target}` (the goal; hold: how many places), e.g. "{water} von
- *  {target} Orten". Other braces stay as written. */
+ *  {target} Orten", with the app language's digit grouping. Other braces stay
+ *  as written. */
 export function fillEnding(text: string, n: { fire: number; water: number; target: number }): string {
-  return text.replace(/\{(fire|water|target)\}/g, (_, k: "fire" | "water" | "target") => String(n[k]));
+  return text.replace(/\{(fire|water|target)\}/g, (_, k: "fire" | "water" | "target") => n[k].toLocaleString(lang));
 }
 
 /** Marks of what this device has seen (chapter intros, endings), newest last. */
