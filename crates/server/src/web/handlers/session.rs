@@ -24,6 +24,10 @@ use super::{Abilities, Ctx, Game};
 /// balance, so not a rule a rule file could weaken.
 const SHADOW_BAN_S: f64 = 86_400.0;
 
+/// How long a find hint keeps its distance current (web `hotspots.ts`
+/// `NEAR_MS` shows it that long after the last update).
+const HINT_UPDATE_S: f64 = 60.0;
+
 pub(super) fn hello(
     game: &mut Game,
     c: &Ctx,
@@ -406,7 +410,9 @@ pub(super) fn pos(
         );
         game.hotspots.observe(&t, pos.0);
     }
-    // A hint for the nearest find not known yet, once per find and `hint_every_s`.
+    // A hint for the nearest find not known yet, once per find and `hint_every_s`;
+    // for `HINT_UPDATE_S` after it the distance follows the player (the app
+    // shows the hint about that long).
     if let (Some(f), Some(slot), Some((_, out))) =
         (game.finds.as_deref(), slot, game.clients.0.get(&conn))
     {
@@ -424,16 +430,26 @@ pub(super) fn pos(
             .into_iter()
             .find(|x| !known.contains(&x.id))
         {
+            let m = ((near.p.distance(p) / 10.0).round() as u32) * 10;
             let last = game.hinted.get(&conn).copied();
-            if last.is_none_or(|(id, at)| {
+            let fresh = last.is_none_or(|(id, at, _)| {
                 id != near.id || now - at > c.rules.finds.hint_every_s as f64
-            }) {
-                game.hinted.insert(conn, (near.id, now));
+            });
+            let update = last.is_some_and(|(id, at, was)| {
+                id == near.id && now - at <= HINT_UPDATE_S && was != m
+            });
+            if fresh || update {
+                let at = if fresh {
+                    now
+                } else {
+                    last.map_or(now, |l| l.1)
+                };
+                game.hinted.insert(conn, (near.id, at, m));
                 send(
                     out,
                     &ServerMsg::Near {
                         c: &near.collection,
-                        m: ((near.p.distance(p) / 10.0).round() as u32) * 10,
+                        m,
                     },
                 );
             }

@@ -6,7 +6,8 @@ import { t } from "./i18n";
 import { distM } from "./geo";
 import { $ } from "./page";
 
-/** How long a find nearby stays in the pill. */
+/** How long a find nearby stays in the pill after its last update (the
+ *  server updates the distance for a minute, session.rs `HINT_UPDATE_S`). */
 const NEAR_MS = 60_000;
 
 export function setupHotspots(map: maplibregl.Map, me: () => [number, number] | null, setFollow: (on: boolean) => void) {

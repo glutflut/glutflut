@@ -57,8 +57,8 @@ pub struct Game<'w, 's> {
     tiles: Option<Res<'w, Tiles>>,
     overview: ResMut<'w, Overview>,
     finds: Option<ResMut<'w, Finds>>,
-    /// Last find hinted per connection, and when.
-    hinted: Local<'s, HashMap<u64, (i64, f64)>>,
+    /// Last find hinted per connection, when, and the distance sent.
+    hinted: Local<'s, HashMap<u64, (i64, f64, u32)>>,
     /// Next speed survey log line (unix s; `session::pos`).
     speed_log_at: Local<'s, f64>,
     campaign: ResMut<'w, crate::campaign::Campaign>,
