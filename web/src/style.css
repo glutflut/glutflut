@@ -1544,7 +1544,8 @@ figure.media a { color: inherit; }
 #challenge.folded .ch-media { display: none; }
 
 /* Points rising where they were earned (floaters.ts). */
-.float-at { pointer-events: none; z-index: 3; }
+/* No z-index: map content stays under the HUD and the bottom panel. */
+.float-at { pointer-events: none; }
 .float-pts {
   display: block;
   pointer-events: none;
