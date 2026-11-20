@@ -3,9 +3,15 @@
 //! a score where 254 is favourable). The browser stays on our origin (CSP), and
 //! only people with access to the region (and the group, if set) see them.
 //!
-//!   ELEMENTS_LAYER_COGS=https://host/{mode}/{layer}_3857.tiff   (unset: off)
+//!   ELEMENTS_LAYER_INDEX=https://api.geosci.de/ratings?api_key=…
+//!     JSON index of the current files (GeoSci's ratings list: `api_name`,
+//!     `geotiff_url_3857` with `$TRANSPORT_MODE`, nested `sub_ratings`).
+//!     Read lazily, again every few hours, so a new data version is picked up.
+//!   ELEMENTS_LAYER_COGS=https://host/{mode}/{layer}_3857.tiff
+//!     Fallback while the index is unset or unreachable, or lacks a layer.
 //!     `{mode}` is optional: tried as `car,foot`, then `none` (GeoSci's travel
 //!     modes; a layer lives under one of them).
+//!   One of the two must be set, else the layers are off.
 //!   ELEMENTS_LAYERS=id=Label,id=Label
 //!   ELEMENTS_LAYER_CREDIT=Source shown under the map
 //!   ELEMENTS_LAYER_GROUP=elements-layers    (optional; admins always pass)
@@ -17,27 +23,37 @@ use axum::Json;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use super::{who, AppState, Client, RegionQ, Role};
 use crate::cog::{self, Cog};
 
 const ZOOM_MAX: u32 = 18;
 const MODES: [&str; 2] = ["car,foot", "none"];
+/// How long a fetched index counts as current, and the pause after a failure.
+const REFRESH: Duration = Duration::from_secs(6 * 3600);
+const RETRY: Duration = Duration::from_secs(600);
 
 struct Config {
-    cogs: String,
+    index: Option<String>,
+    cogs: Option<String>,
     layers: Vec<(String, String)>,
     credit: String,
     group: Option<String>,
 }
 
 fn parse(
+    index: Option<String>,
     cogs: Option<String>,
     layers: Option<String>,
     credit: Option<String>,
     group: Option<String>,
 ) -> Option<Config> {
-    let cogs = cogs.filter(|t| t.starts_with("https://") && t.contains("{layer}"))?;
+    let index = index.filter(|t| t.starts_with("https://"));
+    let cogs = cogs.filter(|t| t.starts_with("https://") && t.contains("{layer}"));
+    if index.is_none() && cogs.is_none() {
+        return None;
+    }
     let layers: Vec<(String, String)> = layers?
         .split(',')
         .filter_map(|l| l.split_once('='))
@@ -50,6 +66,7 @@ fn parse(
         })
         .collect();
     (!layers.is_empty()).then(|| Config {
+        index,
         cogs,
         layers,
         credit: credit.unwrap_or_default(),
@@ -62,6 +79,7 @@ fn config() -> Option<&'static Config> {
     CFG.get_or_init(|| {
         let env = |k: &str| std::env::var(k).ok().map(|v| v.trim().to_string());
         parse(
+            env("ELEMENTS_LAYER_INDEX"),
             env("ELEMENTS_LAYER_COGS"),
             env("ELEMENTS_LAYERS"),
             env("ELEMENTS_LAYER_CREDIT"),
@@ -76,35 +94,127 @@ fn valid(cfg: &Config, id: &str, z: u32, x: u32, y: u32) -> bool {
     z <= ZOOM_MAX && x < (1 << z) && y < (1 << z) && cfg.layers.iter().any(|(l, _)| l == id)
 }
 
-/// The file addresses to try for a layer, in order.
+/// Layer id to file address, from an index like GeoSci's ratings list.
+fn index_urls(v: &serde_json::Value) -> HashMap<String, String> {
+    fn walk(v: &serde_json::Value, out: &mut HashMap<String, String>) {
+        let items: Vec<&serde_json::Value> = match v {
+            serde_json::Value::Object(m) => m.values().collect(),
+            serde_json::Value::Array(a) => a.iter().collect(),
+            _ => return,
+        };
+        for r in items {
+            if let (Some(id), Some(url)) = (
+                r.get("api_name").and_then(|x| x.as_str()),
+                r.get("geotiff_url_3857").and_then(|x| x.as_str()),
+            ) {
+                if url.starts_with("https://") {
+                    out.insert(id.to_string(), url.replace("$TRANSPORT_MODE", MODES[0]));
+                }
+            }
+            if let Some(sub) = r.get("sub_ratings") {
+                walk(sub, out);
+            }
+        }
+    }
+    let mut out = HashMap::new();
+    walk(v, &mut out);
+    out
+}
+
+#[derive(Default)]
+struct Index {
+    urls: HashMap<String, String>,
+    at: Option<Instant>,
+    tried: Option<Instant>,
+}
+
+static INDEX: Mutex<Option<Index>> = Mutex::new(None);
+
+fn with_index<T>(f: impl FnOnce(&mut Index) -> T) -> T {
+    f(INDEX.lock().unwrap().get_or_insert_with(Index::default))
+}
+
+/// The address the index gives for a layer; fetches the index when it is due
+/// (blocking, one caller at a time; the others use what is there).
+fn indexed(cfg: &Config, id: &str) -> Option<String> {
+    let src = cfg.index.as_deref()?;
+    let due = with_index(|ix| {
+        let due = ix.at.is_none_or(|t| t.elapsed() > REFRESH)
+            && ix.tried.is_none_or(|t| t.elapsed() > RETRY);
+        if due {
+            ix.tried = Some(Instant::now());
+        }
+        due
+    });
+    if due {
+        let got = crate::shards::agent()
+            .ok_or("no agent".to_string())
+            .and_then(|a| a.get(src).call().map_err(|e| e.kind().to_string()))
+            .and_then(|r| {
+                r.into_json::<serde_json::Value>()
+                    .map_err(|e| e.to_string())
+            })
+            .map(|v| index_urls(&v));
+        match got {
+            Ok(urls) if !urls.is_empty() => {
+                tracing::info!(layers = urls.len(), "layer index read");
+                with_index(|ix| {
+                    ix.urls = urls;
+                    ix.at = Some(Instant::now());
+                });
+            }
+            Ok(_) => tracing::warn!("layer index: no layers"),
+            Err(e) => tracing::warn!(error = %e, "layer index"),
+        }
+    }
+    with_index(|ix| ix.urls.get(id).cloned())
+}
+
+/// Is the layer missing from an index that has been read? Never fetches.
+fn dropped(cfg: &Config, id: &str) -> bool {
+    cfg.index.is_some()
+        && cfg.cogs.is_none()
+        && with_index(|ix| ix.at.is_some() && !ix.urls.contains_key(id))
+}
+
+/// The file addresses to try for a layer, in order: the index's, else the
+/// template's.
 fn urls(cfg: &Config, id: &str) -> Vec<String> {
-    let one = |m: &str| cfg.cogs.replace("{layer}", id).replace("{mode}", m);
-    if cfg.cogs.contains("{mode}") {
+    if let Some(u) = indexed(cfg, id) {
+        return vec![u];
+    }
+    let Some(cogs) = cfg.cogs.as_deref() else {
+        return Vec::new();
+    };
+    let one = |m: &str| cogs.replace("{layer}", id).replace("{mode}", m);
+    if cogs.contains("{mode}") {
         MODES.iter().map(|m| one(m)).collect()
     } else {
         vec![one("")]
     }
 }
 
-/// The opened file of a layer, kept once found.
+/// The opened file of a layer, kept while its address stays the same.
 fn open(cfg: &Config, id: &str) -> Result<Arc<Cog>, cog::Error> {
-    static OPEN: Mutex<Option<HashMap<String, Arc<Cog>>>> = Mutex::new(None);
-    if let Some(c) = OPEN
+    static OPEN: Mutex<Option<HashMap<String, (String, Arc<Cog>)>>> = Mutex::new(None);
+    let tries = urls(cfg, id);
+    if let Some((_, c)) = OPEN
         .lock()
         .unwrap()
         .get_or_insert_with(HashMap::new)
         .get(id)
+        .filter(|(u, _)| tries.contains(u))
     {
         return Ok(c.clone());
     }
-    for url in urls(cfg, id) {
-        match Cog::open(Box::new(cog::Http(url))) {
+    for url in tries {
+        match Cog::open(Box::new(cog::Http(url.clone()))) {
             Ok(c) => {
                 let c = Arc::new(c);
                 OPEN.lock()
                     .unwrap()
                     .get_or_insert_with(HashMap::new)
-                    .insert(id.to_string(), c.clone());
+                    .insert(id.to_string(), (url, c.clone()));
                 return Ok(c);
             }
             Err(cog::Error::NotFound) => continue,
@@ -194,6 +304,7 @@ pub(super) async fn list(
     let layers: Vec<_> = cfg
         .layers
         .iter()
+        .filter(|(id, _)| !dropped(cfg, id))
         .map(|(id, label)| json!({ "id": id, "label": label }))
         .collect();
     Json(json!({ "layers": layers, "credit": cfg.credit })).into_response()
@@ -253,6 +364,7 @@ mod tests {
 
     fn cfg() -> Config {
         parse(
+            None,
             Some("https://t.example/v1/{mode}/{layer}_3857.tiff".into()),
             Some("food=Essen und Trinken, green=Grün,bad/id=Nein,=leer".into()),
             None,
@@ -264,6 +376,7 @@ mod tests {
     #[test]
     fn only_https_and_clean_ids() {
         assert!(parse(
+            None,
             Some("http://t/{layer}".into()),
             Some("a=A".into()),
             None,
@@ -271,13 +384,22 @@ mod tests {
         )
         .is_none());
         assert!(parse(
+            Some("http://t/index".into()),
             Some("https://t/x.tiff".into()),
             Some("a=A".into()),
             None,
             None
         )
         .is_none());
-        assert!(parse(Some("https://t/{layer}".into()), None, None, None).is_none());
+        assert!(parse(None, Some("https://t/{layer}".into()), None, None, None).is_none());
+        let ix = parse(
+            Some("https://t/ratings".into()),
+            None,
+            Some("a=A".into()),
+            None,
+            None,
+        );
+        assert!(ix.is_some_and(|c| c.cogs.is_none()));
         let c = cfg();
         assert_eq!(c.layers.len(), 2);
         assert_eq!(c.layers[0], ("food".into(), "Essen und Trinken".into()));
@@ -305,6 +427,7 @@ mod tests {
             ]
         );
         let one = parse(
+            None,
             Some("https://t/{layer}.tif".into()),
             Some("a=A".into()),
             None,
@@ -319,6 +442,7 @@ mod tests {
     #[ignore]
     fn live_konstanz() {
         let c = parse(
+            None,
             Some("https://ratings-free.geosci.de/2026-10-28/{mode}/{layer}_3857.tiff".into()),
             Some("overall_noise_day=Lärm,eating_out=Gastronomie".into()),
             None,
@@ -335,6 +459,63 @@ mod tests {
             }
             eprintln!("{id}: {:?}", t0.elapsed());
         }
+    }
+
+    #[test]
+    fn index_gives_current_files_by_mode() {
+        let v = serde_json::json!({
+            "shopping": {
+                "api_name": "shopping",
+                "geotiff_url_3857": "https://h/2026-11-19/$TRANSPORT_MODE/shopping_3857.tiff",
+                "sub_ratings": {
+                    "daily_needs": {
+                        "api_name": "daily_needs",
+                        "geotiff_url_3857": "https://h/2026-11-19/$TRANSPORT_MODE/daily_needs_3857.tiff"
+                    }
+                }
+            },
+            "all_noise": {
+                "api_name": "all_noise",
+                "geotiff_url_3857": null,
+                "sub_ratings": [{
+                    "api_name": "overall_noise_day",
+                    "geotiff_url_3857": "https://h/2026-11-19/none/overall_noise_day_3857.tiff"
+                }]
+            },
+            "bad": { "api_name": "bad", "geotiff_url_3857": "http://h/x.tiff" }
+        });
+        let u = index_urls(&v);
+        assert_eq!(u.len(), 3);
+        assert_eq!(
+            u["daily_needs"],
+            "https://h/2026-11-19/car,foot/daily_needs_3857.tiff"
+        );
+        assert_eq!(
+            u["overall_noise_day"],
+            "https://h/2026-11-19/none/overall_noise_day_3857.tiff"
+        );
+    }
+
+    /// Against the live index: `LAYER_INDEX=https://… cargo test -- --ignored live_index`.
+    #[test]
+    #[ignore]
+    fn live_index() {
+        let c = parse(
+            std::env::var("LAYER_INDEX").ok(),
+            None,
+            Some("eating_out=Gastronomie,overall_noise_day=Ruhe".into()),
+            None,
+            None,
+        )
+        .unwrap();
+        for id in ["eating_out", "overall_noise_day"] {
+            let u = urls(&c, id);
+            eprintln!("{id}: {u:?}");
+            assert_eq!(u.len(), 1);
+            let v = open(&c, id).unwrap().render(15, 17219, 11436).unwrap();
+            assert!(v.is_some(), "data in Konstanz");
+        }
+        assert!(dropped(&c, "local_green_spaces"));
     }
 
     #[test]
