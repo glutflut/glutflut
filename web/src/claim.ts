@@ -72,6 +72,11 @@ export function setupClaim(d: {
   const { net, sound, nodePos, state } = d;
   const claimBtn = $("claim") as HTMLButtonElement;
   /** In reach: indoors one of the junctions the scan named, else within the radius. */
+  /** Enemy sources the server just found too strong (`strong`), until when:
+   * skipped for the target and the front, so the next junction gets its turn. */
+  const tooStrong = new Map<number, number>();
+  const STRONG_MS = 120_000;
+  const strong = (id: number) => (tooStrong.get(id) ?? 0) > Date.now();
   const inReach = (id: number, dist: number) => {
     const ids = d.reachIds();
     return ids ? ids.has(id) : dist <= d.claimRadius();
@@ -244,9 +249,9 @@ export function setupClaim(d: {
     const keep = (id: number) => src.get(id)?.kind === "keep" && src.get(id)?.faction !== faction;
     const takeable = (id: number) => {
       const [f, w] = state.get(id) ?? [0, 0];
-      return owner(f, w) !== mine && !(src.get(id)?.faction === faction) && !keep(id);
+      return owner(f, w) !== mine && !(src.get(id)?.faction === faction) && !keep(id) && !strong(id);
     };
-    const open = nearest(takeable) ?? nearest(keep);
+    const open = nearest(takeable) ?? nearest(keep) ?? nearest((id) => strong(id) && src.get(id)?.faction !== faction);
     if (open !== null) return { id: open, anchor: false };
     if (supply === null) return null;
     const anchors = sources.filter((s) => s.kind === "anchor" && s.faction === faction).map((s) => s.ll);
@@ -278,7 +283,7 @@ export function setupClaim(d: {
     const keeps = new Set(d.sources().filter((s) => s.kind === "keep" && s.faction !== d.faction()).map((s) => s.node));
     let front: [[number, number], number] | null = null;
     for (const [id, c] of nodePos) {
-      if (keeps.has(id)) continue;
+      if (keeps.has(id) || strong(id)) continue;
       const dist = distM(p, c);
       const [f, w] = state.get(id) ?? [0, 0];
       if (owner(f, w) !== mine && (!front || dist < front[1])) front = [c, dist];
@@ -375,6 +380,10 @@ export function setupClaim(d: {
         drawLink();
       }
       if (m.ok && !m.far) lastClaim = nodePos.get(m.node) ?? null;
+      if (!m.far) {
+        if (m.ok) tooStrong.delete(m.node);
+        else if (m.reason === "strong") tooStrong.set(m.node, Date.now() + STRONG_MS);
+      }
       if (m.wait && m.wait > 0.3) {
         const now = Date.now();
         wait = { from: now, until: now + m.wait * 1000, moving: m.reason === "moving" };
