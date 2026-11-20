@@ -239,11 +239,14 @@ export function setupClaim(d: {
     const src = new Map(sources.map((s) => [s.node, s]));
     const spark = nearest((id) => src.get(id)?.kind === "spark" && src.get(id)?.faction !== faction);
     if (spark !== null) return { id: spark, anchor: false };
+    // Another side's permanent source only wears down: last, like the
+    // server's link_target, so it never hides the junctions around it.
+    const keep = (id: number) => src.get(id)?.kind === "keep" && src.get(id)?.faction !== faction;
     const takeable = (id: number) => {
       const [f, w] = state.get(id) ?? [0, 0];
-      return owner(f, w) !== mine && !(src.get(id)?.faction === faction);
+      return owner(f, w) !== mine && !(src.get(id)?.faction === faction) && !keep(id);
     };
-    const open = nearest(takeable);
+    const open = nearest(takeable) ?? nearest(keep);
     if (open !== null) return { id: open, anchor: false };
     if (supply === null) return null;
     const anchors = sources.filter((s) => s.kind === "anchor" && s.faction === faction).map((s) => s.ll);
@@ -269,10 +272,13 @@ export function setupClaim(d: {
     return best ? { id: best[0], anchor: false, reinforce: true } : null;
   }
 
-  /** The nearest junction that isn't ours, at any distance, and how far. */
+  /** The nearest junction that isn't ours, at any distance, and how far
+   * (not another side's permanent source: it only wears down). */
   function nearestFront(p: [number, number], mine: number): [[number, number], number] | null {
+    const keeps = new Set(d.sources().filter((s) => s.kind === "keep" && s.faction !== d.faction()).map((s) => s.node));
     let front: [[number, number], number] | null = null;
     for (const [id, c] of nodePos) {
+      if (keeps.has(id)) continue;
       const dist = distM(p, c);
       const [f, w] = state.get(id) ?? [0, 0];
       if (owner(f, w) !== mine && (!front || dist < front[1])) front = [c, dist];
