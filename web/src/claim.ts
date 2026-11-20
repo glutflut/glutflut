@@ -278,9 +278,11 @@ export function setupClaim(d: {
   }
 
   /** The nearest junction that isn't ours, at any distance, and how far
-   * (not another side's permanent source: it only wears down). */
+   * (not our own sources, even while still building up on enemy ground, nor
+   * another side's permanent source: it only wears down). */
   function nearestFront(p: [number, number], mine: number): [[number, number], number] | null {
-    const keeps = new Set(d.sources().filter((s) => s.kind === "keep" && s.faction !== d.faction()).map((s) => s.node));
+    const faction = d.faction();
+    const keeps = new Set(d.sources().filter((s) => s.faction === faction || s.kind === "keep").map((s) => s.node));
     let front: [[number, number], number] | null = null;
     for (const [id, c] of nodePos) {
       if (keeps.has(id) || strong(id)) continue;
