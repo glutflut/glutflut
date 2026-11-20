@@ -643,7 +643,7 @@ export const es: Dict = {
   "ab.err.level": "Solo a partir de un nivel más alto",
   "ab.err.cooldown": "Todavía no está listo",
   "ab.err.nourish": "Ahora no tienes ninguna fuente",
-  "ab.err.boost": "No hay ninguna fuente de tu bando cerca",
+  "ab.err.boost": "No hay cerca ninguna fuente de otro jugador de tu bando – las tuyas son para «Alimentar»",
   // City dashboard (dashboard.html)
   "dash.doc.title": "Monitor del centro – {city}",
   "dash.title": "Monitor del centro",

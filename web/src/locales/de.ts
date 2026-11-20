@@ -641,7 +641,7 @@ export const de = {
   "ab.err.level": "Das gibt es erst ab einer höheren Stufe",
   "ab.err.cooldown": "Noch nicht wieder bereit",
   "ab.err.nourish": "Du hast gerade keine eigene Quelle",
-  "ab.err.boost": "Keine Quelle deiner Seite in Reichweite",
+  "ab.err.boost": "Keine Quelle anderer Spieler deiner Seite in Reichweite – eigene Quellen füllt „Nähren“",
   // City dashboard (dashboard.html)
   "dash.doc.title": "Innenstadt-Monitor – {city}",
   "dash.title": "Innenstadt-Monitor",

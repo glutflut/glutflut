@@ -642,7 +642,7 @@ export const pl: Dict = {
   "ab.err.level": "Dopiero od wyższego poziomu",
   "ab.err.cooldown": "Jeszcze niegotowe",
   "ab.err.nourish": "Nie masz teraz żadnego źródła",
-  "ab.err.boost": "Brak źródła twojej strony w zasięgu",
+  "ab.err.boost": "Brak w zasięgu źródła innego gracza twojej strony – własne źródła to „Odżywienie”",
   // City dashboard (dashboard.html)
   "dash.doc.title": "Monitor centrum – {city}",
   "dash.title": "Monitor centrum",

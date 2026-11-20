@@ -642,7 +642,7 @@ export const en: Dict = {
   "ab.err.level": "Only from a higher level",
   "ab.err.cooldown": "Not ready yet",
   "ab.err.nourish": "You have no source right now",
-  "ab.err.boost": "No source of your side in reach",
+  "ab.err.boost": "No source of another player on your side in reach – your own sources are for “Nourish”",
   // City dashboard (dashboard.html)
   "dash.doc.title": "City Centre Monitor – {city}",
   "dash.title": "City Centre Monitor",

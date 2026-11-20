@@ -642,7 +642,7 @@ export const pt: Dict = {
   "ab.err.level": "Só disponível a partir de um nível mais alto",
   "ab.err.cooldown": "Ainda não está pronto",
   "ab.err.nourish": "No momento você não tem nenhuma fonte",
-  "ab.err.boost": "Nenhuma fonte do seu time ao alcance",
+  "ab.err.boost": "Nenhuma fonte de outro jogador do seu time ao alcance – as suas são para “Nutrir”",
   // City dashboard (dashboard.html)
   "dash.doc.title": "Monitor do centro – {city}",
   "dash.title": "Monitor do centro",

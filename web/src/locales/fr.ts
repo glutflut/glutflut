@@ -642,7 +642,7 @@ export const fr: Dict = {
   "ab.err.level": "Seulement à partir d’un niveau plus élevé",
   "ab.err.cooldown": "Pas encore prêt",
   "ab.err.nourish": "Tu n’as pas de source en ce moment",
-  "ab.err.boost": "Aucune source de ton camp à portée",
+  "ab.err.boost": "Aucune source d'un autre joueur de ton camp à portée – tes propres sources, c'est « Nourrir »",
   // City dashboard (dashboard.html)
   "dash.doc.title": "Observatoire du centre-ville – {city}",
   "dash.title": "Observatoire du centre-ville",
