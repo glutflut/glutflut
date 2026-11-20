@@ -326,7 +326,6 @@ async function main() {
       },
     },
   });
-  progress.setFrontDist(claim.frontDist);
   if (newcomer) perm.quietFirstVisit();
   const lapse = setupTimelapse(map, () => meta.region.slug);
   setupMood(map, () => meta.region.slug);

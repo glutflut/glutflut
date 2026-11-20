@@ -79,8 +79,6 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
   // are armed for the next claim, the others act at once. Cooldowns here.
   const ABILITY_LEVEL: Record<AbilityName, number> = { reach: 2, nourish: 3, boost: 4, double: 5 };
   let abilitiesOn = false;
-  /** Distance to the nearest junction not ours (claim.ts, set later). */
-  let frontDist: () => number | null = () => null;
   let reachM = CLAIM_RADIUS_M;
   /** The region's claim radius (welcome; indoors smaller). */
   let baseM = CLAIM_RADIUS_M;
@@ -99,16 +97,9 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
   function drawAbilities() {
     const el = $("abilities");
     const level = mine?.level ?? 1;
-    const now0 = Date.now();
-    // Weitblick only while it would reach a junction the normal range can't
-    // (or while armed); not during its wait.
-    const reachUseful = () => {
-      if (ab.reach.armed) return true;
-      if (ab.reach.until > now0) return false;
-      const f = frontDist();
-      return f !== null && f > baseM && f <= reachM;
-    };
-    const open = (Object.keys(ABILITY_LEVEL) as AbilityName[]).filter((n) => level >= ABILITY_LEVEL[n] && (n !== "reach" || reachUseful()));
+    // All from their level on, Weitblick too (hiding it while nothing lay
+    // just out of range meant it hardly ever showed).
+    const open = (Object.keys(ABILITY_LEVEL) as AbilityName[]).filter((n) => level >= ABILITY_LEVEL[n]);
     el.hidden = !abilitiesOn || !open.length;
     if (el.hidden) return;
     const now = Date.now();
@@ -195,9 +186,6 @@ export function setupProgress(net: Net, sound: Sound, faction: () => Faction | n
       showMine();
     },
     claimRadius,
-    setFrontDist(f: () => number | null) {
-      frontDist = f;
-    },
     /** Weitblick armed. */
     reachArmed: () => ab.reach.armed,
     /** The rules' claim radius, without the armed reach. */
