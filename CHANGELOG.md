@@ -8,6 +8,13 @@ All notable changes to Glut & Flut. Versions follow
 
 ### Added
 
+- OSM updates of running regions: `db/import/update-region.sh --dry-run|--write`
+  rebuilds a region in a local database (`db/local/db.sh`: PostGIS, pgRouting,
+  H3 in a container) from fresh extracts, reports what changes, checks limits
+  (3 % junctions, 5 % natural sources) and writes only changed rows. Junctions
+  that disappear get a successor within 50 m (`geo.node_moves`, migration V21);
+  the server moves permanent sources, their keys and saved claims onto it when
+  it loads the region.
 - Admin page `/admin.html` for the operator: regions of the shard (state,
   rule set, players, reload), feedback from all regions, "play here" wishes
   with their region, indoor QR sheets; ops token or a login with admin for all

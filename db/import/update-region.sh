@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
-# OSM update of a running region, dry run (data job; writes nothing to
-# ELEMENTS_DB): clones the region's graph and blocks into a local database,
-# rebuilds them there from that database's OSM copy with the same scripts as an
-# import (clip = the stored outline), and reports what would change:
+# OSM update of a running region (data job): clones the region's graph and
+# blocks into a local database, rebuilds them there from that database's OSM
+# copy with the same scripts as an import (clip = the stored outline), reports
+# what changes and, with --write, writes only the changed rows back:
 #
 #   ELEMENTS_DB=… ELEMENTS_LOCAL_DB="$(db/local/db.sh url)" \
-#     db/import/update-region.sh --dry-run region-konstanz
+#     db/import/update-region.sh --dry-run region-konstanz   # nothing written
+#   … db/import/update-region.sh --write region-konstanz     # within the limits
 #
 # ELEMENTS_LOCAL_DB: schema at the same Flyway version as ELEMENTS_DB, and the
 # OSM copy of the region's countries (import-osm-extract.sh with fresh
 # extracts). Report: $UPDATE_OUT (~/elements-dryrun)/<slug>-<date>.md, plus a
-# GeoJSON of gone and new junctions next to it. Terrain is left out (new
-# junctions have no height yet in the local copy).
-# Limits (stop instead of write, later): MAX_GONE_PCT (3) of the junctions,
-# MAX_SOURCES_PCT (5) of the natural sources without a successor within
-# SUCCESSOR_M (50) metres.
+# GeoJSON of gone and new junctions next to it.
+# Limits (--write stops, FORCE=1 overrides): MAX_GONE_PCT (3) of the
+# junctions, MAX_SOURCES_PCT (5) of the natural sources without a successor
+# within SUCCESSOR_M (50) metres.
+# --write: terrain of the new junctions locally (Copernicus, then
+# `$ELEMENTS_REGION_HOOK terrain <slug>` for finer models), natural sources
+# onto their successor, then in one transaction on ELEMENTS_DB: nodes, edges,
+# blocks, region bounds, geo.node_moves (gone -> successor; the server moves
+# permanent sources, their keys and saved claims when it loads the region),
+# hotspot sites and plans. Stops if the region changed since the clone. After:
+# POST /api/ops/reload?region=<slug> for a loaded region, basemap refresh.
 set -euo pipefail
 export LC_ALL=C
-[ "${1:-}" = --dry-run ] || { echo "only --dry-run so far: $0 --dry-run <slug>"; exit 2; }
+case "${1:-}" in --dry-run) MODE=dry ;; --write) MODE=write ;; *) echo "$0 --dry-run|--write <slug>"; exit 2 ;; esac
 SLUG="${2:?slug}"
 [[ "$SLUG" =~ ^region-[a-z0-9-]+$ ]] || { echo "slug: region-<lowercase>"; exit 2; }
 : "${ELEMENTS_DB:?set ELEMENTS_DB (source, read only)}" "${ELEMENTS_LOCAL_DB:?set ELEMENTS_LOCAL_DB}"
@@ -65,6 +72,7 @@ src -c "\\copy (
   | loc -c "\\copy dry.refs FROM STDIN"
 
 echo ">> rebuild from the local OSM copy $(date +%T)"
+SINCE="$(loc -c "SELECT now()")"
 CLIP="$OUT/$SLUG-clip.geojson"
 loc -c "SELECT ST_AsGeoJSON(boundary_geom) FROM geo.regions WHERE id = '$UUID'" > "$CLIP"
 OFFSET="$(loc -c "SELECT (min(id) / 1000000) * 1000000 FROM geo.nodes WHERE region_id = '$UUID'")"
@@ -141,3 +149,106 @@ loc -c "SELECT json_build_object('type', 'FeatureCollection', 'features', coales
             'node_type', node_type, 'marker-color', CASE WHEN was THEN '#d33' ELSE '#2a2' END)) AS f
         FROM dry.n WHERE was <> now) x" > "$OUT/$SLUG-$DAY.geojson"
 echo ">> $VERDICT: $GONE of $ACT junctions gone, $NEW new; report $REP"
+
+[ "$MODE" = write ] || exit 0
+if [[ "$VERDICT" == STOP* ]] && [ "${FORCE:-}" != 1 ]; then echo ">> not written ($VERDICT; FORCE=1 overrides)"; exit 3; fi
+
+FRESH="$(loc -c "SELECT count(*) FROM geo.nodes WHERE region_id = '$UUID' AND created_at >= '$SINCE'")"
+echo ">> terrain of the $FRESH new junctions $(date +%T)"
+[ "$FRESH" = 0 ] || ELEMENTS_DB="$ELEMENTS_LOCAL_DB" DEM_FILES= REGION_SLUG="$SLUG" NEW_SINCE="$SINCE" \
+  db/import/import-terrain-region.sh 2>&1 | grep -E "^>>" || true
+if [ "$FRESH" != 0 ] && [ -n "${ELEMENTS_REGION_HOOK:-}" ]; then
+  ELEMENTS_DB="$ELEMENTS_LOCAL_DB" REGION_UUID="$UUID" NODES=0 NEW_SINCE="$SINCE" \
+    "$ELEMENTS_REGION_HOOK" terrain "$SLUG" ""
+fi
+MISSING="$(loc -c "SELECT count(*) FROM geo.nodes WHERE region_id = '$UUID' AND is_active AND elevation_m IS NULL")"
+[ "$MISSING" = 0 ] || { echo ">> not written: $MISSING active junctions without height"; exit 1; }
+
+# Natural sources onto a plain successor (else they stay behind, inactive).
+SMOVED="$(loc -c "WITH x AS (UPDATE geo.nodes s SET node_type = g.node_type FROM dry.gone g
+  WHERE s.id = g.succ AND s.node_type = 'crossing' AND g.node_type NOT IN ('crossing', 'screen') RETURNING 1)
+  SELECT count(*) FROM x")"
+
+W="$OUT/$SLUG-$DAY"
+mkdir -p "$W"
+NCOLS="id, region_id, geom, lat, lon, elevation_m, node_type, is_active, created_at"
+ECOLS="id, region_id, source, target, geom, length_m, road_type, one_way, elev_from_m, elev_to_m, grade_forward, grade_reverse, water_cost_forward, water_cost_reverse, fire_cost_forward, fire_cost_reverse, base_travel_cost, is_active, created_at, bridge"
+loc -c "\\copy (SELECT $NCOLS FROM geo.nodes WHERE region_id = '$UUID') TO '$W/nodes.tsv'"
+loc -c "\\copy (SELECT $ECOLS FROM geo.edges WHERE region_id = '$UUID') TO '$W/edges.tsv'"
+loc -c "\\copy (SELECT region, id, geom, area_m2, nodes FROM geo.blocks WHERE region = '$SLUG') TO '$W/blocks.tsv'"
+loc -c "\\copy (SELECT id, succ FROM dry.gone WHERE succ IS NOT NULL) TO '$W/moves.tsv'"
+loc -c "\\copy (SELECT ST_AsEWKB(centroid_geom), bounds_min_lat, bounds_min_lon, bounds_max_lat, bounds_max_lon FROM geo.regions WHERE id = '$UUID') TO '$W/region.tsv'"
+read -r CACT CMAX <<< "$(loc -F' ' -c "SELECT count(*) FILTER (WHERE is_active), max(id) FROM dry.nodes")"
+
+echo ">> write to ELEMENTS_DB $(date +%T)"
+eset() { local a="" c; for c in ${1//,/ }; do [ "$c" = id ] && continue; a+="${a:+, }$c = u.$c"; done; echo "$a"; }
+erow() { local a="" c; for c in ${2//,/ }; do [ "$c" = id ] && continue; a+="${a:+, }$1.$c"; done; echo "($a)"; }
+src -v uuid="$UUID" -v slug="$SLUG" -v cact="$CACT" -v cmax="$CMAX" <<SQL | tee "$W/written.txt"
+BEGIN;
+-- Nothing changed under the clone (another import, a reload of the graph).
+DO \$\$ BEGIN
+  IF (SELECT count(*) FILTER (WHERE is_active) || '/' || max(id) FROM geo.nodes WHERE region_id = '$UUID') <> '$CACT/$CMAX'
+  THEN RAISE EXCEPTION 'region changed since the clone: run again'; END IF;
+END \$\$;
+CREATE TEMP TABLE u_nodes AS SELECT $NCOLS FROM geo.nodes LIMIT 0;
+CREATE TEMP TABLE u_edges AS SELECT $ECOLS FROM geo.edges LIMIT 0;
+CREATE TEMP TABLE u_blocks AS SELECT region, id, geom, area_m2, nodes FROM geo.blocks LIMIT 0;
+CREATE TEMP TABLE u_moves (old_id bigint PRIMARY KEY, new_id bigint);
+CREATE TEMP TABLE u_region (c bytea, a float8, b float8, d float8, e float8);
+\\copy u_nodes FROM '$W/nodes.tsv'
+\\copy u_edges FROM '$W/edges.tsv'
+\\copy u_blocks FROM '$W/blocks.tsv'
+\\copy u_moves FROM '$W/moves.tsv'
+\\copy u_region FROM '$W/region.tsv'
+CREATE INDEX ON u_nodes (id); CREATE INDEX ON u_edges (id); CREATE INDEX ON u_blocks (id);
+ANALYZE u_nodes; ANALYZE u_edges; ANALYZE u_blocks;
+\\set QUIET on
+WITH x AS (UPDATE geo.nodes g SET $(eset "$NCOLS") FROM u_nodes u
+  WHERE g.id = u.id AND $(erow g "$NCOLS") IS DISTINCT FROM $(erow u "$NCOLS") RETURNING 1)
+SELECT 'nodes changed ' || count(*) FROM x;
+WITH x AS (INSERT INTO geo.nodes ($NCOLS) SELECT $NCOLS FROM u_nodes u
+  WHERE NOT EXISTS (SELECT 1 FROM geo.nodes g WHERE g.id = u.id) RETURNING 1)
+SELECT 'nodes new ' || count(*) FROM x;
+-- Same geometry, same length (another PostGIS differs in the last bits).
+UPDATE u_edges u SET length_m = g.length_m FROM geo.edges g WHERE g.id = u.id AND ST_Equals(g.geom, u.geom);
+WITH x AS (UPDATE geo.edges g SET $(eset "$ECOLS") FROM u_edges u
+  WHERE g.id = u.id AND $(erow g "$ECOLS") IS DISTINCT FROM $(erow u "$ECOLS") RETURNING 1)
+SELECT 'edges changed ' || count(*) FROM x;
+WITH x AS (INSERT INTO geo.edges ($ECOLS) SELECT $ECOLS FROM u_edges u
+  WHERE NOT EXISTS (SELECT 1 FROM geo.edges g WHERE g.id = u.id) RETURNING 1)
+SELECT 'edges new ' || count(*) FROM x;
+WITH x AS (DELETE FROM geo.blocks b WHERE b.region = :'slug'
+  AND NOT EXISTS (SELECT 1 FROM u_blocks u WHERE u.id = b.id) RETURNING 1)
+SELECT 'blocks gone ' || count(*) FROM x;
+UPDATE u_blocks u SET area_m2 = b.area_m2 FROM geo.blocks b
+  WHERE b.region = :'slug' AND b.id = u.id AND abs(b.area_m2 - u.area_m2) <= 1 AND ST_Equals(b.geom, u.geom);
+WITH x AS (UPDATE geo.blocks b SET geom = u.geom, area_m2 = u.area_m2, nodes = u.nodes FROM u_blocks u
+  WHERE b.region = :'slug' AND b.id = u.id AND (b.geom, b.area_m2, b.nodes) IS DISTINCT FROM (u.geom, u.area_m2, u.nodes) RETURNING 1)
+SELECT 'blocks changed ' || count(*) FROM x;
+WITH x AS (INSERT INTO geo.blocks (region, id, geom, area_m2, nodes) SELECT region, id, geom, area_m2, nodes FROM u_blocks u
+  WHERE NOT EXISTS (SELECT 1 FROM geo.blocks b WHERE b.region = :'slug' AND b.id = u.id) RETURNING 1)
+SELECT 'blocks new ' || count(*) FROM x;
+UPDATE geo.regions SET centroid_geom = ST_GeomFromEWKB(u.c), bounds_min_lat = u.a, bounds_min_lon = u.b,
+  bounds_max_lat = u.d, bounds_max_lon = u.e, updated_at = now() FROM u_region u WHERE id = :'uuid';
+-- Moves: junctions back in the graph lose theirs, chains collapse to the newest.
+DELETE FROM geo.node_moves m USING u_nodes u WHERE m.region = :'slug' AND m.old_id = u.id AND u.is_active;
+UPDATE geo.node_moves m SET new_id = u.new_id, moved_at = now() FROM u_moves u WHERE m.region = :'slug' AND m.new_id = u.old_id AND m.old_id <> u.new_id;
+WITH x AS (INSERT INTO geo.node_moves (region, old_id, new_id) SELECT :'slug', old_id, new_id FROM u_moves
+  ON CONFLICT (region, old_id) DO UPDATE SET new_id = EXCLUDED.new_id, moved_at = now()
+  WHERE geo.node_moves.new_id <> EXCLUDED.new_id RETURNING 1)
+SELECT 'moves ' || count(*) FROM x;
+WITH x AS (UPDATE geo.hotspot_sites s SET node_id = u.new_id FROM u_moves u WHERE s.region = :'slug' AND s.node_id = u.old_id RETURNING 1)
+SELECT 'hotspot sites moved ' || count(*) FROM x;
+WITH x AS (UPDATE game.hotspot_plans s SET node_id = u.new_id FROM u_moves u WHERE s.region = :'slug' AND s.node_id = u.old_id RETURNING 1)
+SELECT 'hotspot plans moved ' || count(*) FROM x;
+COMMIT;
+SQL
+{
+  echo
+  echo "## Written $(date '+%F %T')"
+  echo
+  echo "Natural sources moved onto their successor: $SMOVED. Rows (only changed ones):"
+  echo
+  sed 's/^/- /' "$W/written.txt"
+} >> "$REP"
+echo ">> written (report $REP); next: POST /api/ops/reload?region=$SLUG if loaded, basemap refresh"

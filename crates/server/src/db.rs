@@ -459,6 +459,22 @@ pub fn live_zones(
     })
 }
 
+/// Successors of junctions an OSM update switched off (`geo.node_moves`,
+/// update-region.sh): saved state on an old id belongs on the new one. Empty
+/// when the table is missing (database before V21) or unreadable.
+pub fn node_moves(c: &mut Client, region: &str) -> std::collections::HashMap<i64, i64> {
+    match c.query(
+        "SELECT old_id, new_id FROM geo.node_moves WHERE region = $1",
+        &[&region],
+    ) {
+        Ok(rows) => rows.iter().map(|r| (r.get(0), r.get(1))).collect(),
+        Err(e) => {
+            warn!(error = %e, region, "node moves: not read");
+            std::collections::HashMap::new()
+        }
+    }
+}
+
 pub fn connect(conn_str: &str) -> Result<Client, Box<dyn Error>> {
     let connector = MakeTlsConnector::new(native_tls::TlsConnector::new()?);
     let mut cfg: postgres::Config = conn_str.parse()?;

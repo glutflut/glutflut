@@ -497,9 +497,11 @@ pub fn restore(
         return;
     };
     let mut lost = 0;
+    let mut taken = std::collections::HashSet::new();
     for r in rows {
-        let Some(&e) = node_by_id.get(&r.node) else {
-            // The graph changed under it: points to the pot.
+        // The graph changed under it (no successor, or two moved onto one
+        // junction): points to the pot.
+        let Some(&e) = node_by_id.get(&r.node).filter(|e| taken.insert(**e)) else {
             keeps.pot_add(r.ticket, r.points);
             lost += 1;
             continue;
@@ -669,6 +671,8 @@ type Loaded = (
 fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
     let mut c = crate::db::connect(db)?;
     let h = |v: Vec<u8>| <Hash>::try_from(v).ok();
+    let moves = crate::db::node_moves(&mut c, region);
+    let moved = |n: i64| moves.get(&n).copied().unwrap_or(n);
     let rows = c
         .query(
             "SELECT node_id, faction, age_s, built_s, ramp_s, wear, mult, points, ticket, motto, link \
@@ -678,7 +682,7 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
         .into_iter()
         .filter_map(|r| {
             Some(Row {
-                node: r.get(0),
+                node: moved(r.get(0)),
                 faction: Faction::parse(r.get(1)).unwrap_or(Faction::Fire),
                 age: r.get(2),
                 built: r.get(3),
@@ -738,7 +742,7 @@ fn load(db: &str, region: &str) -> Result<Loaded, Box<dyn std::error::Error>> {
                         Some(k) => h(k)?,
                         None => Hash::default(),
                     },
-                    spot: r.get(6),
+                    spot: r.get::<_, Option<i64>>(6).map(moved),
                     batch: r.get(7),
                     label: r.get(8),
                     origin: origin(r.get(2)),

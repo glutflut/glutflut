@@ -160,7 +160,13 @@ fn take(db: &str, region: &str) -> Result<Option<(f64, Vec<Row>)>, Box<dyn std::
     if now_s() - at > MAX_AGE_S {
         return Ok(None);
     }
-    let rows: Vec<Row> = serde_json::from_str(r.get(1))?;
+    let mut rows: Vec<Row> = serde_json::from_str(r.get(1))?;
+    let moves = crate::db::node_moves(&mut c, region);
+    for r in &mut rows {
+        if let Some(&n) = moves.get(&r.node) {
+            r.node = n;
+        }
+    }
     info!(
         sources = rows.len(),
         age_s = (now_s() - at) as i64,
