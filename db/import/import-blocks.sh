@@ -65,7 +65,7 @@ CREATE TEMP TABLE nb AS
     WHERE ST_DWithin(ST_Boundary(fw.g), n.g, 1e-7)) b
   WHERE fw.a > 0 AND fw.wet <= :water AND b.nodes IS NOT NULL;
 CREATE INDEX ON nb USING gist (g); CREATE INDEX ON nb USING hash (nodes); ANALYZE nb;
-CREATE TEMP TABLE o AS SELECT id, geom AS g, nodes FROM geo.blocks WHERE region = :'slug';
+CREATE TEMP TABLE o AS SELECT id, geom AS g, nodes, area_m2 AS a FROM geo.blocks WHERE region = :'slug';
 CREATE INDEX ON o USING gist (g); CREATE INDEX ON o USING hash (nodes); ANALYZE o;
 
 -- Ids stay (analytics.block_day counts by them): same border junctions, else
@@ -75,13 +75,18 @@ CREATE TEMP TABLE m AS
   FROM nb JOIN o ON o.nodes = nb.nodes
   ORDER BY o.id, nb.fid;
 DELETE FROM m a USING m b WHERE a.fid = b.fid AND a.id > b.id;
+CREATE INDEX ON m (fid); CREATE INDEX ON m (id); ANALYZE m;
 INSERT INTO m
   SELECT DISTINCT ON (c.id) c.fid, c.id
   FROM (SELECT DISTINCT ON (fid) * FROM (
           SELECT nb.fid, o.id,
-                 ST_Area(ST_Intersection(nb.g, o.g)) / nullif(ST_Area(ST_Union(nb.g, o.g)), 0) AS iou
+                 i / nullif(ST_Area(nb.g) + ST_Area(o.g) - i, 0) AS iou
           FROM nb JOIN o ON nb.g && o.g
-          WHERE nb.fid NOT IN (SELECT fid FROM m) AND o.id NOT IN (SELECT id FROM m)) q
+            -- IoU > 0.5 needs areas within a factor of 2: skips huge faces fast
+            AND nb.a BETWEEN o.a * 0.45 AND o.a / 0.45
+          CROSS JOIN LATERAL (SELECT ST_Area(ST_Intersection(nb.g, o.g)) AS i) x
+          WHERE NOT EXISTS (SELECT 1 FROM m WHERE m.fid = nb.fid)
+            AND NOT EXISTS (SELECT 1 FROM m WHERE m.id = o.id)) q
         WHERE iou > 0.5 ORDER BY fid, iou DESC) c
   ORDER BY c.id, c.iou DESC;
 
@@ -96,14 +101,14 @@ DO $$ BEGIN
 END $$;
 
 BEGIN;
-DELETE FROM geo.blocks b WHERE b.region = :'slug' AND b.id NOT IN (SELECT id FROM m);
+DELETE FROM geo.blocks b WHERE b.region = :'slug' AND NOT EXISTS (SELECT 1 FROM m WHERE m.id = b.id);
 UPDATE geo.blocks b SET geom = nb.g, area_m2 = nb.a, nodes = nb.nodes
   FROM m JOIN nb USING (fid)
   WHERE b.region = :'slug' AND b.id = m.id
     AND (b.nodes IS DISTINCT FROM nb.nodes OR abs(b.area_m2 - nb.a) > 1);
 INSERT INTO geo.blocks (region, id, geom, area_m2, nodes)
   SELECT :'slug', (SELECT max(id) FROM top) + row_number() OVER (ORDER BY nb.fid), nb.g, nb.a, nb.nodes
-  FROM nb WHERE nb.fid NOT IN (SELECT fid FROM m);
+  FROM nb WHERE NOT EXISTS (SELECT 1 FROM m WHERE m.fid = nb.fid);
 COMMIT;
 
 SELECT format('blocks: %s (%s km², median %s m², dropped %s wet), %s crossing edges left out; ids: %s kept, %s new, %s gone',
