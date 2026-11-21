@@ -106,7 +106,8 @@ q() { loc -F' | ' -c "$1"; }
 SMOVED="$(loc -c "WITH x AS (UPDATE geo.nodes s SET node_type = g.node_type FROM dry.gone g
   WHERE s.id = g.succ AND s.node_type = 'crossing' AND g.node_type NOT IN ('crossing', 'screen') RETURNING 1)
   SELECT count(*) FROM x")"
-# Reasons (private rules, hook): sources without theirs go, finds of gone objects hide.
+# Reasons (private rules, hook): sources without theirs go, finds of gone objects
+# hide; then sources grow or shrink with their places, new finds come in.
 REASONS=""
 if [ -n "${ELEMENTS_REGION_HOOK:-}" ]; then
   REASONS="$(ELEMENTS_DB="$ELEMENTS_LOCAL_DB" REGION_UUID="$UUID" NODES=0 "$ELEMENTS_REGION_HOOK" reasons "$SLUG" "")"
@@ -143,12 +144,25 @@ awk -v p="$PS" -v m="$MAX_SOURCES_PCT" 'BEGIN{exit !(p > m)}' && VERDICT="STOP: 
   echo
   echo "Blocks: ${BLOCKS#blocks: }"
   echo
-  echo "Reasons (fresh OSM): $(grep '^reason ' <<< "$REASONS" | sed 's/^reason //' | paste -sd, - | sed 's/,/, /g')${REASONS:+; }finds hidden: ${FHIDE:-not checked (no hook)}."
+  list() { grep "^$1 " <<< "$REASONS" | sed "s/^$1 //" | paste -sd, - | sed 's/,/, /g'; }
+  if [ -n "$REASONS" ]; then
+    echo "Sources without their reason (fresh OSM): $(list reason)."
+    echo
+    echo "Places now: $(sed -n 's/^now //p' <<< "$REASONS" | tr ' ' ',' | sed 's/,/, /g'); targets (previous count scaled by its places since the last update, else losses replaced): $(list target). Added: $(list added | sed 's/^$/none/'). Dropped by the selection: $(list dropped | sed 's/^$/none/'). Finds hidden: ${FHIDE:-0}, new: $(grep -c '^newfind ' <<< "$REASONS")."
+  else
+    echo "Reasons, new sources and finds: not checked (no ELEMENTS_REGION_HOOK)."
+  fi
   echo
   if grep -q '^find ' <<< "$REASONS"; then
     echo "## Finds to hide (OSM object gone or no longer a place)"
     echo
     grep '^find ' <<< "$REASONS" | sed 's/^find \([0-9]*\) \([a-z]*\) \([^ ]*\) \(.*\)$/- #\1 \4 (\2, \3)/'
+    echo
+  fi
+  if grep -q '^newfind ' <<< "$REASONS"; then
+    echo "## New finds"
+    echo
+    grep '^newfind ' <<< "$REASONS" | sed 's/^newfind \([a-z]*\) \([^ ]*\) \(.*\)$/- \3 (\1, \2)/'
     echo
   fi
   echo "## On gone junctions"
@@ -188,13 +202,14 @@ MISSING="$(loc -c "SELECT count(*) FROM geo.nodes WHERE region_id = '$UUID' AND 
 
 W="$OUT/$SLUG-$DAY"
 mkdir -p "$W"
-NCOLS="id, region_id, geom, lat, lon, elevation_m, node_type, is_active, created_at"
+NCOLS="id, region_id, geom, lat, lon, elevation_m, node_type, affinity, is_active, created_at"
 ECOLS="id, region_id, source, target, geom, length_m, road_type, one_way, elev_from_m, elev_to_m, grade_forward, grade_reverse, water_cost_forward, water_cost_reverse, fire_cost_forward, fire_cost_reverse, base_travel_cost, is_active, created_at, bridge"
 loc -c "\\copy (SELECT $NCOLS FROM geo.nodes WHERE region_id = '$UUID') TO '$W/nodes.tsv'"
 loc -c "\\copy (SELECT $ECOLS FROM geo.edges WHERE region_id = '$UUID') TO '$W/edges.tsv'"
 loc -c "\\copy (SELECT region, id, geom, area_m2, nodes FROM geo.blocks WHERE region = '$SLUG') TO '$W/blocks.tsv'"
 loc -c "\\copy (SELECT id, succ FROM dry.gone WHERE succ IS NOT NULL) TO '$W/moves.tsv'"
 loc -c "\\copy (SELECT id FROM geo.finds WHERE region = '$SLUG' AND hidden) TO '$W/finds-hidden.tsv'"
+loc -c "\\copy (SELECT region, collection, name, osm, lat, lon FROM geo.finds WHERE region = '$SLUG') TO '$W/finds.tsv'"
 loc -c "\\copy (SELECT ST_AsEWKB(centroid_geom), bounds_min_lat, bounds_min_lon, bounds_max_lat, bounds_max_lon FROM geo.regions WHERE id = '$UUID') TO '$W/region.tsv'"
 read -r CACT CMAX <<< "$(loc -F' ' -c "SELECT count(*) FILTER (WHERE is_active), max(id) FROM dry.nodes")"
 
@@ -214,12 +229,14 @@ CREATE TEMP TABLE u_blocks AS SELECT region, id, geom, area_m2, nodes FROM geo.b
 CREATE TEMP TABLE u_moves (old_id bigint PRIMARY KEY, new_id bigint);
 CREATE TEMP TABLE u_region (c bytea, a float8, b float8, d float8, e float8);
 CREATE TEMP TABLE u_hide (id bigint PRIMARY KEY);
+CREATE TEMP TABLE u_finds AS SELECT region, collection, name, osm, lat, lon FROM geo.finds LIMIT 0;
 \\copy u_nodes FROM '$W/nodes.tsv'
 \\copy u_edges FROM '$W/edges.tsv'
 \\copy u_blocks FROM '$W/blocks.tsv'
 \\copy u_moves FROM '$W/moves.tsv'
 \\copy u_region FROM '$W/region.tsv'
 \\copy u_hide FROM '$W/finds-hidden.tsv'
+\\copy u_finds FROM '$W/finds.tsv'
 CREATE INDEX ON u_nodes (id); CREATE INDEX ON u_edges (id); CREATE INDEX ON u_blocks (id);
 ANALYZE u_nodes; ANALYZE u_edges; ANALYZE u_blocks;
 \\set QUIET on
@@ -265,6 +282,11 @@ SELECT 'hotspot plans moved ' || count(*) FROM x;
 WITH x AS (UPDATE geo.finds f SET hidden = true, updated_at = now() FROM u_hide u
   WHERE f.region = :'slug' AND f.id = u.id AND NOT f.hidden RETURNING 1)
 SELECT 'finds hidden ' || count(*) FROM x;
+-- New finds only; existing ones keep their text (the city may have edited it).
+WITH x AS (INSERT INTO geo.finds (region, collection, name, osm, lat, lon)
+  SELECT region, collection, name, osm, lat, lon FROM u_finds u
+  WHERE NOT EXISTS (SELECT 1 FROM geo.finds f WHERE f.region = u.region AND f.osm = u.osm) RETURNING 1)
+SELECT 'finds new ' || count(*) FROM x;
 COMMIT;
 SQL
 {
@@ -275,4 +297,8 @@ SQL
   echo
   grep -E '^[a-z][a-z ]+ [0-9]+$' "$W/written.txt" | sed 's/^/- /'
 } >> "$REP"
+NOW="$(sed -n 's/^now //p' <<< "$REASONS")"
+if [ -n "$NOW" ] && [ -n "${ELEMENTS_REGION_HOOK:-}" ]; then
+  REASONS_NOW="$NOW" REGION_UUID="$UUID" NODES=0 "$ELEMENTS_REGION_HOOK" written "$SLUG" ""
+fi
 echo ">> written (report $REP); next: POST /api/ops/reload?region=$SLUG if loaded, basemap refresh"
