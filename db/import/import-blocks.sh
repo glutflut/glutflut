@@ -14,6 +14,7 @@ WATER_SHARE="${WATER_SHARE:-0.5}"
 db_tunnel
 
 psql "$ELEMENTS_DB" -v ON_ERROR_STOP=1 -q -At -v slug="$REGION_SLUG" -v water="$WATER_SHARE" <<'SQL'
+SET client_min_messages = warning;
 SELECT set_config('blocks.slug', :'slug', false) \g /dev/null
 CREATE TEMP TABLE e AS
   SELECT e.id, e.source, e.target, e.geom AS g
@@ -58,14 +59,19 @@ CREATE INDEX ON n USING gist (g); ANALYZE n;
 -- This run's faces with their border junctions.
 CREATE TEMP TABLE nb AS
   SELECT row_number() OVER (ORDER BY ST_GeoHash(ST_PointOnSurface(fw.g), 12)) AS fid,
-         ST_Multi(fw.g) AS g, fw.a, b.nodes
+         ST_Multi(CASE WHEN ST_IsValid(fw.g) THEN fw.g ELSE ST_CollectionExtract(ST_MakeValid(fw.g), 3) END) AS g,
+         fw.a, b.nodes
   FROM fw
   CROSS JOIN LATERAL (
     SELECT array_agg(n.id ORDER BY n.id) AS nodes FROM n
     WHERE ST_DWithin(ST_Boundary(fw.g), n.g, 1e-7)) b
   WHERE fw.a > 0 AND fw.wet <= :water AND b.nodes IS NOT NULL;
 CREATE INDEX ON nb USING gist (g); CREATE INDEX ON nb USING hash (nodes); ANALYZE nb;
-CREATE TEMP TABLE o AS SELECT id, geom AS g, nodes, area_m2 AS a FROM geo.blocks WHERE region = :'slug';
+-- Old rows may be invalid (written before the check): repaired for matching only.
+CREATE TEMP TABLE o AS
+  SELECT id, CASE WHEN ST_IsValid(geom) THEN geom ELSE ST_CollectionExtract(ST_MakeValid(geom), 3) END AS g,
+         nodes, area_m2 AS a
+  FROM geo.blocks WHERE region = :'slug';
 CREATE INDEX ON o USING gist (g); CREATE INDEX ON o USING hash (nodes); ANALYZE o;
 
 -- Ids stay (analytics.block_day counts by them): same border junctions, else
@@ -105,7 +111,7 @@ DELETE FROM geo.blocks b WHERE b.region = :'slug' AND NOT EXISTS (SELECT 1 FROM 
 UPDATE geo.blocks b SET geom = nb.g, area_m2 = nb.a, nodes = nb.nodes
   FROM m JOIN nb USING (fid)
   WHERE b.region = :'slug' AND b.id = m.id
-    AND (b.nodes IS DISTINCT FROM nb.nodes OR abs(b.area_m2 - nb.a) > 1);
+    AND (b.nodes IS DISTINCT FROM nb.nodes OR abs(b.area_m2 - nb.a) > 1 OR NOT ST_IsValid(b.geom));
 INSERT INTO geo.blocks (region, id, geom, area_m2, nodes)
   SELECT :'slug', (SELECT max(id) FROM top) + row_number() OVER (ORDER BY nb.fid), nb.g, nb.a, nb.nodes
   FROM nb WHERE NOT EXISTS (SELECT 1 FROM m WHERE m.fid = nb.fid);
