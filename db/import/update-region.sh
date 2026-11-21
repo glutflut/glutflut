@@ -249,6 +249,6 @@ SQL
   echo
   echo "Natural sources moved onto their successor: $SMOVED. Rows (only changed ones):"
   echo
-  sed 's/^/- /' "$W/written.txt"
+  grep -E '^[a-z][a-z ]+ [0-9]+$' "$W/written.txt" | sed 's/^/- /'
 } >> "$REP"
 echo ">> written (report $REP); next: POST /api/ops/reload?region=$SLUG if loaded, basemap refresh"
