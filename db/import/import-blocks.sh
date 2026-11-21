@@ -64,9 +64,9 @@ CREATE TEMP TABLE nb AS
     SELECT array_agg(n.id ORDER BY n.id) AS nodes FROM n
     WHERE ST_DWithin(ST_Boundary(fw.g), n.g, 1e-7)) b
   WHERE fw.a > 0 AND fw.wet <= :water AND b.nodes IS NOT NULL;
-CREATE INDEX ON nb USING gist (g); CREATE INDEX ON nb (nodes); ANALYZE nb;
+CREATE INDEX ON nb USING gist (g); CREATE INDEX ON nb USING hash (nodes); ANALYZE nb;
 CREATE TEMP TABLE o AS SELECT id, geom AS g, nodes FROM geo.blocks WHERE region = :'slug';
-CREATE INDEX ON o USING gist (g); CREATE INDEX ON o (nodes); ANALYZE o;
+CREATE INDEX ON o USING gist (g); CREATE INDEX ON o USING hash (nodes); ANALYZE o;
 
 -- Ids stay (analytics.block_day counts by them): same border junctions, else
 -- mostly the same area; each id once, best match first.
