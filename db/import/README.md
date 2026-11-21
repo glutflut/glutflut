@@ -36,6 +36,7 @@ and when it is ready:
 | `new-region.sh <slug> "<name>" '<area>'` | Region row (random id, next free node id block per `SHARD`), graph, terrain, sources, blocks. Starts active and unlisted. |
 | `extend-region.sh <slug> '<areas>'` | Grows a region by more admin areas, keeping ids, players and history (junctions within 1 m keep their ids, vanished ones go inactive). |
 | `import-osm-imposm.sh` | The graph: a junction is a vertex several ways share (or a way's end); ways split there. Bridges and tunnels stay apart; scales to whole cities. Reads the PBF given in `OSM_FILE`/`OSM_CLIP` or the local copy. |
+| `update-region.sh --dry-run <slug>` | OSM update of a running region, dry run: clones the region into a local database (`db/local/db.sh`), rebuilds graph and blocks there from fresh extracts (clip = stored outline) and reports gone/new junctions, sources and live state on gone junctions with their successors, blocks, and the 3 %/5 % limits. Writes nothing to `ELEMENTS_DB`. |
 | `import-terrain-region.sh` | Samples ground elevation onto the junctions (Copernicus GLO-30 via `/vsicurl`, or your own rasters in `DEM_FILES`), then edge grades and directional fire/water costs (`terrain-derive.sql`). |
 | `simple-sources.sql` | Natural sources: fire on the high third of the junctions, water on the low third, spread by k-means. A starting point; place them by hand or with your own script for a better game. |
 | `import-blocks.sh` | `geo.blocks`: faces of the street graph with their border junctions (area rules). |

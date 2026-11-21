@@ -1,0 +1,6 @@
+# Local PostGIS for data jobs (dry runs of region updates, tests): the
+# extensions the schema needs (postgis, postgis_raster, postgis_topology,
+# pgrouting, h3). Built and started by db/local/db.sh.
+FROM docker.io/library/postgres:17-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      postgresql-17-postgis-3 postgresql-17-pgrouting postgresql-17-h3 && rm -rf /var/lib/apt/lists/*
