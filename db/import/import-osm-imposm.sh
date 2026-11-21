@@ -68,9 +68,9 @@ print(json.dumps(g))' "$OSM_CLIP")'), 4326)"
 else
   CLIP_SQL="$(cd "$HERE" && python3 -c 'import osm_local, sys; print(osm_local.reach_sql(sys.argv[1]))' "$OSM_AREA")"
 fi
-psql "$ELEMENTS_DB" -v ON_ERROR_STOP=1 -q \
-  -c "DROP SCHEMA IF EXISTS osm_import CASCADE; CREATE SCHEMA osm_import;" \
-  -c "CREATE TABLE osm_import.clip AS SELECT $CLIP_SQL AS g;"
+# On stdin: a large outline is too long for an argument.
+psql "$ELEMENTS_DB" -v ON_ERROR_STOP=1 -q <<< "DROP SCHEMA IF EXISTS osm_import CASCADE; CREATE SCHEMA osm_import;
+CREATE TABLE osm_import.clip AS SELECT $CLIP_SQL AS g;"
 # Hand list of closed areas (<slug>.geojson in ELEMENTS_CLOSED_DIR, default
 # db/import/closed; see closed-areas.sql).
 HAND="${ELEMENTS_CLOSED_DIR:-$HERE/closed}/$REGION_SLUG.geojson"
