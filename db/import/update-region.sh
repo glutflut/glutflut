@@ -54,6 +54,7 @@ copy geo.regions "id = '$UUID'"
 copy geo.nodes "region_id = '$UUID'"
 copy geo.edges "region_id = '$UUID'"
 copy geo.blocks "region = '$SLUG'"
+copy geo.finds "region = '$SLUG'"
 # What hangs on junctions (live state stays where it is: only ids and kinds).
 loc -q <<SQL
 DROP SCHEMA IF EXISTS dry CASCADE; CREATE SCHEMA dry;
@@ -101,6 +102,17 @@ CREATE TABLE dry.gone AS
   WHERE n.was AND NOT n.now;
 SQL
 q() { loc -F' | ' -c "$1"; }
+# Natural sources onto a plain successor (else they stay behind, inactive).
+SMOVED="$(loc -c "WITH x AS (UPDATE geo.nodes s SET node_type = g.node_type FROM dry.gone g
+  WHERE s.id = g.succ AND s.node_type = 'crossing' AND g.node_type NOT IN ('crossing', 'screen') RETURNING 1)
+  SELECT count(*) FROM x")"
+# Reasons (private rules, hook): sources without theirs go, finds of gone objects hide.
+REASONS=""
+if [ -n "${ELEMENTS_REGION_HOOK:-}" ]; then
+  REASONS="$(ELEMENTS_DB="$ELEMENTS_LOCAL_DB" REGION_UUID="$UUID" NODES=0 "$ELEMENTS_REGION_HOOK" reasons "$SLUG" "")"
+fi
+RLOST="$(awk '/^reason /{n += $3} END{print n + 0}' <<< "$REASONS")"
+FHIDE="$(awk '/^finds hidden /{print $3}' <<< "$REASONS")"
 read -r ACT GONE NEW MOVED <<< "$(loc -F' ' -c "SELECT count(*) FILTER (WHERE was), count(*) FILTER (WHERE was AND NOT now),
   count(*) FILTER (WHERE NOT was AND now), count(*) FILTER (WHERE was AND now AND NOT ST_Equals(old_geom, new_geom)) FROM dry.n")"
 read -r EACT EGONE ENEW <<< "$(loc -F' ' -c "SELECT (SELECT count(*) FROM dry.edges WHERE is_active),
@@ -110,6 +122,7 @@ read -r EACT EGONE ENEW <<< "$(loc -F' ' -c "SELECT (SELECT count(*) FROM dry.ed
 read -r SRC SGONE SLOST <<< "$(loc -F' ' -c "SELECT (SELECT count(*) FROM dry.nodes WHERE is_active AND node_type NOT IN ('crossing', 'screen')),
   count(*), count(*) FILTER (WHERE succ IS NULL) FROM dry.gone WHERE node_type NOT IN ('crossing', 'screen')")"
 PG=$(awk -v a="$GONE" -v b="$ACT" 'BEGIN{printf "%.2f", b ? 100*a/b : 0}')
+SLOST=$(( SLOST + RLOST ))
 PS=$(awk -v a="$SLOST" -v b="$SRC" 'BEGIN{printf "%.2f", b ? 100*a/b : 0}')
 VERDICT="within the limits"
 awk -v p="$PG" -v m="$MAX_GONE_PCT" 'BEGIN{exit !(p > m)}' && VERDICT="STOP: $PG % of the junctions gone (limit $MAX_GONE_PCT %)"
@@ -126,10 +139,18 @@ awk -v p="$PS" -v m="$MAX_SOURCES_PCT" 'BEGIN{exit !(p > m)}' && VERDICT="STOP: 
   echo "| --- | ---: | ---: | ---: | ---: |"
   echo "| Junctions | $ACT | $GONE ($PG %) | $NEW | $MOVED |"
   echo "| Edges | $EACT | $EGONE | $ENEW | |"
-  echo "| Natural sources | $SRC | $SGONE ($SLOST without successor ≤ $SUCCESSOR_M m, $PS %) | | |"
+  echo "| Natural sources | $SRC | $SGONE on gone junctions ($SMOVED onto a successor ≤ $SUCCESSOR_M m), $RLOST without their reason; lost: $SLOST ($PS %) | | |"
   echo
   echo "Blocks: ${BLOCKS#blocks: }"
   echo
+  echo "Reasons (fresh OSM): $(grep '^reason ' <<< "$REASONS" | sed 's/^reason //' | paste -sd, - | sed 's/,/, /g')${REASONS:+; }finds hidden: ${FHIDE:-not checked (no hook)}."
+  echo
+  if grep -q '^find ' <<< "$REASONS"; then
+    echo "## Finds to hide (OSM object gone or no longer a place)"
+    echo
+    grep '^find ' <<< "$REASONS" | sed 's/^find \([0-9]*\) \([a-z]*\) \([^ ]*\) \(.*\)$/- #\1 \4 (\2, \3)/'
+    echo
+  fi
   echo "## On gone junctions"
   echo
   echo "Kept for live state and the city's places; the successor is the nearest active junction within $SUCCESSOR_M m."
@@ -164,10 +185,6 @@ fi
 MISSING="$(loc -c "SELECT count(*) FROM geo.nodes WHERE region_id = '$UUID' AND is_active AND elevation_m IS NULL")"
 [ "$MISSING" = 0 ] || { echo ">> not written: $MISSING active junctions without height"; exit 1; }
 
-# Natural sources onto a plain successor (else they stay behind, inactive).
-SMOVED="$(loc -c "WITH x AS (UPDATE geo.nodes s SET node_type = g.node_type FROM dry.gone g
-  WHERE s.id = g.succ AND s.node_type = 'crossing' AND g.node_type NOT IN ('crossing', 'screen') RETURNING 1)
-  SELECT count(*) FROM x")"
 
 W="$OUT/$SLUG-$DAY"
 mkdir -p "$W"
@@ -177,6 +194,7 @@ loc -c "\\copy (SELECT $NCOLS FROM geo.nodes WHERE region_id = '$UUID') TO '$W/n
 loc -c "\\copy (SELECT $ECOLS FROM geo.edges WHERE region_id = '$UUID') TO '$W/edges.tsv'"
 loc -c "\\copy (SELECT region, id, geom, area_m2, nodes FROM geo.blocks WHERE region = '$SLUG') TO '$W/blocks.tsv'"
 loc -c "\\copy (SELECT id, succ FROM dry.gone WHERE succ IS NOT NULL) TO '$W/moves.tsv'"
+loc -c "\\copy (SELECT id FROM geo.finds WHERE region = '$SLUG' AND hidden) TO '$W/finds-hidden.tsv'"
 loc -c "\\copy (SELECT ST_AsEWKB(centroid_geom), bounds_min_lat, bounds_min_lon, bounds_max_lat, bounds_max_lon FROM geo.regions WHERE id = '$UUID') TO '$W/region.tsv'"
 read -r CACT CMAX <<< "$(loc -F' ' -c "SELECT count(*) FILTER (WHERE is_active), max(id) FROM dry.nodes")"
 
@@ -195,11 +213,13 @@ CREATE TEMP TABLE u_edges AS SELECT $ECOLS FROM geo.edges LIMIT 0;
 CREATE TEMP TABLE u_blocks AS SELECT region, id, geom, area_m2, nodes FROM geo.blocks LIMIT 0;
 CREATE TEMP TABLE u_moves (old_id bigint PRIMARY KEY, new_id bigint);
 CREATE TEMP TABLE u_region (c bytea, a float8, b float8, d float8, e float8);
+CREATE TEMP TABLE u_hide (id bigint PRIMARY KEY);
 \\copy u_nodes FROM '$W/nodes.tsv'
 \\copy u_edges FROM '$W/edges.tsv'
 \\copy u_blocks FROM '$W/blocks.tsv'
 \\copy u_moves FROM '$W/moves.tsv'
 \\copy u_region FROM '$W/region.tsv'
+\\copy u_hide FROM '$W/finds-hidden.tsv'
 CREATE INDEX ON u_nodes (id); CREATE INDEX ON u_edges (id); CREATE INDEX ON u_blocks (id);
 ANALYZE u_nodes; ANALYZE u_edges; ANALYZE u_blocks;
 \\set QUIET on
@@ -241,13 +261,17 @@ WITH x AS (UPDATE geo.hotspot_sites s SET node_id = u.new_id FROM u_moves u WHER
 SELECT 'hotspot sites moved ' || count(*) FROM x;
 WITH x AS (UPDATE game.hotspot_plans s SET node_id = u.new_id FROM u_moves u WHERE s.region = :'slug' AND s.node_id = u.old_id RETURNING 1)
 SELECT 'hotspot plans moved ' || count(*) FROM x;
+-- Finds only ever get hidden here (players keep them in their albums).
+WITH x AS (UPDATE geo.finds f SET hidden = true, updated_at = now() FROM u_hide u
+  WHERE f.region = :'slug' AND f.id = u.id AND NOT f.hidden RETURNING 1)
+SELECT 'finds hidden ' || count(*) FROM x;
 COMMIT;
 SQL
 {
   echo
   echo "## Written $(date '+%F %T')"
   echo
-  echo "Natural sources moved onto their successor: $SMOVED. Rows (only changed ones):"
+  echo "Rows (only changed ones; natural sources are in the node rows):"
   echo
   grep -E '^[a-z][a-z ]+ [0-9]+$' "$W/written.txt" | sed 's/^/- /'
 } >> "$REP"
