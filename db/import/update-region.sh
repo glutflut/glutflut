@@ -192,13 +192,14 @@ loc -v verdict="$VERDICT" -v osm="$OSMDATE" -v blocks="${BLOCKS#blocks: }" -v se
   -v junctions="$ACT" -v gone="$GONE" -v new="$NEW" -v moved="$MOVED" -v gone_pct="$PG" \
   -v edges="$EACT" -v edges_gone="$EGONE" -v edges_new="$ENEW" \
   -v sources="$SRC" -v sources_lost="$SLOST" -v sources_pct="$PS" \
-  -v finds_hidden="${FHIDE:-0}" -v finds_new="$(grep -c '^newfind ' <<< "$REASONS" || true)" <<'SQL' > "${REP%.md}.json"
+  -v finds_hidden="${FHIDE:-0}" -v finds_new="$(grep -c '^newfind ' <<< "$REASONS" || true)" \
+  -v places="$(sed -n 's/^now //p' <<< "$REASONS")" <<'SQL' > "${REP%.md}.json"
 SELECT json_build_object('verdict', :'verdict', 'stop', :'verdict' LIKE 'STOP%', 'osm', :'osm', 'blocks', :'blocks',
   'seconds', :'secs'::int, 'junctions', :'junctions'::int, 'gone', :'gone'::int, 'new', :'new'::int,
   'moved', :'moved'::int, 'gone_pct', :'gone_pct'::numeric, 'edges', :'edges'::int,
   'edges_gone', :'edges_gone'::int, 'edges_new', :'edges_new'::int, 'sources', :'sources'::int,
   'sources_lost', :'sources_lost'::int, 'sources_pct', :'sources_pct'::numeric,
-  'finds_hidden', :'finds_hidden'::int, 'finds_new', :'finds_new'::int,
+  'finds_hidden', :'finds_hidden'::int, 'finds_new', :'finds_new'::int, 'places', nullif(:'places', ''),
   'refs_gone', (SELECT count(*) FROM dry.refs r JOIN dry.gone g ON g.id = r.node_id),
   'refs_lost', (SELECT count(*) FROM dry.refs r JOIN dry.gone g ON g.id = r.node_id WHERE g.succ IS NULL));
 SQL

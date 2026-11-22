@@ -1,8 +1,9 @@
 //! OSM updates of running regions through a queue (`ops.update_jobs`,
 //! `ops.region_updates`): the admin page sets how often a region is checked
 //! and asks for a dry run now; an updater next to the database runs the jobs
-//! (`db/import/update-region.sh`) and stores the reports. Stage 1: dry runs
-//! only. A child module of the gateway.
+//! (`db/import/update-region.sh`) and stores the reports. A dry run with
+//! changes waits for approval here; an approved one writes (stage 2). A child
+//! module of the gateway.
 
 use axum::extract::{Extension, Path, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -69,7 +70,8 @@ pub(super) async fn list(
             let jobs = db
                 .query(
                     &format!(
-                        "SELECT id, region, kind, status, created_by, {}, {}, {}, summary::text, error \
+                        "SELECT id, region, kind, status, created_by, {}, {}, {}, summary::text, error, \
+                           approved_by, run_now \
                          FROM ops.update_jobs ORDER BY created_at DESC LIMIT 50",
                         epoch("created_at"),
                         epoch("started_at"),
@@ -91,6 +93,8 @@ pub(super) async fn list(
                         "summary": r.get::<_, Option<String>>(8)
                             .and_then(|t| serde_json::from_str::<Value>(&t).ok()),
                         "error": r.get::<_, Option<String>>(9),
+                        "approved_by": r.get::<_, Option<String>>(10),
+                        "run_now": r.get::<_, bool>(11),
                     })
                 })
                 .collect::<Vec<_>>();
@@ -141,6 +145,15 @@ pub(super) async fn report(
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 enum Change {
+    /// Write a waiting job's update: the next night (02-05 local), or at the
+    /// next tick with `now`.
+    Approve {
+        approve: i64,
+        #[serde(default)]
+        now: bool,
+    },
+    /// Drop a waiting, pending or approved job.
+    Discard { discard: i64 },
     /// A dry run at the updater's next tick.
     Run { region: String, run: bool },
     Settings {
@@ -164,7 +177,9 @@ fn check(ch: &Change) -> Result<(), &'static str> {
 
 /// `POST /api/ops/updates` (admin for all regions), JSON in a text body:
 /// `{region, rhythm, auto?}` sets how often the region is checked,
-/// `{region, run: true}` queues a dry run (409 while one is open).
+/// `{region, run: true}` queues a dry run (409 while one is open),
+/// `{approve: id, now?}` lets a waiting job write (next night, or `now`),
+/// `{discard: id}` drops an open job (409 if not open).
 pub(super) async fn change(
     State(s): State<AppState>,
     headers: HeaderMap,
@@ -189,8 +204,49 @@ pub(super) async fn change(
     let out = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
             let mut t = db.transaction()?;
+            // A job: its state changes, its region is this shard's.
+            let job = match &ch {
+                Change::Approve { approve, now } => Some((
+                    *approve,
+                    "approve",
+                    t.query_opt(
+                        "UPDATE ops.update_jobs SET status = 'approved', kind = 'write', approved_by = $2, \
+                         approved_at = now(), run_now = $3 WHERE id = $1 AND status = 'waiting' RETURNING region",
+                        &[approve, &by, now],
+                    )?,
+                    json!({ "now": now }),
+                )),
+                Change::Discard { discard } => Some((
+                    *discard,
+                    "discard",
+                    t.query_opt(
+                        "UPDATE ops.update_jobs SET status = 'skipped', finished_at = now(), \
+                         error = 'discarded by ' || $2 \
+                         WHERE id = $1 AND status IN ('pending', 'waiting', 'approved') RETURNING region",
+                        &[discard, &by],
+                    )?,
+                    json!({}),
+                )),
+                _ => None,
+            };
+            if let Some((id, event, row, payload)) = job {
+                let Some(row) = row else {
+                    return Ok(Err(StatusCode::CONFLICT));
+                };
+                let region: String = row.get(0);
+                audit_entity(
+                    &mut t,
+                    &format!("update {region}"),
+                    event,
+                    &by,
+                    json!({ "job": id, "detail": payload }),
+                )?;
+                t.commit()?;
+                return Ok(Ok(Some(id)));
+            }
             let region = match &ch {
                 Change::Run { region, .. } | Change::Settings { region, .. } => region.clone(),
+                _ => unreachable!("jobs handled above"),
             };
             let known = t
                 .query_opt(
@@ -202,6 +258,7 @@ pub(super) async fn change(
                 return Ok(Err(StatusCode::NOT_FOUND));
             }
             let (event, payload, id) = match &ch {
+                Change::Approve { .. } | Change::Discard { .. } => unreachable!("jobs handled above"),
                 Change::Run { .. } => {
                     let id: Option<i64> = t
                         .query_opt(
@@ -237,9 +294,11 @@ pub(super) async fn change(
     .flatten();
     match out {
         Some(Ok(id)) => Json(json!({ "id": id })).into_response(),
-        Some(Err(StatusCode::CONFLICT)) => {
-            (StatusCode::CONFLICT, "a job for this region is open").into_response()
-        }
+        Some(Err(StatusCode::CONFLICT)) => (
+            StatusCode::CONFLICT,
+            "a job for this region is open, or the job is not in that state",
+        )
+            .into_response(),
         Some(Err(code)) => code.into_response(),
         None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
     }
@@ -260,5 +319,13 @@ mod tests {
         assert!(check(&p(r#"{"region": "r", "rhythm": "weekly"}"#)).is_err());
         assert!(check(&p(r#"{"region": "r", "rhythm": "off", "auto": true}"#)).is_err());
         assert!(serde_json::from_str::<Change>(r#"{"region": "r"}"#).is_err());
+        assert_eq!(
+            p(r#"{"approve": 7}"#),
+            Change::Approve {
+                approve: 7,
+                now: false
+            }
+        );
+        assert_eq!(p(r#"{"discard": 7}"#), Change::Discard { discard: 7 });
     }
 }

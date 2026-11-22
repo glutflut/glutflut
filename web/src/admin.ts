@@ -48,7 +48,7 @@ type PendMedia = {
 type PendMotto = { region: string; region_name: string; language: string; num: number; campaign: string; side: "fire" | "water" | "both"; names: Record<string, string>; by: string | null };
 type UpdRegion = { region: string; name: string; active: boolean; rhythm: string | null; auto: boolean; last_check: number | null; last_write: number | null };
 type UpdSummary = { verdict: string; stop: boolean; junctions: number; gone: number; new: number; gone_pct: number; sources_lost: number; sources_pct: number; finds_hidden: number; finds_new: number; refs_lost: number; seconds: number };
-type UpdJob = { id: number; region: string; kind: string; status: string; by: string; created: number; started: number | null; finished: number | null; summary: UpdSummary | null; error: string | null };
+type UpdJob = { id: number; region: string; kind: string; status: string; by: string; created: number; started: number | null; finished: number | null; summary: UpdSummary | null; error: string | null; approved_by: string | null; run_now: boolean };
 type Maint = { id: number; starts: number; ends: number; note: string | null; by: string; cancelled: number | null; cancelled_by: string | null };
 type Wish = { cell: string; wishes: number; last: string; center: [number, number] | null };
 type Listed = { slug: string; name: string; listed?: boolean; outline?: { type: string; coordinates: number[][][] | number[][][][] } };
@@ -486,8 +486,15 @@ function renderUpdates() {
           const res = s
             ? `${s.stop ? tag("Grenzwert überschritten", "off") : tag("Grenzwerte eingehalten", "ok")} ${s.gone}/${s.junctions} weg (${s.gone_pct} %), ${s.new} neu · Quellen verloren ${s.sources_lost} (${s.sources_pct} %) · Funde −${s.finds_hidden}/+${s.finds_new}${s.refs_lost ? ` · ${s.refs_lost} Bezüge ohne Nachfolger` : ""} · ${Math.round(s.seconds / 60)} min`
             : esc(j.error ?? "");
+          const k = `data-job="${j.id}" data-shard="${esc(j.shard)}"`;
           const rep = s ? `<button data-report="${j.id}" data-shard="${esc(j.shard)}">Bericht</button>` : "";
-          return `<tr><td>${when(j.created)}</td><td>${esc(names.get(updKey(j)) ?? j.region)}${many() ? `<div class="slug">${esc(j.shard)}</div>` : ""}</td><td>${tag(label, cls)}</td><td class="text">${res}</td><td>${esc(j.by)}</td><td>${rep}</td></tr>`;
+          const act =
+            j.status === "waiting"
+              ? `<button ${k} data-act="night">Heute Nacht schreiben</button><button ${k} data-act="now">Jetzt schreiben</button><button ${k} data-act="discard">Verwerfen</button>`
+              : j.status === "approved"
+                ? `<span class="slug">${j.run_now ? "schreibt beim nächsten Durchgang" : "schreibt nachts 02–05 Uhr"} · ${esc(j.approved_by ?? "")}</span><button ${k} data-act="discard">Verwerfen</button>`
+                : "";
+          return `<tr><td>${when(j.created)}</td><td>${esc(names.get(updKey(j)) ?? j.region)}${many() ? `<div class="slug">${esc(j.shard)}</div>` : ""}</td><td>${tag(label, cls)}</td><td class="text">${res}</td><td>${esc(j.by)}</td><td class="links">${rep}${act}</td></tr>`;
         })
         .join("")
     : `<tr><td class="empty">Noch keine Läufe.</td></tr>`;
@@ -523,6 +530,8 @@ $("upd-regions").addEventListener("click", async (e) => {
 });
 
 $("upd-jobs").addEventListener("click", async (e) => {
+  const a = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-act]");
+  if (a) return void decideJob(a);
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-report]");
   if (!b) return;
   const s = shards.find((x) => x.shard === b.dataset.shard);
@@ -534,6 +543,32 @@ $("upd-jobs").addEventListener("click", async (e) => {
   $("upd-report-text").textContent = j.report ?? "(kein Bericht)";
   $("upd-report").scrollIntoView({ behavior: "smooth" });
 });
+
+/** Approve (tonight or now) or discard an update job. */
+async function decideJob(b: HTMLButtonElement) {
+  const j = updJobs.find((x) => String(x.id) === b.dataset.job && x.shard === b.dataset.shard);
+  if (!j) return;
+  const name = updRegions.find((r) => updKey(r) === updKey(j))?.name ?? j.region;
+  const act = b.dataset.act;
+  const stop = j.summary?.stop ? "\n\nACHTUNG: Ein Grenzwert ist überschritten. Freigeben schreibt trotzdem." : "";
+  const ask =
+    act === "discard"
+      ? `Update für ${name} verwerfen? Der nächste Probelauf kommt nach dem Rhythmus.`
+      : act === "now"
+        ? `Update für ${name} beim nächsten Durchgang schreiben (höchstens 15 Minuten)? Danach wird die Region neu geladen: Wer dort spielt, wird kurz getrennt. Die Zahlen werden beim Schreiben neu gerechnet.${stop}`
+        : `Update für ${name} heute Nacht (02–05 Uhr Ortszeit) schreiben? Danach Neuladen und Basiskarte automatisch. Die Zahlen werden beim Schreiben neu gerechnet.${stop}`;
+  if (!confirm(ask)) return;
+  b.disabled = true;
+  const body = act === "discard" ? { discard: j.id } : { approve: j.id, now: act === "now" };
+  const res = await api(j.base, "/api/ops/updates", { method: "POST", body: JSON.stringify(body) }).catch(() => null);
+  if (!res?.ok) {
+    b.disabled = false;
+    return void msg(`Update ${j.region}: ${await errText(res)}`);
+  }
+  msg("");
+  await loadUpdates();
+  renderUpdates();
+}
 
 // --- maintenance ----------------------------------------------------------
 
