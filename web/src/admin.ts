@@ -484,7 +484,7 @@ function renderUpdates() {
           const [label, cls] = STATUS[j.status] ?? [j.status, ""];
           const s = j.summary;
           const res = s
-            ? `${s.stop ? tag("STOP", "off") : tag("in den Sperren", "ok")} ${s.gone}/${s.junctions} weg (${s.gone_pct} %), ${s.new} neu · Quellen verloren ${s.sources_lost} (${s.sources_pct} %) · Funde −${s.finds_hidden}/+${s.finds_new}${s.refs_lost ? ` · ${s.refs_lost} Bezüge ohne Nachfolger` : ""} · ${Math.round(s.seconds / 60)} min`
+            ? `${s.stop ? tag("Grenzwert überschritten", "off") : tag("Grenzwerte eingehalten", "ok")} ${s.gone}/${s.junctions} weg (${s.gone_pct} %), ${s.new} neu · Quellen verloren ${s.sources_lost} (${s.sources_pct} %) · Funde −${s.finds_hidden}/+${s.finds_new}${s.refs_lost ? ` · ${s.refs_lost} Bezüge ohne Nachfolger` : ""} · ${Math.round(s.seconds / 60)} min`
             : esc(j.error ?? "");
           const rep = s ? `<button data-report="${j.id}" data-shard="${esc(j.shard)}">Bericht</button>` : "";
           return `<tr><td>${when(j.created)}</td><td>${esc(names.get(updKey(j)) ?? j.region)}${many() ? `<div class="slug">${esc(j.shard)}</div>` : ""}</td><td>${tag(label, cls)}</td><td class="text">${res}</td><td>${esc(j.by)}</td><td>${rep}</td></tr>`;
