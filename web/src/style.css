@@ -1353,6 +1353,7 @@ body.outside #actions { display: none; }
 #chapter-chron { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--gold); text-decoration: none; }
 #chapter-chron[hidden], #chapter.folded #chapter-chron { display: none; }
 .news-chron { margin: 0 0 10px; font-size: 14px; }
+.news-maint { margin: 0 0 10px; padding: 8px 10px; font-size: 14px; border: 1px solid var(--gold); border-radius: 10px; }
 .news-chron a { color: var(--gold); text-decoration: none; font-weight: 600; }
 #chapter.soon .chapter-race { display: none; }
 
@@ -1427,6 +1428,39 @@ body.outside #actions { display: none; }
   background: var(--gold);
 }
 #reload { align-self: flex-start; }
+
+/* Announced maintenance (maintenance.ts). */
+#maint-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 420px);
+  box-sizing: border-box;
+  padding: 6px 6px 6px 12px;
+  font-size: 14px;
+  line-height: 1.35;
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  background: var(--bg);
+}
+#maint-bar[hidden] { display: none; }
+#maint-text { flex: 1; }
+#maint-close { flex: none; width: 32px; height: 32px; padding: 0; border: none; background: none; color: inherit; font-size: 20px; }
+#maint-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(16, 18, 22, 0.92);
+}
+#maint-overlay[hidden] { display: none; }
+.maint-box { max-width: 340px; text-align: center; font-size: 16px; line-height: 1.45; }
+.maint-icons { font-size: 40px; letter-spacing: 0.2em; }
+.maint-box h2 { margin: 8px 0; }
+#maint-until { font-weight: 700; color: var(--gold); }
 
 /* Card of a tapped junction (nodecard.ts). */
 #node-card {

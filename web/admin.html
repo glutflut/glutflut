@@ -32,6 +32,7 @@
         <button type="button" role="tab" data-tab="freigaben">Freigaben <span class="badge" id="badge-pend"></span></button>
         <button type="button" role="tab" data-tab="wuensche">Standortwünsche</button>
         <button type="button" role="tab" data-tab="codes">QR-Codes</button>
+        <button type="button" role="tab" data-tab="wartung">Wartung <span class="badge" id="badge-maint"></span></button>
       </nav>
 
       <section id="tab-regionen" class="tab" hidden>
@@ -88,6 +89,24 @@
           <p class="hint">Diese Links enthalten das Geheimnis des Knotens: nur auf dem Gerät am Knoten öffnen, nicht weitergeben. <code>&amp;eink</code> anhängen für langsame Anzeigen.</p>
           <ul id="code-screen-list" class="screens"></ul>
         </section>
+      </section>
+
+      <section id="tab-wartung" class="tab" hidden>
+        <p class="hint">Geplante Auszeiten je Shard (alle Zellen eines Shards). Die App kündigt das nächste Fenster 48 Stunden vorher an (Hinweis über den Knöpfen, ab 10 Minuten vorher „beginnt gleich“, Überlagerung während der Wartung), in der Ortszeit der Region. Die Wartungsseite selbst schaltet <code>deploy/maintenance.sh on</code>. Kurzes Neuladen einer Region nicht eintragen.</p>
+        <form id="maint-form" class="bar">
+          <select id="maint-shard"></select>
+          <label>Beginn <input id="maint-start" type="datetime-local" required /></label>
+          <label>Dauer <input id="maint-min" type="number" min="5" max="720" step="5" value="30" required /> min</label>
+          <select id="maint-note">
+            <option value="">ohne Zusatz</option>
+            <option value="move">Umzug auf einen größeren Server</option>
+            <option value="update">Aktualisierung des Servers</option>
+            <option value="database">Arbeiten an der Datenbank</option>
+          </select>
+          <button type="submit">Eintragen</button>
+          <small>Zeit in der Zeitzone dieses Browsers</small>
+        </form>
+        <div class="scroll"><table class="ed-table" id="maint"></table></div>
       </section>
 
       <p id="msg" class="msg"></p>

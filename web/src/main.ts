@@ -63,6 +63,7 @@ import { setupTimelapse } from "./timelapse";
 import { setupMood } from "./mood";
 import { lookFromHash, setupGlobe } from "./globe";
 import { openRegion } from "./region";
+import { setupMaintenance } from "./maintenance";
 
 // No token yet when the page loaded: the first `welcome` as a player makes
 // this browser a new player (the side reveal card below).
@@ -220,9 +221,11 @@ async function main() {
 
   // Messages arrive only after main() has set everything up, so `on` (below)
   // is complete by then.
+  const maint = setupMaintenance(() => meta.region.slug, toast);
   const net = new Net(
     (m: ServerMsg) => (on[m.t] as (m: ServerMsg) => void)(m),
     (connected) => {
+      maint.onStatus(connected);
       if (!connected)
         $("me-label").textContent = FREE_WIFI.has(meta.region.slug)
           ? `${t("connection.lost")} ${t("connection.wifi")}`

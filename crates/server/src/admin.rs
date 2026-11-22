@@ -74,6 +74,7 @@ fn admin_path(p: &str) -> bool {
             | "/api/ops/pending"
             | "/api/ops/media/decide"
             | "/api/ops/mottos"
+            | "/api/ops/maintenance"
     ) || p.starts_with("/api/ops/feedback/")
 }
 
@@ -171,6 +172,7 @@ mod tests {
         assert!(admin_path("/api/feedback"));
         assert!(admin_path("/api/ops/pending"));
         assert!(admin_path("/api/ops/media/decide"));
+        assert!(admin_path("/api/ops/maintenance"));
         assert!(!admin_path("/api/ops/media"), "uploads stay same-origin");
         assert!(!admin_path("/api/ops/indoor"), "secrets stay same-origin");
         assert!(!admin_path("/api/ops/chapters"));

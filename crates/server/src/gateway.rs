@@ -545,6 +545,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/leaderboard", get(board_handler))
                     .route("/api/version", get(version_handler))
                     .route("/api/health", get(health_handler))
+                    .route("/api/maintenance", get(maintenance::public))
                     .route("/api/session", post(session_handler))
                     .route("/api/passport", post(passport_handler))
                     .route("/api/shard/event", post(shard_event_handler))
@@ -563,6 +564,10 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/pending", get(ops_pending))
                     .route("/api/ops/feedback/{id}", post(ops_feedback_done))
                     .route("/api/ops/live", get(live_handler))
+                    .route(
+                        "/api/ops/maintenance",
+                        get(maintenance::list).post(maintenance::change),
+                    )
                     .route("/api/ops/layers", get(layers::list))
                     .route("/api/ops/layers/{id}/{z}/{x}/{y}", get(layers::tile))
                     .route(
@@ -2829,6 +2834,9 @@ mod editor_places;
 mod editor_questions;
 #[path = "layers.rs"]
 mod layers;
+/// Planned maintenance windows (admin page, app).
+#[path = "maintenance.rs"]
+mod maintenance;
 /// The mood map (public).
 #[path = "mood.rs"]
 mod mood;

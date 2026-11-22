@@ -27,6 +27,7 @@ Common conventions:
 | `GET /api/mood` | Mood map: shares of the "Wie ist es hier?" answers per H3 cell (res 9) for one past day (yesterday, else the latest of the week before), only cells where at least k different persons rated that day; shares in steps of 10 %. Real players; `&demo=1` shows the synthetic ones of the region's demo day (`elements-server demo`; app: `?mooddemo`). `{day, k, cells: [[h3, {category: percent}]]}`. `max-age=600`. |
 | `GET /api/marble/manifest.json`, `shards.json`, `{slug}/{file}` | Globe files (`docs/data-files.md`). |
 | `GET /api/world[?scope=shard]`, `GET /api/marble/world.json` | World ranking: season points of the best players over all regions and shards (`world.rs`; `scope=shard` is one shard's part, what the shards exchange). `max-age=300`, CORS as for the globe files. |
+| `GET /api/maintenance?region=` | `{maintenance: false, window, tz}`: the next planned maintenance window of this shard within 48 h (`{id, starts, ends, note}`, Unix seconds; `note`: `move`, `update`, `database` or null) or null, and the region's time zone. `max-age=60`. While the maintenance page is on, the proxy answers instead: 503 `{maintenance: true, until}`. |
 | `POST /api/wish` `{lat, lon}` | "I want to play here"; counts the H3 res-6 cell. 204. |
 | `POST /api/feedback` | Feedback from the app. 204. |
 | `POST /api/session` | Body: the 32-hex token; sets the token cookie (empty body deletes it). Same origin only. |
@@ -71,6 +72,7 @@ Common conventions:
 | `GET /api/ops/regions` | admin, all regions | Every region of this shard, also inactive and unlisted: `{shard, regions: [{slug, name, active, listed, rules, cell, language, indoor, loaded, players_today, players_7d, feedback_30d}], peers: [{shard, base}]}` (`ELEMENTS_ADMIN_PEERS`). Page: `/admin.html` (with feedback, approvals, wishes, indoor sheets). |
 | `GET /api/ops/pending` | admin, all regions | What waits for approval in this shard's regions: `{media: [{id, region, region_name, kind, target, target_name, url, width, height, author, licence_label, licence_url, source_url, alt, by, created, bytes, replaces}], mottos: [{region, region_name, language, num, campaign, side, names, by}]}`. The admin page approves with `POST /api/ops/media/decide` and `POST /api/ops/mottos` (both read a text/plain body as JSON, for other shards' admin page). |
 | `POST /api/ops/feedback/{id}` | admin, all regions | Body `{done: bool}` (read as JSON whatever its content type, so another shard's admin page can send a simple request): mark a feedback entry done (time and who: login or token label) or open again. 204, 404 unknown id. |
+| `GET/POST /api/ops/maintenance` | admin, all regions | Maintenance windows of this shard (`ops.maintenance`): GET `{shard, items: [{id, starts, ends, note, by, cancelled, cancelled_by}]}` (open ones, then the last 20 past or cancelled); POST (text body read as JSON) `{starts, minutes, note?}` adds one (5–720 min, up to 60 days ahead), `{cancel: id}` cancels one; `{id}`, 404 unknown or over. Audit log. |
 | `POST /api/ops/reload` | admin | Unload and reload the region from the database. 202 `{region, was_loaded}`. |
 
 Example:

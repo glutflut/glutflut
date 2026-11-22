@@ -6,6 +6,7 @@ import { lang } from "./i18n";
 import { $ } from "./page";
 import { KEYS, load, save } from "./store";
 import { activeNotices, text as noticeText } from "./notices";
+import { maintenanceLine } from "./maintenance";
 import { paragraphs } from "./story";
 import { withRegion } from "./region";
 
@@ -868,8 +869,12 @@ export function setupNews(t: (k: "news.title" | "news.rules" | "notice.more" | "
     const chron = document.createElement("p");
     chron.className = "news-chron";
     chron.append(Object.assign(document.createElement("a"), { href: withRegion("/chronik.html"), textContent: t("news.chron") }));
+    // An announced maintenance window (maintenance.ts).
+    const maint = maintenanceLine();
+    const mp = maint ? Object.assign(document.createElement("p"), { className: "news-maint", textContent: maint }) : null;
     list.replaceChildren(
       chron,
+      ...(mp ? [mp] : []),
       // The city's news flashes first (notices.ts).
       ...notices.map((n) => {
         const x = noticeText(n);

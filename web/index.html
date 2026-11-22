@@ -406,6 +406,14 @@
       </div>
     </div>
 
+    <div id="maint-overlay" role="alertdialog" aria-labelledby="maint-title" hidden>
+      <div class="maint-box">
+        <div class="maint-icons" aria-hidden="true">🔥☕💧</div>
+        <h2 id="maint-title" data-i18n="maint.title">Kurze Pause</h2>
+        <p data-i18n="maint.text">Glut und Flut machen gerade Pause: Wir arbeiten am Server. Dein Spielstand ist sicher.</p>
+        <p id="maint-until"></p>
+      </div>
+    </div>
     <div id="news" class="card" role="dialog" aria-labelledby="news-title" hidden>
       <button id="news-close" aria-label="×">×</button>
       <div class="sheet-title" id="news-title" data-i18n="news.title">Neu in Glut &amp; Flut</div>
@@ -481,6 +489,7 @@
         <button id="node-claim" hidden></button>
       </div>
       <div id="abilities" hidden></div>
+      <div id="maint-bar" role="status" hidden><span id="maint-text"></span><button id="maint-close" aria-label="×">×</button></div>
       <button id="update" hidden data-i18n="update.bar">Neue Version da – tippen zum Aktualisieren</button>
       <button id="perm" hidden></button>
       <button id="claim-link" hidden></button>

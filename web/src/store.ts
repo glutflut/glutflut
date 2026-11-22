@@ -28,6 +28,9 @@ export const KEYS = {
   storySeen: "elements.story.seen",
   /** News flashes shown on this device (notices.ts). */
   noticesSeen: "elements.notices.seen",
+  /** Maintenance window whose bar was closed / whose 10-minute toast came (maintenance.ts). */
+  maintDismissed: "elements.maint.dismissed",
+  maintWarned: "elements.maint.warned",
   /** Chapter bar opened by hand (its key); otherwise one line. */
   chapterOpen: "elements.chapter.open",
   challengeFolded: "elements.challenge.folded",

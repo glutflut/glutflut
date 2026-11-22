@@ -1,7 +1,8 @@
 // Admin page (admin.html): one place for the operator across regions and
 // shards — regions (`/api/ops/regions`), feedback (`/api/feedback`, mark
 // done), images and campaign phrases waiting for approval (`/api/ops/pending`),
-// "play here" wishes (`/api/wishes`) and indoor QR sheets (indoor-render.ts;
+// "play here" wishes (`/api/wishes`), maintenance windows
+// (`/api/ops/maintenance`) and indoor QR sheets (indoor-render.ts;
 // other shards' on their own indoor.html). Needs admin for all regions: the ops token, or a login
 // (opsauth.ts) in the group `<prefix>admin`. The other shards come from
 // this server's `peers` (ELEMENTS_ADMIN_PEERS, server admin.rs): the page asks
@@ -45,6 +46,7 @@ type PendMedia = {
   replaces: string | null;
 };
 type PendMotto = { region: string; region_name: string; language: string; num: number; campaign: string; side: "fire" | "water" | "both"; names: Record<string, string>; by: string | null };
+type Maint = { id: number; starts: number; ends: number; note: string | null; by: string; cancelled: number | null; cancelled_by: string | null };
 type Wish = { cell: string; wishes: number; last: string; center: [number, number] | null };
 type Listed = { slug: string; name: string; listed?: boolean; outline?: { type: string; coordinates: number[][][] | number[][][][] } };
 /** A shard's server: `base` "" for this one, else its admin site. */
@@ -77,6 +79,7 @@ let regions: (Region & At)[] = [];
 let feedback: (Feedback & At)[] = [];
 let pendMedia: (PendMedia & At)[] = [];
 let pendMottos: (PendMotto & At)[] = [];
+let maint: (Maint & At)[] = [];
 let logoutTo: Access | null = null;
 const msg = (s: string) => ($("msg").textContent = s);
 
@@ -428,6 +431,82 @@ async function loadCodes() {
   $("code-sheets").hidden = false;
 }
 
+// --- maintenance ----------------------------------------------------------
+
+const NOTE: Record<string, string> = { move: "Umzug", update: "Server-Update", database: "Datenbank" };
+const when = (t: number) => new Date(t * 1000).toLocaleString("de-DE", { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+
+async function loadMaint() {
+  const lists = await Promise.all(shards.map(async (s) => [s, s.state === "ok" ? await load<{ items: Maint[] }>(s, "/api/ops/maintenance") : null] as const));
+  maint = lists.flatMap(([s, l]) => (l?.items ?? []).map((x) => ({ ...x, shard: s.shard, base: s.base })));
+}
+
+function renderMaint() {
+  const sel = $<HTMLSelectElement>("maint-shard");
+  const keep = sel.value;
+  const up = shards.filter((s) => s.state === "ok");
+  sel.innerHTML = (up.length > 1 ? `<option value="*">alle Shards</option>` : "") + up.map((s) => `<option value="${esc(s.shard)}">Shard ${esc(s.shard)}</option>`).join("");
+  if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+  const now = Date.now() / 1000;
+  const open = (m: Maint) => !m.cancelled && m.ends > now;
+  const rows = [...maint].sort((a, b) => Number(open(b)) - Number(open(a)) || (open(a) ? a.starts - b.starts : b.starts - a.starts));
+  $("badge-maint").textContent = maint.some((m) => open(m) && m.starts - now < 48 * 3600) ? "●" : "";
+  $("maint").innerHTML = rows.length
+    ? `<tr><th>Beginn</th><th>Ende</th>${many() ? "<th>Shard</th>" : ""}<th>Zusatz</th><th>Stand</th><th>von</th><th></th></tr>` +
+      rows
+        .map((m) => {
+          const state = m.cancelled ? tag("abgesagt", "off") : m.ends <= now ? tag("vorbei") : m.starts <= now ? tag("läuft", "ok") : m.starts - now < 48 * 3600 ? tag("angekündigt", "ok") : tag("geplant");
+          const by = m.cancelled_by ? `${esc(m.by)}<div class="slug">abgesagt: ${esc(m.cancelled_by)}</div>` : esc(m.by);
+          const btn = open(m) ? `<button data-cancel="${m.id}" data-shard="${esc(m.shard)}">Absagen</button>` : "";
+          return `<tr${open(m) ? "" : ' class="done"'}><td>${when(m.starts)}</td><td>${when(m.ends)}</td>${many() ? `<td>${esc(m.shard)}</td>` : ""}<td>${esc(m.note ? (NOTE[m.note] ?? m.note) : "")}</td><td>${state}</td><td>${by}</td><td>${btn}</td></tr>`;
+        })
+        .join("")
+    : `<tr><td class="empty">Keine Wartungsfenster.</td></tr>`;
+}
+
+/** Default: the night after next, 03:00 (48 h lead). */
+{
+  const d = new Date(Date.now() + 2 * 86400_000);
+  d.setHours(3, 0, 0, 0);
+  const p = (n: number) => String(n).padStart(2, "0");
+  $<HTMLInputElement>("maint-start").value = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T03:00`;
+}
+
+$("maint-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const start = new Date($<HTMLInputElement>("maint-start").value).getTime() / 1000;
+  const minutes = Number($<HTMLInputElement>("maint-min").value);
+  const note = $<HTMLSelectElement>("maint-note").value || null;
+  const target = $<HTMLSelectElement>("maint-shard").value;
+  const to = shards.filter((s) => s.state === "ok" && (target === "*" || s.shard === target));
+  if (!Number.isFinite(start) || !to.length) return;
+  if (start - Date.now() / 1000 < 24 * 3600 && !confirm("Weniger als 24 Stunden Vorlauf: Spielende sehen den Hinweis nur kurz. Trotzdem eintragen?")) return;
+  if (!confirm(`Wartung ${when(start)}, ${minutes} min, ${to.map((s) => s.shard).join(", ")} eintragen?`)) return;
+  const fails: string[] = [];
+  for (const s of to) {
+    const res = await api(s.base, "/api/ops/maintenance", { method: "POST", body: JSON.stringify({ starts: start, minutes, note }) }).catch(() => null);
+    if (!res?.ok) fails.push(`${s.shard}: ${await errText(res)}`);
+  }
+  msg(fails.join(" · "));
+  await loadMaint();
+  renderMaint();
+});
+
+$("maint").addEventListener("click", async (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-cancel]");
+  if (!b) return;
+  const s = shards.find((x) => x.shard === b.dataset.shard);
+  if (!s || !confirm("Wartungsfenster absagen? Der Hinweis verschwindet in der App innerhalb weniger Minuten.")) return;
+  b.disabled = true;
+  const res = await api(s.base, "/api/ops/maintenance", { method: "POST", body: JSON.stringify({ cancel: Number(b.dataset.cancel) }) }).catch(() => null);
+  if (!res?.ok) {
+    b.disabled = false;
+    return void msg(`Wartung ${s.shard}: ${await errText(res)}`);
+  }
+  await loadMaint();
+  renderMaint();
+});
+
 // --- tabs and start -------------------------------------------------------
 
 async function show(tab: string) {
@@ -478,6 +557,8 @@ async function start() {
   renderFeedback();
   renderPending();
   renderCodes();
+  await loadMaint();
+  renderMaint();
   wishes = null;
   await show(get(TAB_KEY) || "regionen");
 }
