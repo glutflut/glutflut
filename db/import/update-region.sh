@@ -55,6 +55,10 @@ copy geo.nodes "region_id = '$UUID'"
 copy geo.edges "region_id = '$UUID'"
 copy geo.blocks "region = '$SLUG'"
 copy geo.finds "region = '$SLUG'"
+# Ids came with the rows: sequences past them (a fresh local database starts at 1).
+for t in geo.nodes geo.edges geo.blocks geo.finds; do
+  loc -q -c "SELECT setval(s, greatest((SELECT max(id) FROM $t), 1)) FROM pg_get_serial_sequence('$t', 'id') s WHERE s IS NOT NULL" >/dev/null
+done
 # What hangs on junctions (live state stays where it is: only ids and kinds).
 loc -q <<SQL
 DROP SCHEMA IF EXISTS dry CASCADE; CREATE SCHEMA dry;

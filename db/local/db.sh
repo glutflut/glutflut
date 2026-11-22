@@ -3,11 +3,12 @@
 #   db/local/db.sh start    # build the image once, start, print the URL
 #   db/local/db.sh stop
 #   db/local/db.sh url      # postgresql://… for ELEMENTS_LOCAL_DB
-# Data in ${ELEMENTS_LOCAL_DATA:-~/.cache/elements/local-pg}; port ${ELEMENTS_LOCAL_PORT:-5440}.
+# Data in ${ELEMENTS_LOCAL_DATA:-~/.cache/elements/local-pg}; port ${ELEMENTS_LOCAL_PORT:-5440};
+# container ${ELEMENTS_LOCAL_NAME:-elements-local-pg}.
 # Empty database: ELEMENTS_DB="$(db/local/db.sh url)" db/flyway.sh bootstrap
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
-NAME=elements-local-pg IMAGE=localhost/elements-local-pg:17
+NAME="${ELEMENTS_LOCAL_NAME:-elements-local-pg}" IMAGE=localhost/elements-local-pg:17
 PORT="${ELEMENTS_LOCAL_PORT:-5440}"
 DATA="${ELEMENTS_LOCAL_DATA:-${XDG_CACHE_HOME:-$HOME/.cache}/elements/local-pg}"
 if [[ -z "${CONTAINER_ENGINE:-}" ]]; then
