@@ -568,6 +568,8 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                         "/api/ops/maintenance",
                         get(maintenance::list).post(maintenance::change),
                     )
+                    .route("/api/ops/updates", get(updates::list).post(updates::change))
+                    .route("/api/ops/updates/{id}", get(updates::report))
                     .route("/api/ops/layers", get(layers::list))
                     .route("/api/ops/layers/{id}/{z}/{x}/{y}", get(layers::tile))
                     .route(
@@ -2843,3 +2845,6 @@ mod mood;
 /// Before/after report per focus place.
 #[path = "report.rs"]
 mod report;
+/// OSM update queue (admin page, updater).
+#[path = "updates.rs"]
+mod updates;

@@ -32,6 +32,7 @@
         <button type="button" role="tab" data-tab="freigaben">Freigaben <span class="badge" id="badge-pend"></span></button>
         <button type="button" role="tab" data-tab="wuensche">Standortwünsche</button>
         <button type="button" role="tab" data-tab="codes">QR-Codes</button>
+        <button type="button" role="tab" data-tab="updates">Updates <span class="badge" id="badge-upd"></span></button>
         <button type="button" role="tab" data-tab="wartung">Wartung <span class="badge" id="badge-maint"></span></button>
       </nav>
 
@@ -88,6 +89,22 @@
           <h2>Bildschirm-Knoten</h2>
           <p class="hint">Diese Links enthalten das Geheimnis des Knotens: nur auf dem Gerät am Knoten öffnen, nicht weitergeben. <code>&amp;eink</code> anhängen für langsame Anzeigen.</p>
           <ul id="code-screen-list" class="screens"></ul>
+        </section>
+      </section>
+
+      <section id="tab-updates" class="tab" hidden>
+        <p class="hint">OSM-Updates je Region: Der Updater auf der VM macht nachts (02–05 Uhr Ortszeit) Probeläufe nach dem Rhythmus und auf Knopfdruck beim nächsten Durchgang (höchstens 15 Minuten). Stufe 1: nur Probeläufe, geschrieben wird von Hand (<code>update-region.sh --write</code>). Sperren: 3 % Kreuzungen, 5 % Quellen.</p>
+        <div class="bar">
+          <input id="upd-q" type="search" placeholder="Region suchen" />
+          <label><input id="upd-on" type="checkbox" checked /> nur mit Rhythmus</label>
+          <small id="upd-sum"></small>
+        </div>
+        <div class="scroll"><table class="ed-table" id="upd-regions"></table></div>
+        <h2>Läufe</h2>
+        <div class="scroll"><table class="ed-table" id="upd-jobs"></table></div>
+        <section id="upd-report" hidden>
+          <h2 id="upd-report-title"></h2>
+          <pre id="upd-report-text" class="report"></pre>
         </section>
       </section>
 

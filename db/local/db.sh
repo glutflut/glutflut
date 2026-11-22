@@ -17,21 +17,29 @@ if [[ -z "${CONTAINER_ENGINE:-}" ]]; then
 fi
 E="${CONTAINER_ENGINE:?no usable podman/docker}"
 URL="postgresql://elements:elements@127.0.0.1:$PORT/elements?sslmode=disable"
+# Beside a running game (a server): ELEMENTS_LOCAL_MEMORY=3g ELEMENTS_LOCAL_CPUS=2
+# cap the container, ELEMENTS_LOCAL_TUNE replaces the memory settings.
+LIMITS="${ELEMENTS_LOCAL_MEMORY:+--memory $ELEMENTS_LOCAL_MEMORY} ${ELEMENTS_LOCAL_CPUS:+--cpus $ELEMENTS_LOCAL_CPUS}"
+TUNE="${ELEMENTS_LOCAL_TUNE:--c shared_buffers=2GB -c work_mem=256MB -c maintenance_work_mem=1GB -c max_wal_size=8GB}"
 case "${1:-url}" in
   start)
     "$E" image exists "$IMAGE" 2>/dev/null || "$E" image inspect "$IMAGE" >/dev/null 2>&1 \
       || "$E" build -q -t "$IMAGE" -f "$DIR/Containerfile" "$DIR" >/dev/null
     mkdir -p "$DATA"
     if ! "$E" container inspect "$NAME" >/dev/null 2>&1; then
+      # shellcheck disable=SC2086
       "$E" run -d --name "$NAME" -p "127.0.0.1:$PORT:5432" -v "$DATA:/var/lib/postgresql/data:Z" \
         -e POSTGRES_USER=elements -e POSTGRES_PASSWORD=elements -e POSTGRES_DB=elements \
-        --shm-size=1g "$IMAGE" -c fsync=off -c synchronous_commit=off -c full_page_writes=off \
-        -c shared_buffers=2GB -c work_mem=256MB -c maintenance_work_mem=1GB -c max_wal_size=8GB >/dev/null
+        $LIMITS --shm-size=1g "$IMAGE" -c fsync=off -c synchronous_commit=off -c full_page_writes=off \
+        $TUNE >/dev/null
     else
       "$E" start "$NAME" >/dev/null
     fi
-    for _ in $(seq 60); do psql "$URL" -XAtqc "SELECT 1" >/dev/null 2>&1 && break; sleep 1; done
-    psql "$URL" -XAtqc "SELECT 1" >/dev/null
+    # Inside the container: the host needs no psql.
+    # TCP: the first start initialises on the socket only, then restarts.
+    ready() { "$E" exec -e PGPASSWORD=elements "$NAME" psql -h 127.0.0.1 -U elements -d elements -XAtqc "SELECT 1" >/dev/null 2>&1; }
+    for _ in $(seq 60); do ready && break; sleep 1; done
+    ready || { echo "local database not ready" >&2; exit 1; }
     echo "$URL" ;;
   stop) "$E" stop "$NAME" >/dev/null ;;
   url) echo "$URL" ;;

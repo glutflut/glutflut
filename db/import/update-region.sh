@@ -183,6 +183,21 @@ loc -c "SELECT json_build_object('type', 'FeatureCollection', 'features', coales
           'properties', json_build_object('id', id, 'state', CASE WHEN was THEN 'gone' ELSE 'new' END,
             'node_type', node_type, 'marker-color', CASE WHEN was THEN '#d33' ELSE '#2a2' END)) AS f
         FROM dry.n WHERE was <> now) x" > "$OUT/$SLUG-$DAY.geojson"
+# The counts for tools (the updater's queue): <report>.json.
+loc -v verdict="$VERDICT" -v osm="$OSMDATE" -v blocks="${BLOCKS#blocks: }" -v secs="$(( $(date +%s) - T0 ))" \
+  -v junctions="$ACT" -v gone="$GONE" -v new="$NEW" -v moved="$MOVED" -v gone_pct="$PG" \
+  -v edges="$EACT" -v edges_gone="$EGONE" -v edges_new="$ENEW" \
+  -v sources="$SRC" -v sources_lost="$SLOST" -v sources_pct="$PS" \
+  -v finds_hidden="${FHIDE:-0}" -v finds_new="$(grep -c '^newfind ' <<< "$REASONS" || true)" <<'SQL' > "${REP%.md}.json"
+SELECT json_build_object('verdict', :'verdict', 'stop', :'verdict' LIKE 'STOP%', 'osm', :'osm', 'blocks', :'blocks',
+  'seconds', :'secs'::int, 'junctions', :'junctions'::int, 'gone', :'gone'::int, 'new', :'new'::int,
+  'moved', :'moved'::int, 'gone_pct', :'gone_pct'::numeric, 'edges', :'edges'::int,
+  'edges_gone', :'edges_gone'::int, 'edges_new', :'edges_new'::int, 'sources', :'sources'::int,
+  'sources_lost', :'sources_lost'::int, 'sources_pct', :'sources_pct'::numeric,
+  'finds_hidden', :'finds_hidden'::int, 'finds_new', :'finds_new'::int,
+  'refs_gone', (SELECT count(*) FROM dry.refs r JOIN dry.gone g ON g.id = r.node_id),
+  'refs_lost', (SELECT count(*) FROM dry.refs r JOIN dry.gone g ON g.id = r.node_id WHERE g.succ IS NULL));
+SQL
 echo ">> $VERDICT: $GONE of $ACT junctions gone, $NEW new; report $REP"
 
 [ "$MODE" = write ] || exit 0

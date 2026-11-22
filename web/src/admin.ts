@@ -1,8 +1,8 @@
 // Admin page (admin.html): one place for the operator across regions and
 // shards — regions (`/api/ops/regions`), feedback (`/api/feedback`, mark
 // done), images and campaign phrases waiting for approval (`/api/ops/pending`),
-// "play here" wishes (`/api/wishes`), maintenance windows
-// (`/api/ops/maintenance`) and indoor QR sheets (indoor-render.ts;
+// "play here" wishes (`/api/wishes`), OSM updates (`/api/ops/updates`),
+// maintenance windows (`/api/ops/maintenance`) and indoor QR sheets (indoor-render.ts;
 // other shards' on their own indoor.html). Needs admin for all regions: the ops token, or a login
 // (opsauth.ts) in the group `<prefix>admin`. The other shards come from
 // this server's `peers` (ELEMENTS_ADMIN_PEERS, server admin.rs): the page asks
@@ -46,6 +46,9 @@ type PendMedia = {
   replaces: string | null;
 };
 type PendMotto = { region: string; region_name: string; language: string; num: number; campaign: string; side: "fire" | "water" | "both"; names: Record<string, string>; by: string | null };
+type UpdRegion = { region: string; name: string; active: boolean; rhythm: string | null; auto: boolean; last_check: number | null; last_write: number | null };
+type UpdSummary = { verdict: string; stop: boolean; junctions: number; gone: number; new: number; gone_pct: number; sources_lost: number; sources_pct: number; finds_hidden: number; finds_new: number; refs_lost: number; seconds: number };
+type UpdJob = { id: number; region: string; kind: string; status: string; by: string; created: number; started: number | null; finished: number | null; summary: UpdSummary | null; error: string | null };
 type Maint = { id: number; starts: number; ends: number; note: string | null; by: string; cancelled: number | null; cancelled_by: string | null };
 type Wish = { cell: string; wishes: number; last: string; center: [number, number] | null };
 type Listed = { slug: string; name: string; listed?: boolean; outline?: { type: string; coordinates: number[][][] | number[][][][] } };
@@ -80,6 +83,8 @@ let feedback: (Feedback & At)[] = [];
 let pendMedia: (PendMedia & At)[] = [];
 let pendMottos: (PendMotto & At)[] = [];
 let maint: (Maint & At)[] = [];
+let updRegions: (UpdRegion & At)[] = [];
+let updJobs: (UpdJob & At)[] = [];
 let logoutTo: Access | null = null;
 const msg = (s: string) => ($("msg").textContent = s);
 
@@ -431,6 +436,105 @@ async function loadCodes() {
   $("code-sheets").hidden = false;
 }
 
+// --- OSM updates ----------------------------------------------------------
+
+const RHYTHM: Record<string, string> = { off: "aus", monthly: "monatlich", quarterly: "vierteljährlich" };
+const STATUS: Record<string, [string, string]> = {
+  pending: ["wartet auf den Updater", ""],
+  running: ["läuft", "ok"],
+  done: ["fertig", "ok"],
+  waiting: ["wartet auf Freigabe", ""],
+  approved: ["freigegeben", "ok"],
+  written: ["geschrieben", "ok"],
+  failed: ["Fehler", "off"],
+  skipped: ["übersprungen", "off"],
+};
+const updKey = (x: { shard: string; region: string }) => `${x.shard}:${x.region}`;
+
+async function loadUpdates() {
+  const lists = await Promise.all(shards.map(async (s) => [s, s.state === "ok" ? await load<{ regions: UpdRegion[]; jobs: UpdJob[] }>(s, "/api/ops/updates") : null] as const));
+  updRegions = lists.flatMap(([s, l]) => (l?.regions ?? []).map((x) => ({ ...x, shard: s.shard, base: s.base })));
+  updJobs = lists.flatMap(([s, l]) => (l?.jobs ?? []).map((x) => ({ ...x, shard: s.shard, base: s.base }))).sort((a, b) => b.created - a.created);
+}
+
+function renderUpdates() {
+  const q = $<HTMLInputElement>("upd-q").value.trim().toLowerCase();
+  const onlyOn = $<HTMLInputElement>("upd-on").checked;
+  const open = new Set(updJobs.filter((j) => ["pending", "running", "waiting", "approved"].includes(j.status)).map(updKey));
+  const rows = updRegions.filter((r) => r.active && (!onlyOn || (r.rhythm && r.rhythm !== "off")) && (!q || `${r.name} ${r.region}`.toLowerCase().includes(q)));
+  const on = updRegions.filter((r) => r.rhythm && r.rhythm !== "off").length;
+  $("upd-sum").textContent = `${rows.length} Regionen · ${on} mit Rhythmus`;
+  $("badge-upd").textContent = updJobs.some((j) => j.status === "waiting") ? "!" : "";
+  $("upd-regions").innerHTML = rows.length
+    ? `<tr><th>Region</th>${many() ? "<th>Shard</th>" : ""}<th>Rhythmus</th><th>zuletzt geprüft</th><th>zuletzt geschrieben</th><th></th></tr>` +
+      rows
+        .map((r) => {
+          const k = esc(updKey(r));
+          const sel = `<select data-rhythm="${k}">${["off", "quarterly", "monthly"].map((v) => `<option value="${v}"${(r.rhythm ?? "off") === v ? " selected" : ""}>${RHYTHM[v]}</option>`).join("")}</select>`;
+          const btn = open.has(updKey(r)) ? `<span class="slug">Lauf offen</span>` : `<button data-run="${k}">Probelauf jetzt</button>`;
+          return `<tr><td>${esc(r.name)}<div class="slug">${esc(r.region)}</div></td>${many() ? `<td>${esc(r.shard)}</td>` : ""}<td>${sel}</td><td>${r.last_check ? when(r.last_check) : "–"}</td><td>${r.last_write ? when(r.last_write) : "–"}</td><td>${btn}</td></tr>`;
+        })
+        .join("")
+    : `<tr><td class="empty">Keine Region${onlyOn ? " mit Rhythmus (Haken weg, um alle zu sehen)" : ""}.</td></tr>`;
+  const names = new Map(updRegions.map((r) => [updKey(r), r.name]));
+  $("upd-jobs").innerHTML = updJobs.length
+    ? `<tr><th>angelegt</th><th>Region</th><th>Stand</th><th>Ergebnis</th><th>von</th><th></th></tr>` +
+      updJobs
+        .map((j) => {
+          const [label, cls] = STATUS[j.status] ?? [j.status, ""];
+          const s = j.summary;
+          const res = s
+            ? `${s.stop ? tag("STOP", "off") : tag("in den Sperren", "ok")} ${s.gone}/${s.junctions} weg (${s.gone_pct} %), ${s.new} neu · Quellen verloren ${s.sources_lost} (${s.sources_pct} %) · Funde −${s.finds_hidden}/+${s.finds_new}${s.refs_lost ? ` · ${s.refs_lost} Bezüge ohne Nachfolger` : ""} · ${Math.round(s.seconds / 60)} min`
+            : esc(j.error ?? "");
+          const rep = s ? `<button data-report="${j.id}" data-shard="${esc(j.shard)}">Bericht</button>` : "";
+          return `<tr><td>${when(j.created)}</td><td>${esc(names.get(updKey(j)) ?? j.region)}${many() ? `<div class="slug">${esc(j.shard)}</div>` : ""}</td><td>${tag(label, cls)}</td><td class="text">${res}</td><td>${esc(j.by)}</td><td>${rep}</td></tr>`;
+        })
+        .join("")
+    : `<tr><td class="empty">Noch keine Läufe.</td></tr>`;
+}
+
+$("upd-regions").addEventListener("change", async (e) => {
+  const sel = (e.target as HTMLElement).closest<HTMLSelectElement>("select[data-rhythm]");
+  if (!sel) return;
+  const r = updRegions.find((x) => updKey(x) === sel.dataset.rhythm);
+  if (!r) return;
+  sel.disabled = true;
+  const res = await api(r.base, "/api/ops/updates", { method: "POST", body: JSON.stringify({ region: r.region, rhythm: sel.value }) }).catch(() => null);
+  sel.disabled = false;
+  if (!res?.ok) return void msg(`Update ${r.region}: ${await errText(res)}`);
+  r.rhythm = sel.value;
+  msg("");
+});
+
+$("upd-regions").addEventListener("click", async (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-run]");
+  if (!b) return;
+  const r = updRegions.find((x) => updKey(x) === b.dataset.run);
+  if (!r) return;
+  b.disabled = true;
+  const res = await api(r.base, "/api/ops/updates", { method: "POST", body: JSON.stringify({ region: r.region, run: true }) }).catch(() => null);
+  if (!res?.ok) {
+    b.disabled = false;
+    return void msg(`Probelauf ${r.region}: ${await errText(res)}`);
+  }
+  msg(`Probelauf für ${r.name} angelegt; der Updater nimmt ihn beim nächsten Durchgang.`);
+  await loadUpdates();
+  renderUpdates();
+});
+
+$("upd-jobs").addEventListener("click", async (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-report]");
+  if (!b) return;
+  const s = shards.find((x) => x.shard === b.dataset.shard);
+  if (!s) return;
+  const j = await load<{ region: string; report: string | null }>(s, `/api/ops/updates/${b.dataset.report}`);
+  $("upd-report").hidden = !j;
+  if (!j) return void drawShards();
+  $("upd-report-title").textContent = `Bericht ${j.region}`;
+  $("upd-report-text").textContent = j.report ?? "(kein Bericht)";
+  $("upd-report").scrollIntoView({ behavior: "smooth" });
+});
+
 // --- maintenance ----------------------------------------------------------
 
 const NOTE: Record<string, string> = { move: "Umzug", update: "Server-Update", database: "Datenbank" };
@@ -557,8 +661,9 @@ async function start() {
   renderFeedback();
   renderPending();
   renderCodes();
-  await loadMaint();
+  await Promise.all([loadMaint(), loadUpdates()]);
   renderMaint();
+  renderUpdates();
   wishes = null;
   await show(get(TAB_KEY) || "regionen");
 }
@@ -571,6 +676,8 @@ $("fb-region").onchange = renderFeedback;
 $("fb-text").onchange = renderFeedback;
 $("fb-open").onchange = renderFeedback;
 $("wish-filter").onchange = renderWishes;
+$("upd-q").oninput = renderUpdates;
+$("upd-on").onchange = renderUpdates;
 $("code-region").onchange = codeChoice;
 $("code-load").onclick = () => void loadCodes();
 $("code-print").onclick = () => print();
