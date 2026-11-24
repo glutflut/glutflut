@@ -109,6 +109,14 @@ The thresholds themselves (speed checks, shadow ban, tracks, rate buckets in `li
 
 The day's weather for `[weather]` (rain, heat, frost) comes from Open-Meteo per region and needs no variable.
 
+### Posts
+
+Drafts of posts (editor, tab Beiträge) can be sent from the editor to the channels set up here; without them there is copy and download only.
+
+| Variable | Read by | Default | Meaning |
+| --- | --- | --- | --- |
+| `ELEMENTS_POST_MASTODON_<REGION>` | server | none (no sending) | **Secret, in `.env`.** `https://instance token` for the region (slug upper case, `-` as `_`, e.g. `ELEMENTS_POST_MASTODON_KONSTANZ`). Token of the account with the scopes `write:statuses write:media`. |
+
 ### Globe export
 
 Without the S3 values the globe files are only served at `/api/marble/…`.

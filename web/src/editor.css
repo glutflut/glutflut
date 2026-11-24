@@ -146,5 +146,6 @@ h3.with-search input { flex: 0 1 240px; font-size: 14px; font-weight: 400; }
 .post-acts { display: flex; flex-wrap: wrap; gap: 4px; }
 .post-acts button { margin: 0; }
 #posts-list { overflow-x: auto; }
+.post-run-texts small.error { color: #c92a2a; }
 .post-run-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .post-done summary { cursor: pointer; margin: 8px 0; }

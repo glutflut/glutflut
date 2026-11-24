@@ -646,7 +646,7 @@ pub(super) async fn list(
                 .query(
                     &format!(
                         "SELECT id, post_id, auto, {}, state, outcome, numbers::text, texts::text, \
-                         image IS NOT NULL, note, decided_by, {} FROM game.post_runs \
+                         image IS NOT NULL, note, decided_by, {}, results::text FROM game.post_runs \
                          WHERE region = $1 AND created_at > now() - interval '60 days' \
                          ORDER BY id DESC",
                         epoch("created_at"),
@@ -669,10 +669,11 @@ pub(super) async fn list(
                         "note": r.get::<_, Option<String>>(9),
                         "decided_by": r.get::<_, Option<String>>(10),
                         "decided": r.get::<_, Option<f64>>(11),
+                        "results": r.get::<_, Option<String>>(12).and_then(|n| serde_json::from_str::<Value>(&n).ok()),
                     })
                 })
                 .collect();
-            Ok(json!({ "posts": posts, "runs": runs }))
+            Ok(json!({ "posts": posts, "runs": runs, "ready": ready(&slug) }))
         })
     })
     .await
@@ -968,9 +969,317 @@ pub(super) async fn decide(
     }
 }
 
+// --- Sending -----------------------------------------------------------------
+
+/// The region's name in environment variables: `konstanz-altstadt` → `KONSTANZ_ALTSTADT`.
+fn env_name(slug: &str) -> String {
+    slug.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_uppercase()
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+/// A Mastodon account: `ELEMENTS_POST_MASTODON_<REGION>="https://instance token"`
+/// (token with `write:statuses write:media`).
+struct Mastodon {
+    base: String,
+    token: String,
+}
+
+fn mastodon_of(v: &str) -> Option<Mastodon> {
+    let (base, token) = v.trim().split_once(char::is_whitespace)?;
+    let base = base.trim_end_matches('/');
+    let token = token.trim();
+    (base.starts_with("https://") && !token.is_empty() && !token.contains(char::is_whitespace))
+        .then(|| Mastodon {
+            base: base.into(),
+            token: token.into(),
+        })
+}
+
+fn mastodon(slug: &str) -> Option<Mastodon> {
+    mastodon_of(&std::env::var(format!("ELEMENTS_POST_MASTODON_{}", env_name(slug))).ok()?)
+}
+
+/// The channels the server can send to for the region.
+fn ready(slug: &str) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    if mastodon(slug).is_some() {
+        out.push("mastodon");
+    }
+    out
+}
+
+/// An error short enough for the editor, without the request's URL.
+fn brief(e: ureq::Error) -> String {
+    match e {
+        ureq::Error::Status(code, r) => {
+            let body = r.into_string().unwrap_or_default();
+            let msg = serde_json::from_str::<Value>(&body)
+                .ok()
+                .and_then(|v| v["error"].as_str().map(str::to_string))
+                .unwrap_or(body);
+            format!("HTTP {code}: {}", msg.chars().take(200).collect::<String>())
+        }
+        ureq::Error::Transport(t) => format!("{}: {}", t.kind(), t.message().unwrap_or("")),
+    }
+}
+
+/// Posts text (and picture with alt text) as a public status; the status's URL.
+/// `key` makes a second try of the same send no second status.
+fn send_mastodon(
+    m: &Mastodon,
+    key: &str,
+    text: &str,
+    alt: &str,
+    image: Option<&[u8]>,
+    lang: &str,
+) -> Result<String, String> {
+    let agent = crate::media::agent().ok_or("no TLS")?;
+    let auth = format!("Bearer {}", m.token);
+    let mut media = Vec::new();
+    if let Some(jpg) = image {
+        let b = format!("glutflut{:016x}", rand::random::<u64>());
+        let mut body = Vec::with_capacity(jpg.len() + 512);
+        body.extend_from_slice(
+            format!(
+                "--{b}\r\nContent-Disposition: form-data; name=\"description\"\r\n\r\n{alt}\r\n\
+                 --{b}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"post.jpg\"\r\n\
+                 Content-Type: image/jpeg\r\n\r\n"
+            )
+            .as_bytes(),
+        );
+        body.extend_from_slice(jpg);
+        body.extend_from_slice(format!("\r\n--{b}--\r\n").as_bytes());
+        let r = agent
+            .post(&format!("{}/api/v2/media", m.base))
+            .set("Authorization", &auth)
+            .set(
+                "Content-Type",
+                &format!("multipart/form-data; boundary={b}"),
+            )
+            .send_bytes(&body)
+            .map_err(|e| format!("picture: {}", brief(e)))?;
+        let processing = r.status() == 202;
+        let v: Value = r.into_json().map_err(|e| format!("picture: {e}"))?;
+        let id = v["id"].as_str().ok_or("picture: no id")?.to_string();
+        // 202: still being processed; the status waits for it.
+        if processing {
+            let mut done = false;
+            for _ in 0..30 {
+                std::thread::sleep(Duration::from_secs(1));
+                let r = agent
+                    .get(&format!("{}/api/v1/media/{id}", m.base))
+                    .set("Authorization", &auth)
+                    .call()
+                    .map_err(|e| format!("picture: {}", brief(e)))?;
+                if r.status() == 200 {
+                    done = true;
+                    break;
+                }
+            }
+            if !done {
+                return Err("picture: still processing after 30 s".into());
+            }
+        }
+        media.push(id);
+    }
+    let r = agent
+        .post(&format!("{}/api/v1/statuses", m.base))
+        .set("Authorization", &auth)
+        .set("Idempotency-Key", key)
+        .send_json(json!({
+            "status": text,
+            "media_ids": media,
+            "visibility": "public",
+            "language": lang,
+        }))
+        .map_err(brief)?;
+    let v: Value = r.into_json().map_err(|e| e.to_string())?;
+    v["url"]
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| "no URL in the answer".into())
+}
+
+#[derive(Deserialize)]
+pub(super) struct SendQ {
+    region: Option<String>,
+    id: i64,
+    channel: String,
+}
+
+#[derive(Deserialize)]
+pub(super) struct SendIn {
+    /// The texts as edited in the editor; stored before sending.
+    texts: Option<Value>,
+}
+
+/// `POST /api/ops/posts/send?region=&id=&channel=` (editor): sends a draft
+/// to a channel. Stores `{url}` or `{error}` under `results.<channel>`; once
+/// every channel of the post has its URL, the draft counts as sent.
+pub(super) async fn send(
+    State(s): State<AppState>,
+    Query(q): Query<SendQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+    Json(req): Json<SendIn>,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let w = who(&s, c, &headers).await;
+    if !w.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let channel = q.channel.clone();
+    let m = match channel.as_str() {
+        "mastodon" => match mastodon(&slug) {
+            Some(m) => m,
+            None => return bad("Mastodon is not set up for this region"),
+        },
+        _ => return bad("this channel cannot send yet"),
+    };
+    let texts = match &req.texts {
+        Some(v) => match clean_texts(&json!({ "any": v })) {
+            Ok(t) => Some(t["any"].clone()),
+            Err(e) => return bad(e),
+        },
+        None => None,
+    };
+    let (st, sl, id, ch) = (s.clone(), slug.clone(), q.id, channel.clone());
+    // The draft, with the edited texts stored first.
+    let got = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let Some(r) = db.query_opt(
+                "UPDATE game.post_runs SET texts = CASE WHEN state = 'draft' \
+                 THEN coalesce($3::text::jsonb, texts) ELSE texts END \
+                 WHERE region = $1 AND id = $2 \
+                 RETURNING state, texts::text, image, results -> $4 ->> 'url'",
+                &[&sl, &id, &texts.as_ref().map(Value::to_string), &ch],
+            )?
+            else {
+                return Ok(None);
+            };
+            Ok(Some((
+                r.get::<_, String>(0),
+                serde_json::from_str::<Value>(r.get(1)).unwrap_or(Value::Null),
+                r.get::<_, Option<Vec<u8>>>(2),
+                r.get::<_, Option<String>>(3),
+                primary(db, &sl)?,
+            )))
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    let (state, texts, image, done, lang) = match got {
+        Some(Some(v)) => v,
+        Some(None) => return bad("no such draft"),
+        None => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    };
+    if state != "draft" {
+        return bad("only drafts are sent");
+    }
+    if let Some(url) = done {
+        return bad_url("already sent", &url);
+    }
+    let Some(text) = texts[&channel].as_str().map(str::to_string) else {
+        return bad("no text for this channel");
+    };
+    let alt = texts["alt"].as_str().unwrap_or("").to_string();
+    let key = format!("glutflut-run-{}-{channel}", q.id);
+    let sent = tokio::task::spawn_blocking(move || {
+        send_mastodon(&m, &key, &text, &alt, image.as_deref(), &lang)
+    })
+    .await
+    .unwrap_or_else(|e| Err(e.to_string()));
+    let result = match &sent {
+        Ok(url) => json!({ "url": url, "at": now_s() }),
+        Err(e) => json!({ "error": e, "at": now_s() }),
+    };
+    let (st, sl, id, ch, by) = (s.clone(), slug.clone(), q.id, channel.clone(), w.label);
+    let res = result.clone();
+    let stored = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let mut t = db.transaction()?;
+            // Sent once every channel of the post has its URL.
+            t.execute(
+                "UPDATE game.post_runs r SET results = jsonb_set(coalesce(r.results, '{}'), \
+                   ARRAY[$3::text], $4::text::jsonb) \
+                 WHERE r.region = $1 AND r.id = $2",
+                &[&sl, &id, &ch, &res.to_string()],
+            )?;
+            t.execute(
+                "UPDATE game.post_runs r SET state = 'sent', decided_by = $3, decided_at = now() \
+                 FROM game.posts p WHERE p.id = r.post_id AND r.region = $1 AND r.id = $2 \
+                   AND r.state = 'draft' \
+                   AND NOT EXISTS (SELECT 1 FROM unnest(p.channels) c \
+                                   WHERE r.results -> c ->> 'url' IS NULL)",
+                &[&sl, &id, &by],
+            )?;
+            audit_entity(
+                &mut t,
+                &format!("post run {sl}/{id}"),
+                &format!("send {ch}"),
+                &by,
+                res,
+            )?;
+            t.commit()?;
+            Ok(())
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    if stored.is_none() {
+        tracing::error!(region = %slug, run = q.id, ?result, "post sent, result not stored");
+    }
+    match sent {
+        Ok(url) => Json(json!({ "url": url })).into_response(),
+        Err(e) => {
+            tracing::warn!(region = %slug, run = q.id, channel = %channel, error = %e, "post not sent");
+            (StatusCode::BAD_GATEWAY, Json(json!({ "error": e }))).into_response()
+        }
+    }
+}
+
+fn now_s() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs())
+}
+
+fn bad_url(msg: &str, url: &str) -> Response {
+    (
+        StatusCode::UNPROCESSABLE_ENTITY,
+        Json(json!({ "error": msg, "url": url })),
+    )
+        .into_response()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mastodon_accounts_from_the_env() {
+        assert_eq!(env_name("konstanz-altstadt"), "KONSTANZ_ALTSTADT");
+        let m = mastodon_of(" https://mastodon.social/  abc123 ").unwrap();
+        assert_eq!(
+            (m.base.as_str(), m.token.as_str()),
+            ("https://mastodon.social", "abc123")
+        );
+        assert!(mastodon_of("http://mastodon.social abc").is_none());
+        assert!(mastodon_of("https://mastodon.social").is_none());
+        assert!(mastodon_of("https://mastodon.social a b").is_none());
+    }
 
     #[test]
     fn numbers_as_the_city_writes_them() {

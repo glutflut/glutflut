@@ -2,7 +2,7 @@
 // time, a chapter's start or end, or by hand), texts per outcome and channel,
 // and maybe the picture of the game state. When it is due the server makes a
 // draft with the numbers filled in; here it is copied, posted by hand and
-// marked (sending from here comes later).
+// marked, or sent from here to the channels the server has an account for.
 import { ask, clean, errorOf, fmtDate, fromLocal, mayLeave, toast, toLocal, watchForm } from "./editor-ui";
 import { t, type EKey } from "./editor-i18n";
 
@@ -34,6 +34,7 @@ type Run = {
   note: string | null;
   decided_by: string | null;
   decided: number | null;
+  results: Record<string, { url?: string; error?: string }> | null;
 };
 export type ChapterRef = { key: string; names: Record<string, { title: string }>; starts: number; ends: number };
 type Api = (path: string, init?: RequestInit) => Promise<Response>;
@@ -54,6 +55,8 @@ let primary = "de";
 let chapters: ChapterRef[] = [];
 let posts: Post[] = [];
 let runs: Run[] = [];
+/** Channels the server can send to for this region. */
+let ready: string[] = [];
 let editing: Post | null = null;
 /** The form's texts per variant (the shown one lives in the text areas). */
 let texts: Partial<Record<Variant, Texts>> = {};
@@ -220,6 +223,15 @@ async function decide(r: Run, state: Run["state"], edited?: Texts) {
   await loadPosts(region, primary, chapters);
 }
 
+async function send(r: Run, ch: string, edited: Texts | undefined, btn: HTMLButtonElement) {
+  if (!(await ask(t("po.send.ask", { ch: t(LABEL[ch]) }), t("po.send")))) return;
+  btn.disabled = true;
+  const res = await api(`/api/ops/posts/send?${q()}&id=${r.id}&channel=${ch}`, { method: "POST", body: JSON.stringify({ texts: edited }) }).catch(() => null);
+  if (res?.ok) toast(t("po.sent"));
+  else toast(t("po.send.err", { err: await errorOf(res, t("ui.savefail")) }), "error");
+  await loadPosts(region, primary, chapters);
+}
+
 function drawRun(r: Run): HTMLElement {
   const p = posts.find((x) => x.id === r.post);
   const box = el("div", { className: `post-run ${r.state}` });
@@ -249,6 +261,8 @@ function drawRun(r: Run): HTMLElement {
   }
   const fields = el("div", { className: "post-run-texts" });
   const areas = new Map<string, HTMLTextAreaElement>();
+  const edited = () => Object.fromEntries([...areas].map(([k, a]) => [k, a.value.trim()])) as Texts;
+  const changed = () => [...areas].some(([k, a]) => a.value.trim() !== (r.texts[k as keyof Texts] ?? "").trim());
   for (const f of FIELDS) {
     if (r.texts[f] == null) continue;
     const a = document.createElement("textarea");
@@ -256,15 +270,23 @@ function drawRun(r: Run): HTMLElement {
     areas.set(f, a);
     const lab = el("label");
     const row = el("span", { className: "post-run-label" });
-    row.append(el("b", { textContent: t(LABEL[f]) }), copyButton(() => a.value));
+    const tools = el("span");
+    tools.append(copyButton(() => a.value));
+    const done = r.results?.[f];
+    if (done?.url) tools.append(el("a", { className: "ed-link", href: done.url, target: "_blank", rel: "noopener", textContent: t("po.sent.view") }));
+    else if (r.state === "draft" && ready.includes(f)) {
+      const b = el("button", { type: "button", textContent: t("po.send") });
+      b.onclick = () => void send(r, f, changed() ? edited() : undefined, b);
+      tools.append(b);
+    }
+    row.append(el("b", { textContent: t(LABEL[f]) }), tools);
     lab.append(row, a);
+    if (done?.error && !done.url) lab.append(el("small", { className: "error", textContent: t("po.send.err", { err: done.error }) }));
     fields.append(lab);
   }
   body.append(fields);
   box.append(body);
   const acts = el("div", { className: "ed-row" });
-  const edited = () => Object.fromEntries([...areas].map(([k, a]) => [k, a.value.trim()])) as Texts;
-  const changed = () => [...areas].some(([k, a]) => a.value.trim() !== (r.texts[k as keyof Texts] ?? "").trim());
   if (r.state === "draft") {
     acts.append(
       el("button", { type: "button", className: "primary", textContent: t("po.mark"), onclick: () => void decide(r, "sent", changed() ? edited() : undefined) }),
@@ -374,7 +396,7 @@ export async function loadPosts(slug: string, lang: string, chs: ChapterRef[]) {
   const res = await api(`/api/ops/posts?${q()}`).catch(() => null);
   $("posts-card").hidden = !res?.ok;
   if (!res?.ok) return;
-  ({ posts, runs } = (await res.json()) as { posts: Post[]; runs: Run[] });
+  ({ posts, runs, ready } = (await res.json()) as { posts: Post[]; runs: Run[]; ready: string[] });
   drawRuns();
   drawList();
   const n = runs.filter((r) => r.state === "draft").length;
