@@ -180,11 +180,10 @@
           <label><span><span data-i18n="po.f.alt">Alt-Text</span> <small id="post-alt-count"></small></span> <textarea id="post-alt" maxlength="1000" rows="3"></textarea></label>
           <label class="check"><input type="checkbox" id="post-card-on" /> <span data-i18n="po.f.card">Bild: Spielstand als Karte</span></label>
           <div id="post-card-fields">
-            <div class="ed-row">
-              <label><span data-i18n="po.f.lat">Mitte Breite</span> <input id="post-card-lat" inputmode="decimal" data-i18n-placeholder="po.f.centre.ph" /></label>
-              <label><span data-i18n="po.f.lon">Mitte Länge</span> <input id="post-card-lon" inputmode="decimal" data-i18n-placeholder="po.f.centre.ph" /></label>
-              <label><span data-i18n="po.f.width">Breite in Metern</span> <input id="post-card-width" type="number" min="200" max="5000" step="50" /></label>
-            </div>
+            <input type="hidden" id="post-card-lat" /><input type="hidden" id="post-card-lon" /><input type="hidden" id="post-card-width" />
+            <p class="hint" data-i18n="po.f.frame.hint">Karte verschieben und zoomen: Der Rahmen ist das Bild.</p>
+            <div class="post-map-wrap"><div id="post-map"></div><div class="post-frame"></div></div>
+            <div class="ed-row post-frame-row"><small id="post-frame-info"></small> <button type="button" id="post-frame-auto" data-i18n="po.f.frame.reset">Automatisch</button></div>
             <label><span><span data-i18n="po.f.cardtitle">Titel im Bild</span> <small data-i18n="po.f.cardtitle.hint">(höchstens 40 Zeichen)</small></span> <input id="post-card-title" maxlength="40" /></label>
             <label><span><span data-i18n="po.f.cardnote">Notiz unten links</span> <small data-i18n="po.f.cardnote.hint">(höchstens 120 Zeichen)</small></span> <input id="post-card-note" maxlength="120" /></label>
             <div class="ed-row"><button type="button" id="post-preview-btn" data-i18n="po.preview">Vorschau</button></div>

@@ -146,6 +146,11 @@ h3.with-search input { flex: 0 1 240px; font-size: 14px; font-weight: 400; }
 .post-acts { display: flex; flex-wrap: wrap; gap: 4px; }
 .post-acts button { margin: 0; }
 #posts-list { overflow-x: auto; }
+.post-map-wrap { position: relative; width: 100%; max-width: 480px; aspect-ratio: 1; margin: 6px 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+#post-map { position: absolute; inset: 0; }
+/* The picture: 4:5, 80 % of the map's height, centred; the rest dimmed. */
+.post-frame { position: absolute; top: 10%; left: 18%; width: 64%; height: 80%; border: 2px solid #e8590c; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.22); pointer-events: none; }
+.post-frame-row { align-items: center; }
 .post-run-texts small.error { color: #c92a2a; }
 .post-run-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .post-done summary { cursor: pointer; margin: 8px 0; }

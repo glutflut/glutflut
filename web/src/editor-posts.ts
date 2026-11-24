@@ -6,6 +6,9 @@
 // (Mastodon, Instagram).
 import { ask, clean, errorOf, fmtDate, fromLocal, mayLeave, toast, toLocal, watchForm } from "./editor-ui";
 import { t, type EKey } from "./editor-i18n";
+import * as maplibregl from "maplibre-gl";
+import { basemapStyle } from "./basemap";
+import { listRegions } from "./region";
 
 type Texts = { instagram?: string; mastodon?: string; alt?: string };
 type Variant = "any" | "fire" | "water" | "tie";
@@ -65,6 +68,11 @@ let editing: Post | null = null;
 let texts: Partial<Record<Variant, Texts>> = {};
 let shown: Variant = "any";
 const pictures = new Map<number, string>();
+/** The picker for the picture's area: the map moves under a fixed 4:5 frame. */
+let map: maplibregl.Map | null = null;
+let mapRegion = "";
+/** Set while the code moves or sizes the map (not the user); also until placed. */
+let placing = true;
 
 const q = () => `region=${encodeURIComponent(region)}`;
 const chapterName = (key: string | null) => {
@@ -104,6 +112,95 @@ function syncTrigger() {
   $("post-at-row").style.display = tr === "at" ? "" : "none";
   $("post-chapter-row").style.display = tr.startsWith("chapter_") ? "" : "none";
   $("post-card-fields").style.display = input("post-card-on").checked ? "" : "none";
+  void showMap();
+}
+
+// --- The picture's area on a map ----------------------------------------------
+
+const EARTH = 40075016.686;
+const W_MIN = 200;
+const W_MAX = 5000;
+/** Metres across the frame at zoom `z` (MapLibre: 512 px tiles). */
+const widthAt = (z: number, lat: number, px: number) => (EARTH * Math.cos((lat * Math.PI) / 180) * px) / (512 * 2 ** z);
+const zoomFor = (w: number, lat: number, px: number) => Math.log2((EARTH * Math.cos((lat * Math.PI) / 180) * px) / (512 * w));
+const framePx = () => (document.querySelector(".post-frame") as HTMLElement).clientWidth;
+
+function frameInfo() {
+  const w = Math.round(Number(input("post-card-width").value) || 900);
+  const auto = !input("post-card-lat").value;
+  $("post-frame-info").textContent = t(auto ? "po.f.frame.auto" : "po.f.frame.set", { w });
+  $("post-frame-auto").style.display = auto ? "none" : "";
+}
+
+/** A field set by the map, marked as changed for the form. */
+function setField(id: string, v: string) {
+  const i = input(id);
+  if (i.value === v) return;
+  i.value = v;
+  i.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+/** Moves the map to the fields (or the region when automatic). */
+async function place() {
+  if (!map) return;
+  const px = framePx();
+  if (!px) return;
+  placing = true;
+  const w = Number(input("post-card-width").value) || 900;
+  let lat = Number(input("post-card-lat").value);
+  let lon = Number(input("post-card-lon").value);
+  if (!input("post-card-lat").value) {
+    const r = (await listRegions().catch(() => [])).find((x) => x.slug === region);
+    if (!r || !map) return void (placing = false);
+    lon = (r.bounds[0] + r.bounds[2]) / 2;
+    lat = (r.bounds[1] + r.bounds[3]) / 2;
+  }
+  placing = true;
+  map.jumpTo({ center: [lon, lat], zoom: zoomFor(w, lat, px) });
+  placing = false;
+  frameInfo();
+}
+
+/** The user moved the map: the frame's centre and width go to the fields. */
+function moved() {
+  if (placing || !map) return;
+  const px = framePx();
+  const c = map.getCenter();
+  const raw = widthAt(map.getZoom(), c.lat, px);
+  const w = Math.min(W_MAX, Math.max(W_MIN, Math.round(raw / 10) * 10));
+  if (Math.abs(raw - w) / w > 0.05) {
+    placing = true;
+    map.jumpTo({ zoom: zoomFor(w, c.lat, px) });
+    placing = false;
+  }
+  setField("post-card-lat", c.lat.toFixed(5));
+  setField("post-card-lon", c.lng.toFixed(5));
+  setField("post-card-width", String(w));
+  frameInfo();
+}
+
+/** The map, once the form shows the picture's fields (it needs its size). */
+async function showMap() {
+  if ($("post-form").hidden || !input("post-card-on").checked) return;
+  if (!map || mapRegion !== region) {
+    map?.remove();
+    mapRegion = region;
+    map = new maplibregl.Map({
+      container: "post-map",
+      style: await basemapStyle("grayscale", false, region),
+      center: [0, 0],
+      zoom: 1,
+      dragRotate: false,
+      pitchWithRotate: false,
+      attributionControl: { compact: true },
+    });
+    map.touchZoomRotate.disableRotation();
+    map.keyboard.disableRotation();
+    map.on("moveend", moved);
+  }
+  placing = true;
+  map.resize();
+  await place();
 }
 
 function open(p: Post | null) {
@@ -130,8 +227,8 @@ function open(p: Post | null) {
   input("post-card-note").value = p?.card?.note ?? "";
   $("post-preview").replaceChildren();
   $("post-error").textContent = "";
-  syncTrigger();
   $("post-form").hidden = false;
+  syncTrigger();
   input("post-name").focus();
 }
 
@@ -388,6 +485,11 @@ export function initPosts(apiFn: Api) {
   $("post-preview-btn").onclick = () => void preview();
   $("post-trigger").onchange = syncTrigger;
   input("post-card-on").onchange = syncTrigger;
+  $("post-frame-auto").onclick = () => {
+    setField("post-card-lat", "");
+    setField("post-card-lon", "");
+    void place();
+  };
   for (const f of FIELDS) area(`post-${f}`).oninput = counts;
   const vs = $("post-variants");
   vs.replaceChildren(
