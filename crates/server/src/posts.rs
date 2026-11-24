@@ -184,8 +184,16 @@ pub(super) async fn card_jpg(
 const VARIANTS: [&str; 4] = ["any", "fire", "water", "tie"];
 pub const CHANNELS: [&str; 2] = ["instagram", "mastodon"];
 const TRIGGERS: [&str; 4] = ["at", "chapter_start", "chapter_end", "manual"];
-/// Per channel the most a post may have (Instagram 2200, Mastodon 500).
-const MAX: [(&str, usize); 3] = [("instagram", 2200), ("mastodon", 500), ("alt", 1000)];
+/// The most a field may have: the shared text, per channel (Instagram 2200,
+/// Mastodon 500), the alt text.
+const MAX: [(&str, usize); 4] = [
+    ("text", 2200),
+    ("instagram", 2200),
+    ("mastodon", 500),
+    ("alt", 1000),
+];
+/// Instagram takes at most 30 hashtags.
+const TAGS_MAX: usize = 30;
 const POSTS_MAX: i64 = 100;
 
 #[derive(Deserialize, Debug)]
@@ -204,6 +212,9 @@ pub struct PostIn {
     /// `{lat?, lon?, width_m, title, note}`; null: no picture.
     pub card: Option<Value>,
     pub channels: Vec<String>,
+    /// Hashtags, without "#".
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 /// The texts: known variants and channels only, within the lengths; at least one.
@@ -214,6 +225,7 @@ pub fn clean_texts(v: &Value) -> Result<Value, &'static str> {
         let mut m = serde_json::Map::new();
         for (k, max) in MAX {
             if let Some(t) = clean_text(e.get(k), max).map_err(|_| match k {
+                "text" => "text: at most 2200 characters",
                 "instagram" => "Instagram: at most 2200 characters",
                 "mastodon" => "Mastodon: at most 500 characters",
                 _ => "alt text: at most 1000 characters",
@@ -221,7 +233,7 @@ pub fn clean_texts(v: &Value) -> Result<Value, &'static str> {
                 m.insert(k.into(), t.into());
             }
         }
-        if m.contains_key("instagram") || m.contains_key("mastodon") {
+        if m.contains_key("text") || m.contains_key("instagram") || m.contains_key("mastodon") {
             out.insert(var.into(), Value::Object(m));
         }
     }
@@ -256,7 +268,36 @@ pub fn clean_card(v: &Value) -> Result<Value, &'static str> {
     Ok(out)
 }
 
-fn clean_post(p: &PostIn) -> Result<(String, Value, Option<Value>, Vec<String>), &'static str> {
+/// A hashtag as stored: without "#", letters, digits and "_", not only digits.
+pub fn clean_tag(t: &str) -> Option<String> {
+    let t = t.trim().trim_start_matches('#');
+    let n = t.chars().count();
+    ((1..=60).contains(&n)
+        && t.chars().all(|c| c.is_alphanumeric() || c == '_')
+        && !t.chars().all(|c| c.is_ascii_digit()))
+    .then(|| t.to_string())
+}
+
+/// The hashtags as appended: a blank line, then `#a #b`; nothing without.
+fn tag_line(tags: &[String]) -> String {
+    if tags.is_empty() {
+        return String::new();
+    }
+    let joined: Vec<String> = tags.iter().map(|t| format!("#{t}")).collect();
+    format!("\n\n{}", joined.join(" "))
+}
+
+/// Hashtags written in the text itself.
+fn tags_in(text: &str) -> usize {
+    text.split_whitespace()
+        .filter(|w| w.starts_with('#') && w.chars().count() > 1)
+        .count()
+}
+
+#[allow(clippy::type_complexity)]
+fn clean_post(
+    p: &PostIn,
+) -> Result<(String, Value, Option<Value>, Vec<String>, Vec<String>), &'static str> {
     let title = p.title.trim();
     if title.is_empty() || title.chars().count() > 80 || title.chars().any(char::is_control) {
         return Err("name: 1 to 80 characters");
@@ -290,7 +331,46 @@ fn clean_post(p: &PostIn) -> Result<(String, Value, Option<Value>, Vec<String>),
         Some(v) if !v.is_null() => Some(clean_card(v)?),
         _ => None,
     };
-    Ok((title.to_string(), clean_texts(&p.texts)?, card, channels))
+    let mut tags: Vec<String> = Vec::new();
+    for t in &p.tags {
+        let t = clean_tag(t).ok_or("hashtags: letters, digits and _ only")?;
+        if !tags.iter().any(|x| x.to_lowercase() == t.to_lowercase()) {
+            tags.push(t);
+        }
+    }
+    if tags.len() > TAGS_MAX {
+        return Err("at most 30 hashtags");
+    }
+    let texts = clean_texts(&p.texts)?;
+    // Each channel's text with the hashtags must fit (the numbers change it a little).
+    let extra = tag_line(&tags).chars().count();
+    for v in texts.as_object().into_iter().flat_map(|m| m.values()) {
+        for ch in &channels {
+            let Some(t) = v
+                .get(ch.as_str())
+                .or_else(|| v.get("text"))
+                .and_then(Value::as_str)
+            else {
+                continue;
+            };
+            let n = t.chars().count() + extra;
+            match ch.as_str() {
+                "mastodon" if n > 500 => {
+                    return Err(
+                        "Mastodon: at most 500 characters with the hashtags; write its own text",
+                    )
+                }
+                "instagram" if n > 2200 => {
+                    return Err("Instagram: at most 2200 characters with the hashtags")
+                }
+                "instagram" if tags_in(t) + tags.len() > TAGS_MAX => {
+                    return Err("Instagram: at most 30 hashtags, with those in the text")
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok((title.to_string(), texts, card, channels, tags))
 }
 
 /// Thousands as the city writes them.
@@ -316,19 +396,31 @@ fn number(v: i64, lang: &str) -> String {
 
 /// The texts for an outcome with the numbers filled in: the outcome's own
 /// variant, else `any`.
-pub fn fill(texts: &Value, outcome: Option<&str>, vars: &[(&str, String)]) -> Option<Value> {
+pub fn fill(
+    texts: &Value,
+    outcome: Option<&str>,
+    vars: &[(&str, String)],
+    tags: &[String],
+) -> Option<Value> {
     let v = outcome
         .and_then(|o| texts.get(o))
         .or_else(|| texts.get("any"))?;
-    let mut out = serde_json::Map::new();
-    for (k, _) in MAX {
-        if let Some(t) = v.get(k).and_then(Value::as_str) {
-            let mut t = t.to_string();
-            for (name, val) in vars {
-                t = t.replace(&format!("{{{name}}}"), val);
-            }
-            out.insert(k.into(), t.into());
+    let put = |t: &str| {
+        let mut t = t.to_string();
+        for (name, val) in vars {
+            t = t.replace(&format!("{{{name}}}"), val);
         }
+        t
+    };
+    let mut out = serde_json::Map::new();
+    // A channel's own text, else the shared one; the hashtags at the end.
+    for ch in CHANNELS {
+        if let Some(t) = v.get(ch).or_else(|| v.get("text")).and_then(Value::as_str) {
+            out.insert(ch.into(), format!("{}{}", put(t), tag_line(tags)).into());
+        }
+    }
+    if let Some(t) = v.get("alt").and_then(Value::as_str) {
+        out.insert("alt".into(), put(t).into());
     }
     Some(Value::Object(out))
 }
@@ -393,6 +485,7 @@ struct Planned {
     chapter: Option<String>,
     texts: Value,
     card: Option<Value>,
+    tags: Vec<String>,
 }
 
 /// Make a draft of a post now: texts for the outcome, the picture.
@@ -408,7 +501,8 @@ pub(super) async fn draft(
     let first = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
             let Some(r) = db.query_opt(
-                "SELECT trigger, chapter, texts::text, card::text FROM game.posts WHERE region = $1 AND id = $2",
+                "SELECT trigger, chapter, texts::text, card::text, tags FROM game.posts \
+                 WHERE region = $1 AND id = $2",
                 &[&sl, &id],
             )?
             else {
@@ -418,7 +512,10 @@ pub(super) async fn draft(
                 trigger: r.get(0),
                 chapter: r.get(1),
                 texts: serde_json::from_str(r.get(2)).unwrap_or(Value::Null),
-                card: r.get::<_, Option<String>>(3).and_then(|c| serde_json::from_str(&c).ok()),
+                card: r
+                    .get::<_, Option<String>>(3)
+                    .and_then(|c| serde_json::from_str(&c).ok()),
+                tags: r.get(4),
             };
             let lang = primary(db, &sl)?;
             let ch = match &p.chapter {
@@ -452,7 +549,7 @@ pub(super) async fn draft(
     if p.chapter.is_some() && ch.is_none() {
         notes.push("chapter not found".into());
     }
-    let texts = fill(&p.texts, outcome, &vars).unwrap_or_else(|| {
+    let texts = fill(&p.texts, outcome, &vars, &p.tags).unwrap_or_else(|| {
         notes.push(format!("no text for {}", outcome.unwrap_or("any")));
         json!({})
     });
@@ -627,7 +724,7 @@ pub(super) async fn list(
                 .query(
                     &format!(
                         "SELECT id, title, trigger, {}, chapter, offset_min, texts::text, card::text, \
-                         channels, created_by FROM game.posts WHERE region = $1 ORDER BY id DESC",
+                         channels, created_by, tags FROM game.posts WHERE region = $1 ORDER BY id DESC",
                         epoch("at")
                     ),
                     &[&slug],
@@ -645,6 +742,7 @@ pub(super) async fn list(
                         "card": r.get::<_, Option<String>>(7).and_then(|c| serde_json::from_str::<Value>(&c).ok()),
                         "channels": r.get::<_, Vec<String>>(8),
                         "by": r.get::<_, String>(9),
+                        "tags": r.get::<_, Vec<String>>(10),
                     })
                 })
                 .collect();
@@ -699,7 +797,16 @@ pub(super) async fn list(
                     }),
                 None => None,
             };
-            Ok(json!({ "posts": posts, "runs": runs, "ready": ready(&slug), "instagram": instagram }))
+            let hashtags: Vec<Value> = db
+                .query(
+                    "SELECT tag, preset FROM game.post_tags WHERE region = $1 ORDER BY lower(tag)",
+                    &[&slug],
+                )?
+                .iter()
+                .map(|r| json!({ "tag": r.get::<_, String>(0), "preset": r.get::<_, bool>(1) }))
+                .collect();
+            Ok(json!({ "posts": posts, "runs": runs, "ready": ready(&slug), "instagram": instagram,
+                       "hashtags": hashtags }))
         })
     })
     .await
@@ -727,7 +834,7 @@ pub(super) async fn save(
     if !w.may(&slug, Role::Editor) {
         return StatusCode::UNAUTHORIZED.into_response();
     }
-    let (title, texts, card, channels) = match clean_post(&req) {
+    let (title, texts, card, channels, tags) = match clean_post(&req) {
         Ok(v) => v,
         Err(e) => return bad(e),
     };
@@ -759,9 +866,9 @@ pub(super) async fn save(
                     .query_opt(
                         "UPDATE game.posts SET title = $3, trigger = $4, at = to_timestamp($5), \
                          chapter = $6, offset_min = $7, texts = $8::text::jsonb, card = $9::text::jsonb, \
-                         channels = $10 WHERE region = $1 AND id = $2 RETURNING id",
+                         channels = $10, tags = $11 WHERE region = $1 AND id = $2 RETURNING id",
                         &[&slug, &id, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                          &texts.to_string(), &card_s, &channels],
+                          &texts.to_string(), &card_s, &channels, &tags],
                     )?
                     .map(|r| r.get(0)),
                 None => {
@@ -774,10 +881,11 @@ pub(super) async fn save(
                     Some(
                         t.query_one(
                             "INSERT INTO game.posts (region, title, trigger, at, chapter, offset_min, \
-                             texts, card, channels, created_by) VALUES ($1, $2, $3, to_timestamp($4), \
-                             $5, $6, $7::text::jsonb, $8::text::jsonb, $9, $10) RETURNING id",
+                             texts, card, channels, tags, created_by) VALUES ($1, $2, $3, \
+                             to_timestamp($4), $5, $6, $7::text::jsonb, $8::text::jsonb, $9, $10, $11) \
+                             RETURNING id",
                             &[&slug, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                              &texts.to_string(), &card_s, &channels, &by],
+                              &texts.to_string(), &card_s, &channels, &tags, &by],
                         )?
                         .get(0),
                     )
@@ -786,13 +894,20 @@ pub(super) async fn save(
             let Some(id) = id else {
                 return Ok(Err("no such post"));
             };
+            // A post's new hashtags join the region's list.
+            t.execute(
+                "INSERT INTO game.post_tags (region, tag) SELECT $1, unnest($2::text[]) \
+                 ON CONFLICT DO NOTHING",
+                &[&slug, &tags],
+            )?;
             audit_entity(
                 &mut t,
                 &format!("post {slug}/{id}"),
                 if req.id.is_some() { "change" } else { "add" },
                 &by,
                 json!({ "title": title, "trigger": req.trigger, "at": at, "chapter": chapter,
-                        "offset_min": req.offset_min, "texts": texts, "card": card, "channels": channels }),
+                        "offset_min": req.offset_min, "texts": texts, "card": card, "channels": channels,
+                        "tags": tags }),
             )?;
             t.commit()?;
             Ok(Ok(id))
@@ -991,6 +1106,136 @@ pub(super) async fn decide(
     match res {
         Some(1) => StatusCode::NO_CONTENT.into_response(),
         Some(_) => bad("no such draft"),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub(super) struct TagIn {
+    tag: String,
+    #[serde(default)]
+    preset: bool,
+}
+
+#[derive(Deserialize)]
+pub(super) struct TagQ {
+    region: Option<String>,
+    tag: String,
+}
+
+/// `POST /api/ops/posts/tags?region=` (editor): a hashtag of the region's
+/// list, new or with `preset` changed (ticked for new posts).
+pub(super) async fn tag_save(
+    State(s): State<AppState>,
+    Query(q): Query<RegionQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+    Json(req): Json<TagIn>,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let w = who(&s, c, &headers).await;
+    if !w.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let Some(tag) = clean_tag(&req.tag) else {
+        return bad("hashtags: letters, digits and _ only");
+    };
+    let (st, by) = (s.clone(), w.label);
+    let res = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let mut t = db.transaction()?;
+            let n: i64 = t
+                .query_one(
+                    "SELECT count(*) FROM game.post_tags WHERE region = $1",
+                    &[&slug],
+                )?
+                .get(0);
+            // Same tag in other case: that one.
+            let known: Option<String> = t
+                .query_opt(
+                    "SELECT tag FROM game.post_tags WHERE region = $1 AND lower(tag) = lower($2)",
+                    &[&slug, &tag],
+                )?
+                .map(|r| r.get(0));
+            if known.is_none() && n >= 200 {
+                return Ok(Err("at most 200 hashtags"));
+            }
+            let tag = known.unwrap_or(tag);
+            t.execute(
+                "INSERT INTO game.post_tags (region, tag, preset) VALUES ($1, $2, $3) \
+                 ON CONFLICT (region, tag) DO UPDATE SET preset = $3",
+                &[&slug, &tag, &req.preset],
+            )?;
+            audit_entity(
+                &mut t,
+                &format!("post tag {slug}/{tag}"),
+                "set",
+                &by,
+                json!({ "preset": req.preset }),
+            )?;
+            t.commit()?;
+            Ok(Ok(()))
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match res {
+        Some(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Some(Err(e)) => bad(e),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+/// `DELETE /api/ops/posts/tags?region=&tag=` (editor): off the region's list
+/// (posts keep theirs).
+pub(super) async fn tag_delete(
+    State(s): State<AppState>,
+    Query(q): Query<TagQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let w = who(&s, c, &headers).await;
+    if !w.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let (st, by, tag) = (
+        s.clone(),
+        w.label,
+        q.tag.trim_start_matches('#').to_string(),
+    );
+    let res = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let mut t = db.transaction()?;
+            let n = t.execute(
+                "DELETE FROM game.post_tags WHERE region = $1 AND tag = $2",
+                &[&slug, &tag],
+            )?;
+            if n > 0 {
+                audit_entity(
+                    &mut t,
+                    &format!("post tag {slug}/{tag}"),
+                    "delete",
+                    &by,
+                    json!({}),
+                )?;
+            }
+            t.commit()?;
+            Ok(n)
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match res {
+        Some(_) => StatusCode::NO_CONTENT.into_response(),
         None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
     }
 }
@@ -1720,12 +1965,19 @@ mod tests {
             ("water", "3".to_string()),
             ("chapter", "1. Advent".to_string()),
         ];
-        let f = fill(&t, Some("fire"), &vars).unwrap();
+        let f = fill(&t, Some("fire"), &vars, &[]).unwrap();
         assert_eq!(f["instagram"], "Glut 12:3");
         assert_eq!(f["alt"], "Plan");
-        let w = fill(&t, Some("water"), &vars).unwrap();
+        let w = fill(&t, Some("water"), &vars, &[]).unwrap();
         assert_eq!(w["mastodon"], "1. Advent vorbei");
-        assert!(fill(&json!({ "fire": {} }), Some("water"), &vars).is_none());
+        assert!(fill(&json!({ "fire": {} }), Some("water"), &vars, &[]).is_none());
+        // One text for both channels, Mastodon its own; hashtags at the end.
+        let t = clean_texts(&json!({ "any": { "text": "Stand {fire}", "mastodon": "M {water}" } }))
+            .unwrap();
+        let f = fill(&t, None, &vars, &["GlutUndFlut".into(), "Konstanz".into()]).unwrap();
+        assert_eq!(f["instagram"], "Stand 12\n\n#GlutUndFlut #Konstanz");
+        assert_eq!(f["mastodon"], "M 3\n\n#GlutUndFlut #Konstanz");
+        assert!(f.get("alt").is_none());
     }
 
     #[test]
@@ -1740,8 +1992,14 @@ mod tests {
             texts: json!({ "any": { "mastodon": "x" } }),
             card: Some(json!({ "width_m": 950, "title": "Ergebnis" })),
             channels: vec!["mastodon".into(), "mastodon".into()],
+            tags: vec!["#Konstanz".into(), "konstanz".into(), "GlutUndFlut".into()],
         };
-        let (_, _, card, ch) = clean_post(&ok).unwrap();
+        let (_, _, card, ch, tags) = clean_post(&ok).unwrap();
+        assert_eq!(tags, vec!["Konstanz", "GlutUndFlut"]);
+        assert_eq!(clean_tag("#Glut_2026"), Some("Glut_2026".into()));
+        assert_eq!(clean_tag("2026"), None);
+        assert_eq!(clean_tag("glut und flut"), None);
+
         assert_eq!(ch, vec!["mastodon"]);
         assert_eq!(card.unwrap()["note"], "");
         let no_chapter = PostIn {
@@ -1764,5 +2022,13 @@ mod tests {
             ..bad_card
         };
         assert!(clean_post(&too_long).is_err());
+        // The hashtags count into Mastodon's 500.
+        let long = PostIn {
+            texts: json!({ "any": { "text": "x".repeat(495) } }),
+            tags: vec!["Konstanz".into()],
+            channels: vec!["mastodon".into()],
+            ..too_long
+        };
+        assert!(clean_post(&long).unwrap_err().starts_with("Mastodon"));
     }
 }

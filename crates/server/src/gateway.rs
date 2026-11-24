@@ -568,6 +568,10 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/posts/draft", post(posts::draft_now))
                     .route("/api/ops/posts/run", post(posts::decide))
                     .route("/api/ops/posts/send", post(posts::send))
+                    .route(
+                        "/api/ops/posts/tags",
+                        post(posts::tag_save).delete(posts::tag_delete),
+                    )
                     .route("/api/ops/posts/run.jpg", get(posts::run_jpg))
                     .route("/api/ops/indoor", get(ops_indoor))
                     .route("/api/ops/regions", get(ops_regions))

@@ -175,8 +175,18 @@
           </div>
           <p><small id="post-variants-hint"></small></p>
           <div class="tabs" id="post-variants"></div>
-          <label><span><span data-i18n="po.f.instagram">Instagram</span> <small id="post-instagram-count"></small></span> <textarea id="post-instagram" maxlength="2200" rows="6"></textarea></label>
-          <label><span><span data-i18n="po.f.mastodon">Mastodon</span> <small id="post-mastodon-count"></small></span> <textarea id="post-mastodon" maxlength="500" rows="5"></textarea></label>
+          <label><span><span data-i18n="po.f.text">Text für alle Kanäle</span> <small id="post-text-count"></small></span> <textarea id="post-text" maxlength="2200" rows="6"></textarea></label>
+          <div class="ed-row">
+            <label class="check"><input type="checkbox" id="post-own-instagram" /> <span data-i18n="po.f.own.instagram">Eigener Text für Instagram</span></label>
+            <label class="check"><input type="checkbox" id="post-own-mastodon" /> <span data-i18n="po.f.own.mastodon">Eigener Text für Mastodon</span></label>
+          </div>
+          <label id="post-instagram-row"><span><span data-i18n="po.f.instagram">Instagram</span> <small id="post-instagram-count"></small></span> <textarea id="post-instagram" maxlength="2200" rows="6"></textarea></label>
+          <label id="post-mastodon-row"><span><span data-i18n="po.f.mastodon">Mastodon</span> <small id="post-mastodon-count"></small></span> <textarea id="post-mastodon" maxlength="500" rows="5"></textarea></label>
+          <div class="post-tags-pick">
+            <span><b data-i18n="po.f.tags">Hashtags</b> <small data-i18n="po.f.tags.hint">(kommen ans Ende jedes Textes)</small></span>
+            <div id="post-tags" class="tag-chips"></div>
+            <input id="post-tag-new" data-i18n-placeholder="po.f.tags.ph" autocomplete="off" />
+          </div>
           <label><span><span data-i18n="po.f.alt">Alt-Text</span> <small id="post-alt-count"></small></span> <textarea id="post-alt" maxlength="1000" rows="3"></textarea></label>
           <label class="check"><input type="checkbox" id="post-card-on" /> <span data-i18n="po.f.card">Bild: Spielstand als Karte</span></label>
           <div id="post-card-fields">
@@ -197,6 +207,12 @@
         </div>
         <h3 data-i18n="po.planned">Geplant</h3>
         <div id="posts-list"></div>
+        <details id="post-hashtags">
+          <summary data-i18n="po.tags.title">Hashtags der Region</summary>
+          <p class="hint" data-i18n="po.tags.hint">Angehakte stehen bei neuen Beiträgen schon drin. Neue Hashtags aus Beiträgen kommen von selbst hierher.</p>
+          <div id="post-hashtag-list"></div>
+          <div class="ed-row"><input id="post-hashtag-new" data-i18n-placeholder="po.f.tags.ph" autocomplete="off" /> <button type="button" id="post-hashtag-add" data-i18n="po.tags.add">Hinzufügen</button></div>
+        </details>
       </section>
       </div>
 

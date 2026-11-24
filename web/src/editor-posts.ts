@@ -10,7 +10,8 @@ import * as maplibregl from "maplibre-gl";
 import { basemapStyle } from "./basemap";
 import { listRegions } from "./region";
 
-type Texts = { instagram?: string; mastodon?: string; alt?: string };
+/** A post's texts per outcome: `text` for all channels, a channel's own text, the alt text. */
+type Texts = { text?: string; instagram?: string; mastodon?: string; alt?: string };
 type Variant = "any" | "fire" | "water" | "tie";
 type Card = { lat?: number; lon?: number; width_m: number; title: string; note: string };
 type Post = {
@@ -24,6 +25,7 @@ type Post = {
   card: Card | null;
   channels: string[];
   by: string;
+  tags: string[];
 };
 type Run = {
   id: number;
@@ -45,7 +47,10 @@ type Api = (path: string, init?: RequestInit) => Promise<Response>;
 
 const VARIANTS: Variant[] = ["any", "fire", "water", "tie"];
 const FIELDS = ["instagram", "mastodon", "alt"] as const;
-const MAX = { instagram: 2200, mastodon: 500, alt: 1000 };
+const MAX = { text: 2200, instagram: 2200, mastodon: 500, alt: 1000 };
+const CHANNELS = ["instagram", "mastodon"] as const;
+/** The form's fields (a draft has only the channels and alt). */
+const FORM = ["text", "instagram", "mastodon", "alt"] as const;
 const LABEL: Record<string, EKey> = { instagram: "po.f.instagram", mastodon: "po.f.mastodon", alt: "po.f.alt" };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -67,6 +72,9 @@ let editing: Post | null = null;
 /** The form's texts per variant (the shown one lives in the text areas). */
 let texts: Partial<Record<Variant, Texts>> = {};
 let shown: Variant = "any";
+/** The region's hashtags, and the ones the form's post uses. */
+let hashtags: { tag: string; preset: boolean }[] = [];
+let picked: string[] = [];
 const pictures = new Map<number, string>();
 /** The picker for the picture's area: the map moves under a fixed 4:5 frame. */
 let map: maplibregl.Map | null = null;
@@ -82,7 +90,9 @@ const chapterName = (key: string | null) => {
 
 function keepShown() {
   const v: Texts = {};
-  for (const f of FIELDS) {
+  for (const f of FORM) {
+    // A channel's own text only while its box is ticked.
+    if ((f === "instagram" || f === "mastodon") && !input(`post-own-${f}`).checked) continue;
     const x = area(`post-${f}`).value.trim();
     if (x) v[f] = x;
   }
@@ -92,18 +102,112 @@ function keepShown() {
 function showVariant(v: Variant) {
   keepShown();
   shown = v;
-  for (const f of FIELDS) area(`post-${f}`).value = texts[v]?.[f] ?? "";
+  for (const f of FORM) area(`post-${f}`).value = texts[v]?.[f] ?? "";
+  for (const c of CHANNELS) input(`post-own-${c}`).checked = !!texts[v]?.[c];
   for (const b of document.querySelectorAll<HTMLButtonElement>("#post-variants button")) b.classList.toggle("on", b.dataset.v === v);
+  syncOwn();
+}
+
+/** Own-text fields shown when ticked; a new one starts from the shared text. */
+function syncOwn(from?: (typeof CHANNELS)[number]) {
+  for (const c of CHANNELS) {
+    const on = input(`post-own-${c}`).checked;
+    $(`post-${c}-row`).style.display = on ? "" : "none";
+    if (c === from && on && !area(`post-${c}`).value.trim()) area(`post-${c}`).value = area("post-text").value;
+  }
   counts();
 }
 
+/** The hashtags as the server appends them. */
+const tagLine = () => (picked.length ? `\n\n${picked.map((t) => `#${t}`).join(" ")}` : "");
+
 function counts() {
-  for (const f of FIELDS) $(`post-${f}-count`).textContent = `${area(`post-${f}`).value.length} / ${MAX[f]}`;
+  const extra = tagLine().length;
+  const chosen = CHANNELS.filter((c) => input(`post-ch-${c}`).checked);
+  const label = (c: string) => t(LABEL[c]);
+  // The shared text: what it comes to per channel that uses it.
+  const shared = chosen.filter((c) => !input(`post-own-${c}`).checked);
+  const n = area("post-text").value.length;
+  const parts = shared.map((c) => `${label(c)} ${n + extra} / ${MAX[c]}`);
+  const tc = $("post-text-count");
+  tc.textContent = parts.length ? `${parts.join(" · ")}${extra ? ` (${t("po.count.with")})` : ""}` : `${n} / ${MAX.text}`;
+  tc.classList.toggle("over", shared.some((c) => n + extra > MAX[c]));
+  for (const c of CHANNELS) {
+    const m = area(`post-${c}`).value.length + extra;
+    const el2 = $(`post-${c}-count`);
+    el2.textContent = `${m} / ${MAX[c]}${extra ? ` (${t("po.count.with")})` : ""}`;
+    el2.classList.toggle("over", m > MAX[c]);
+  }
+  $("post-alt-count").textContent = `${area("post-alt").value.length} / ${MAX.alt}`;
   for (const b of document.querySelectorAll<HTMLButtonElement>("#post-variants button")) {
     const v = b.dataset.v as Variant;
-    const has = v === shown ? FIELDS.some((f) => area(`post-${f}`).value.trim()) : !!(texts[v]?.instagram || texts[v]?.mastodon);
+    const has = v === shown ? ["text", ...CHANNELS].some((f) => area(`post-${f}`).value.trim()) : !!(texts[v]?.text || texts[v]?.instagram || texts[v]?.mastodon);
     b.classList.toggle("has", has);
   }
+}
+
+// --- Hashtags --------------------------------------------------------------------
+
+const cleanTag = (s: string) => {
+  const x = s.trim().replace(/^#+/, "");
+  return /^[\p{L}\p{N}_]{1,60}$/u.test(x) && !/^\d+$/.test(x) ? x : null;
+};
+
+/** The form's chips: the region's hashtags and the post's own, ticked when used. */
+function drawPicked() {
+  const host = $("post-tags");
+  const all = [...hashtags.map((h) => h.tag)];
+  for (const p of picked) if (!all.some((x) => x.toLowerCase() === p.toLowerCase())) all.push(p);
+  host.replaceChildren(
+    ...all.map((tag) => {
+      const on = picked.some((p) => p.toLowerCase() === tag.toLowerCase());
+      return el("button", {
+        type: "button",
+        className: `tag-chip${on ? " on" : ""}`,
+        textContent: `#${tag}`,
+        onclick: () => {
+          picked = on ? picked.filter((p) => p.toLowerCase() !== tag.toLowerCase()) : [...picked, tag];
+          input("post-tag-new").dispatchEvent(new Event("input", { bubbles: true }));
+          drawPicked();
+        },
+      });
+    }),
+  );
+  counts();
+}
+
+/** The region's list, below the posts: preset or not, delete. */
+function drawHashtags() {
+  const host = $("post-hashtag-list");
+  if (!hashtags.length) {
+    host.replaceChildren(el("p", { className: "empty", textContent: t("po.tags.none") }));
+    return;
+  }
+  host.replaceChildren(
+    ...hashtags.map((h) => {
+      const row = document.createElement("div");
+      row.className = "tag-row";
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = h.preset;
+      box.onchange = () => void tagCall("POST", h.tag, box.checked);
+      const lab = document.createElement("label");
+      lab.className = "check";
+      const preset: string = t("po.tags.preset");
+      lab.append(box, ` ${preset}`);
+      row.append(el("b", { textContent: `#${h.tag}` }), lab, el("button", { type: "button", textContent: t("ui.delete"), onclick: () => void tagCall("DELETE", h.tag) }));
+      return row;
+    }),
+  );
+}
+
+async function tagCall(method: "POST" | "DELETE", tag: string, preset = false) {
+  const res =
+    method === "POST"
+      ? await api(`/api/ops/posts/tags?${q()}`, { method, body: JSON.stringify({ tag, preset }) }).catch(() => null)
+      : await api(`/api/ops/posts/tags?${q()}&tag=${encodeURIComponent(tag)}`, { method }).catch(() => null);
+  if (!res?.ok) toast(await errorOf(res, t("ui.savefail")), "error");
+  await loadPosts(region, primary, chapters);
 }
 
 function syncTrigger() {
@@ -217,7 +321,11 @@ function open(p: Post | null) {
   for (const c of ["instagram", "mastodon"]) input(`post-ch-${c}`).checked = p ? p.channels.includes(c) : true;
   texts = structuredClone(p?.texts ?? {});
   shown = "any";
-  for (const f of FIELDS) area(`post-${f}`).value = texts.any?.[f] ?? "";
+  for (const f of FORM) area(`post-${f}`).value = texts.any?.[f] ?? "";
+  for (const c of CHANNELS) input(`post-own-${c}`).checked = !!texts.any?.[c];
+  picked = p ? [...p.tags] : hashtags.filter((h) => h.preset).map((h) => h.tag);
+  input("post-tag-new").value = "";
+  drawPicked();
   showVariant(p && !p.texts.any ? (VARIANTS.find((v) => p.texts[v]) ?? "any") : "any");
   input("post-card-on").checked = !!p?.card;
   input("post-card-lat").value = p?.card?.lat != null ? String(p.card.lat) : "";
@@ -251,9 +359,10 @@ async function save() {
     at: tr === "at" ? fromLocal(input("post-at").value) : null,
     chapter: tr.startsWith("chapter_") ? $<HTMLSelectElement>("post-chapter").value : null,
     offset_min: Math.round(Number(input("post-offset").value) || 0),
-    texts: Object.fromEntries(Object.entries(texts).filter(([, v]) => v && (v.instagram || v.mastodon))),
+    texts: Object.fromEntries(Object.entries(texts).filter(([, v]) => v && (v.text || v.instagram || v.mastodon))),
     card: cardOf(),
     channels: ["instagram", "mastodon"].filter((c) => input(`post-ch-${c}`).checked),
+    tags: picked,
   };
   const res = await api(`/api/ops/posts?${q()}`, { method: "POST", body: JSON.stringify(body) }).catch(() => null);
   if (!res?.ok) {
@@ -490,7 +599,33 @@ export function initPosts(apiFn: Api) {
     setField("post-card-lon", "");
     void place();
   };
-  for (const f of FIELDS) area(`post-${f}`).oninput = counts;
+  for (const f of FORM) area(`post-${f}`).oninput = counts;
+  for (const c of CHANNELS) {
+    input(`post-own-${c}`).onchange = () => syncOwn(c);
+    input(`post-ch-${c}`).addEventListener("change", counts);
+  }
+  input("post-tag-new").onkeydown = (e) => {
+    if (e.key !== "Enter" && e.key !== "," && e.key !== " ") return;
+    e.preventDefault();
+    const tag = cleanTag(input("post-tag-new").value);
+    if (!input("post-tag-new").value.trim()) return;
+    if (!tag) return toast(t("po.tags.bad"), "error");
+    if (!picked.some((p) => p.toLowerCase() === tag.toLowerCase())) picked.push(tag);
+    input("post-tag-new").value = "";
+    drawPicked();
+  };
+  const addTag = () => {
+    const raw = input("post-hashtag-new").value;
+    const tag = cleanTag(raw);
+    if (!raw.trim()) return;
+    if (!tag) return toast(t("po.tags.bad"), "error");
+    input("post-hashtag-new").value = "";
+    void tagCall("POST", tag, true);
+  };
+  $("post-hashtag-add").onclick = addTag;
+  input("post-hashtag-new").onkeydown = (e) => {
+    if (e.key === "Enter") (e.preventDefault(), addTag());
+  };
   const vs = $("post-variants");
   vs.replaceChildren(
     ...VARIANTS.map((v) => el("button", { type: "button", textContent: t(`po.v.${v}` as EKey), onclick: () => showVariant(v) })),
@@ -509,7 +644,14 @@ export async function loadPosts(slug: string, lang: string, chs: ChapterRef[]) {
   const res = await api(`/api/ops/posts?${q()}`).catch(() => null);
   $("posts-card").hidden = !res?.ok;
   if (!res?.ok) return;
-  ({ posts, runs, ready, instagram: insta } = (await res.json()) as { posts: Post[]; runs: Run[]; ready: string[]; instagram: typeof insta });
+  ({ posts, runs, ready, instagram: insta, hashtags } = (await res.json()) as {
+    posts: Post[];
+    runs: Run[];
+    ready: string[];
+    instagram: typeof insta;
+    hashtags: typeof hashtags;
+  });
+  drawHashtags();
   drawRuns();
   drawList();
   const n = runs.filter((r) => r.state === "draft").length;
