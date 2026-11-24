@@ -554,10 +554,10 @@ pub(super) async fn tick_loop(s: AppState) {
         if !s.host.is_main() {
             continue;
         }
-        // Tokens hourly, from the second minute on (the lease settles first).
+        // Accounts hourly (each checked daily), from the second minute on.
         n += 1;
         if n % 60 == 2 {
-            renew_accounts(&s).await;
+            check_accounts(&s).await;
         }
         let st = s.clone();
         let shard = s.host.shard().to_string();
@@ -1319,8 +1319,10 @@ enum Via {
 
 // --- Instagram -----------------------------------------------------------------
 
-/// Instagram API with Instagram Login.
-const IG: &str = "https://graph.instagram.com";
+/// Instagram through the Facebook Graph API: new Meta apps only get "API setup
+/// with Unified login", whose token is a system user's (expiry: never or 60
+/// days, no renewal); the account comes from `/me/assigned_instagram_accounts`.
+const IG: &str = "https://graph.facebook.com";
 // Meta retires a version about two years after its release; bump then.
 const IG_VERSION: &str = "v24.0";
 
@@ -1331,12 +1333,24 @@ struct Insta {
     username: Option<String>,
 }
 
-/// The token in the environment: `ELEMENTS_POST_INSTAGRAM_<REGION>`.
+/// The environment's `ELEMENTS_POST_INSTAGRAM_<REGION>`: `token`, or
+/// `account-id token` when the token reaches several accounts.
+fn instagram_of(v: &str) -> Option<(Option<String>, String)> {
+    let mut it = v.split_whitespace();
+    match (it.next(), it.next(), it.next()) {
+        (Some(t), None, None) => Some((None, t.to_string())),
+        (Some(id), Some(t), None) if id.chars().all(|c| c.is_ascii_digit()) => {
+            Some((Some(id.to_string()), t.to_string()))
+        }
+        _ => None,
+    }
+}
+
 fn instagram_env(slug: &str) -> Option<String> {
     std::env::var(format!("ELEMENTS_POST_INSTAGRAM_{}", env_name(slug)))
         .ok()
+        .filter(|v| instagram_of(v).is_some())
         .map(|v| v.trim().to_string())
-        .filter(|v| !v.is_empty() && !v.contains(char::is_whitespace))
 }
 
 fn seed_of(token: &str) -> String {
@@ -1348,7 +1362,7 @@ fn seed_of(token: &str) -> String {
 }
 
 fn ig_get(agent: &ureq::Agent, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
-    let mut r = agent.get(&format!("{IG}/{path}"));
+    let mut r = agent.get(&format!("{IG}/{IG_VERSION}/{path}"));
     for (k, v) in query {
         r = r.query(k, v);
     }
@@ -1360,17 +1374,69 @@ fn ig_get(agent: &ureq::Agent, path: &str, query: &[(&str, &str)]) -> Result<Val
 
 fn ig_post(agent: &ureq::Agent, path: &str, form: &[(&str, &str)]) -> Result<Value, String> {
     agent
-        .post(&format!("{IG}/{path}"))
+        .post(&format!("{IG}/{IG_VERSION}/{path}"))
         .send_form(form)
         .map_err(brief)?
         .into_json()
         .map_err(|e| e.to_string())
 }
 
+fn id_of(v: &Value) -> Option<String> {
+    match v {
+        Value::String(s) => Some(s.clone()),
+        Value::Number(n) => Some(n.to_string()),
+        _ => None,
+    }
+}
+
+/// The account the token posts to: the given one, else the only one assigned.
+fn ig_account(id: Option<&str>, token: &str) -> Result<(String, Option<String>), String> {
+    let agent = crate::media::agent().ok_or("no TLS")?;
+    if let Some(id) = id {
+        let v = ig_get(
+            &agent,
+            id,
+            &[("fields", "id,username"), ("access_token", token)],
+        )?;
+        return Ok((id.to_string(), v["username"].as_str().map(str::to_string)));
+    }
+    let v = ig_get(
+        &agent,
+        "me/assigned_instagram_accounts",
+        &[
+            ("fields", "id,username"),
+            ("limit", "100"),
+            ("access_token", token),
+        ],
+    )?;
+    let list: Vec<(String, Option<String>)> = v["data"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| {
+                    Some((id_of(&x["id"])?, x["username"].as_str().map(str::to_string)))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    match list.len() {
+        0 => Err("no Instagram account assigned to this token".into()),
+        1 => Ok(list.into_iter().next().unwrap()),
+        _ => Err(format!(
+            "several accounts, put `id token` in the environment: {}",
+            list.iter()
+                .map(|(id, u)| format!("{id} @{}", u.as_deref().unwrap_or("?")))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )),
+    }
+}
+
 /// The region's account: the stored one, or the environment's token stored
 /// first (with the account's id) when it is new there.
 async fn instagram(s: &AppState, slug: &str) -> Result<Insta, String> {
     let env = instagram_env(slug).ok_or("Instagram is not set up for this region")?;
+    let (id, token) = instagram_of(&env).ok_or("Instagram is not set up for this region")?;
     let seed = seed_of(&env);
     let (st, sl, sd) = (s.clone(), slug.to_string(), seed.clone());
     let stored = tokio::task::spawn_blocking(move || {
@@ -1395,26 +1461,13 @@ async fn instagram(s: &AppState, slug: &str) -> Result<Insta, String> {
     if let Some(a) = stored {
         return Ok(a);
     }
-    let tok = env.clone();
-    let me = tokio::task::spawn_blocking(move || {
-        let agent = crate::media::agent().ok_or("no TLS")?;
-        ig_get(
-            &agent,
-            &format!("{IG_VERSION}/me"),
-            &[("fields", "user_id,username"), ("access_token", &tok)],
-        )
-    })
-    .await
-    .map_err(|e| e.to_string())?
-    .map_err(|e| format!("Instagram account: {e}"))?;
-    let user_id = match &me["user_id"] {
-        Value::String(v) => v.clone(),
-        Value::Number(n) => n.to_string(),
-        _ => return Err("Instagram account: no user_id".into()),
-    };
-    let username = me["username"].as_str().map(str::to_string);
+    let tok = token.clone();
+    let (user_id, username) = tokio::task::spawn_blocking(move || ig_account(id.as_deref(), &tok))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| format!("Instagram account: {e}"))?;
     let a = Insta {
-        token: env,
+        token,
         user_id,
         username,
     };
@@ -1422,11 +1475,14 @@ async fn instagram(s: &AppState, slug: &str) -> Result<Insta, String> {
     let (tok, uid, un) = (a.token.clone(), a.user_id.clone(), a.username.clone());
     tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
+            // refreshed_at: last checked (`check_accounts`); long ago, so it checks soon.
             db.execute(
-                "INSERT INTO game.post_accounts (region, channel, seed, token, user_id, username) \
-                 VALUES ($1, 'instagram', $2, $3, $4, $5) \
+                "INSERT INTO game.post_accounts \
+                   (region, channel, seed, token, user_id, username, refreshed_at) \
+                 VALUES ($1, 'instagram', $2, $3, $4, $5, now() - interval '2 days') \
                  ON CONFLICT (region, channel) DO UPDATE SET seed = $2, token = $3, user_id = $4, \
-                   username = $5, expires_at = NULL, refreshed_at = now(), error = NULL",
+                   username = $5, expires_at = NULL, refreshed_at = now() - interval '2 days', \
+                   error = NULL",
                 &[&sl, &seed, &tok, &uid, &un],
             )
         })
@@ -1451,16 +1507,16 @@ fn send_instagram(a: &Insta, caption: &str, alt: &str, image_url: &str) -> Resul
     if !alt.is_empty() {
         form.push(("alt_text", alt));
     }
-    let c = ig_post(&agent, &format!("{IG_VERSION}/{}/media", a.user_id), &form)
+    let c = ig_post(&agent, &format!("{}/media", a.user_id), &form)
         .map_err(|e| format!("container: {e}"))?;
-    let cid = c["id"].as_str().ok_or("container: no id")?.to_string();
+    let cid = id_of(&c["id"]).ok_or("container: no id")?;
     // Meta fetches the picture; wait until the container is ready.
     let mut ready = false;
     for _ in 0..40 {
         std::thread::sleep(Duration::from_secs(3));
         let v = ig_get(
             &agent,
-            &format!("{IG_VERSION}/{cid}"),
+            &cid,
             &[("fields", "status_code,status"), ("access_token", tok)],
         )
         .map_err(|e| format!("container status: {e}"))?;
@@ -1483,15 +1539,15 @@ fn send_instagram(a: &Insta, caption: &str, alt: &str, image_url: &str) -> Resul
     }
     let p = ig_post(
         &agent,
-        &format!("{IG_VERSION}/{}/media_publish", a.user_id),
+        &format!("{}/media_publish", a.user_id),
         &[("creation_id", &cid), ("access_token", tok)],
     )
     .map_err(|e| format!("publish: {e}"))?;
-    let mid = p["id"].as_str().ok_or("publish: no id")?.to_string();
+    let mid = id_of(&p["id"]).ok_or("publish: no id")?;
     // Published; the link is nice to have.
     let link = ig_get(
         &agent,
-        &format!("{IG_VERSION}/{mid}"),
+        &mid,
         &[("fields", "permalink"), ("access_token", tok)],
     )
     .ok()
@@ -1502,10 +1558,10 @@ fn send_instagram(a: &Insta, caption: &str, alt: &str, image_url: &str) -> Resul
     }))
 }
 
-/// Renews the shard's Instagram tokens once a week (a token lives 60 days;
-/// renewing needs it 24 hours old); stores a new token from the environment
-/// first. A failure is kept in `error` and tried again an hour later.
-async fn renew_accounts(s: &AppState) {
+/// Checks the shard's Instagram tokens once a day (`debug_token`: valid,
+/// expiry; a system user's token is not renewed); stores a new token from the
+/// environment first. The editor warns from what is stored.
+async fn check_accounts(s: &AppState) {
     let (st, shard) = (s.clone(), s.host.shard().to_string());
     let slugs = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
@@ -1534,7 +1590,7 @@ async fn renew_accounts(s: &AppState) {
                 Ok(db
                     .query_opt(
                         "SELECT 1 FROM game.post_accounts WHERE region = $1 AND channel = 'instagram' \
-                         AND refreshed_at < now() - interval '7 days'",
+                         AND refreshed_at < now() - interval '1 day'",
                         &[&sl],
                     )?
                     .is_some())
@@ -1548,40 +1604,44 @@ async fn renew_accounts(s: &AppState) {
             continue;
         }
         let tok = a.token.clone();
+        // Ok(expires: unix seconds, 0 never), Err(why not usable).
         let got = tokio::task::spawn_blocking(move || {
             let agent = crate::media::agent().ok_or("no TLS")?;
             let v = ig_get(
                 &agent,
-                "refresh_access_token",
-                &[("grant_type", "ig_refresh_token"), ("access_token", &tok)],
+                "debug_token",
+                &[("input_token", &tok), ("access_token", &tok)],
             )?;
-            let t = v["access_token"].as_str().ok_or("no token in the answer")?;
-            Ok::<_, String>((t.to_string(), v["expires_in"].as_i64().unwrap_or(0)))
+            let d = &v["data"];
+            if d["is_valid"].as_bool() != Some(true) {
+                return Err(d["error"]["message"]
+                    .as_str()
+                    .unwrap_or("token not valid")
+                    .to_string());
+            }
+            Ok::<_, String>(d["expires_at"].as_i64().unwrap_or(0))
         })
         .await
         .unwrap_or_else(|e| Err(e.to_string()));
-        let (st, sl) = (s.clone(), slug.clone());
         match &got {
-            Ok(_) => tracing::info!(region = %slug, "posts: Instagram token renewed"),
-            Err(e) => {
-                tracing::warn!(region = %slug, error = %e, "posts: Instagram token not renewed")
-            }
+            Ok(0) => tracing::info!(region = %slug, "posts: Instagram token valid, no expiry"),
+            Ok(t) => tracing::info!(region = %slug, expires = t, "posts: Instagram token valid"),
+            Err(e) => tracing::warn!(region = %slug, error = %e, "posts: Instagram token"),
         }
+        let (st, sl) = (s.clone(), slug.clone());
         tokio::task::spawn_blocking(move || {
-            st.with_db(|db| {
-                match got {
-                Ok((token, secs)) => db.execute(
-                    "UPDATE game.post_accounts SET token = $2, refreshed_at = now(), error = NULL, \
-                       expires_at = CASE WHEN $3 > 0 THEN now() + make_interval(secs => $3) END \
+            st.with_db(|db| match got {
+                Ok(t) => db.execute(
+                    "UPDATE game.post_accounts SET refreshed_at = now(), error = NULL, \
+                       expires_at = CASE WHEN $2 > 0 THEN to_timestamp($2) END \
                      WHERE region = $1 AND channel = 'instagram'",
-                    &[&sl, &token, &(secs as f64)],
+                    &[&sl, &(t as f64)],
                 ),
                 Err(e) => db.execute(
-                    "UPDATE game.post_accounts SET error = $2 \
+                    "UPDATE game.post_accounts SET refreshed_at = now(), error = $2 \
                      WHERE region = $1 AND channel = 'instagram'",
                     &[&sl, &e],
                 ),
-            }
             })
         })
         .await
@@ -1619,6 +1679,13 @@ mod tests {
         assert!(mastodon_of("https://mastodon.social").is_none());
         assert!(mastodon_of("https://mastodon.social a b").is_none());
         assert_eq!(seed_of("abc").len(), 64);
+        assert_eq!(instagram_of(" EAAx "), Some((None, "EAAx".into())));
+        assert_eq!(
+            instagram_of("1784 EAAx"),
+            Some((Some("1784".into()), "EAAx".into()))
+        );
+        assert_eq!(instagram_of("abc EAAx"), None);
+        assert_eq!(instagram_of(""), None);
         assert_ne!(seed_of("abc"), seed_of("abd"));
     }
 

@@ -314,16 +314,12 @@ function drawRuns() {
   const open = runs.filter((r) => r.state === "draft");
   const done = runs.filter((r) => r.state !== "draft").slice(0, 10);
   host.replaceChildren();
-  // Renewal is the server's job; only a failing one is worth a word.
-  if (insta?.error) {
+  // The server checks the token daily; warn when it fails or ends soon.
+  if (insta) {
     const user = insta.username ?? "?";
     const soon = insta.expires != null && insta.expires * 1000 - Date.now() < 14 * 86400e3;
-    host.append(
-      el("p", {
-        className: "notice",
-        textContent: soon ? t("po.ig.expires", { user, date: fmtDate(insta.expires!) }) : t("po.ig.error", { user, err: insta.error }),
-      }),
-    );
+    const msg = insta.error ? t("po.ig.error", { user, err: insta.error }) : soon ? t("po.ig.expires", { user, date: fmtDate(insta.expires!) }) : "";
+    if (msg) host.append(el("p", { className: "notice", textContent: msg }));
   }
   if (!open.length) host.append(el("p", { className: "empty", textContent: t("po.runs.none") }));
   for (const r of open) host.append(drawRun(r));
