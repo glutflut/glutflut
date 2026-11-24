@@ -1010,7 +1010,19 @@ fn env_name(slug: &str) -> String {
         .collect()
 }
 
-/// A Mastodon account: `ELEMENTS_POST_MASTODON_<REGION>="https://instance token"`
+/// A post variable for the region; quotes around it dropped (`docker
+/// --env-file` keeps them).
+fn post_var(channel: &str, slug: &str) -> Option<String> {
+    let v = std::env::var(format!("ELEMENTS_POST_{channel}_{}", env_name(slug))).ok()?;
+    let v = v.trim();
+    let v = ['"', '\'']
+        .iter()
+        .find_map(|q| v.strip_prefix(*q).and_then(|x| x.strip_suffix(*q)))
+        .unwrap_or(v);
+    Some(v.trim().to_string())
+}
+
+/// A Mastodon account: `ELEMENTS_POST_MASTODON_<REGION>=https://instance token`
 /// (token with `write:statuses write:media`).
 struct Mastodon {
     base: String,
@@ -1029,7 +1041,7 @@ fn mastodon_of(v: &str) -> Option<Mastodon> {
 }
 
 fn mastodon(slug: &str) -> Option<Mastodon> {
-    mastodon_of(&std::env::var(format!("ELEMENTS_POST_MASTODON_{}", env_name(slug))).ok()?)
+    mastodon_of(&post_var("MASTODON", slug)?)
 }
 
 /// The channels the server can send to for the region.
@@ -1347,10 +1359,7 @@ fn instagram_of(v: &str) -> Option<(Option<String>, String)> {
 }
 
 fn instagram_env(slug: &str) -> Option<String> {
-    std::env::var(format!("ELEMENTS_POST_INSTAGRAM_{}", env_name(slug)))
-        .ok()
-        .filter(|v| instagram_of(v).is_some())
-        .map(|v| v.trim().to_string())
+    post_var("INSTAGRAM", slug).filter(|v| instagram_of(v).is_some())
 }
 
 fn seed_of(token: &str) -> String {
