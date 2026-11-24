@@ -26,9 +26,7 @@ type Post = {
   channels: string[];
   by: string;
   tags: string[];
-  location: Place | null;
 };
-type Place = { id: string; name: string };
 type Run = {
   id: number;
   post: number;
@@ -147,41 +145,6 @@ function counts() {
     b.classList.toggle("has", has);
   }
 }
-
-// --- Instagram's place ----------------------------------------------------------
-
-function setPlace(p: Place | null, note = "") {
-  input("post-place-id").value = p?.id ?? "";
-  input("post-place-name").value = p?.name ?? "";
-  const shown = p ? `📍 ${p.name || "?"} (${p.id})` : t("po.f.place.none");
-  $("post-place-info").textContent = note ? `${shown} · ${note}` : shown;
-  $("post-place-clear").style.display = p ? "" : "none";
-}
-
-async function checkPlace() {
-  const raw = input("post-place-q").value.trim();
-  if (!raw) return;
-  const btn = $<HTMLButtonElement>("post-place-check");
-  btn.disabled = true;
-  const res = await api(`/api/ops/posts/place?${q()}&q=${encodeURIComponent(raw)}`).catch(() => null);
-  btn.disabled = false;
-  const before = input("post-place-id").value;
-  if (res?.ok) {
-    const v = (await res.json()) as { id: string; name: string; city: string; has_place: boolean };
-    setPlace({ id: v.id, name: v.city && !v.name.includes(v.city) ? `${v.name}, ${v.city}` : v.name }, v.has_place ? "" : t("po.f.place.noloc"));
-  } else {
-    // The server's words as they are (Meta's message), else the usual text.
-    const msg: string | undefined = res && res.status !== 401 && res.status !== 403 ? (await res.clone().json().catch(() => null))?.error : undefined;
-    const err = msg ?? (await errorOf(res, t("ui.savefail")));
-    // A bare id stays usable when Meta won't say (that is what sending shows).
-    if (/^\d+$/.test(raw)) setPlace({ id: raw, name: "" }, t("po.f.place.unchecked", { err }));
-    else return void toast(err, "error");
-  }
-  input("post-place-q").value = "";
-  if (input("post-place-id").value !== before) input("post-place-id").dispatchEvent(new Event("input", { bubbles: true }));
-}
-
-const placeOf = (): Place | null => (input("post-place-id").value ? { id: input("post-place-id").value, name: input("post-place-name").value } : null);
 
 // --- Hashtags --------------------------------------------------------------------
 
@@ -363,9 +326,6 @@ function open(p: Post | null) {
   picked = p ? [...p.tags] : hashtags.filter((h) => h.preset).map((h) => h.tag);
   input("post-tag-new").value = "";
   drawPicked();
-  // A new post: the place of the latest post that has one.
-  input("post-place-q").value = "";
-  setPlace(p ? p.location : (posts.find((x) => x.location)?.location ?? null));
   showVariant(p && !p.texts.any ? (VARIANTS.find((v) => p.texts[v]) ?? "any") : "any");
   input("post-card-on").checked = !!p?.card;
   input("post-card-lat").value = p?.card?.lat != null ? String(p.card.lat) : "";
@@ -403,7 +363,6 @@ async function save() {
     card: cardOf(),
     channels: ["instagram", "mastodon"].filter((c) => input(`post-ch-${c}`).checked),
     tags: picked,
-    location: placeOf(),
   };
   const res = await api(`/api/ops/posts?${q()}`, { method: "POST", body: JSON.stringify(body) }).catch(() => null);
   if (!res?.ok) {
@@ -490,7 +449,6 @@ function drawRun(r: Run): HTMLElement {
   const meta = el("small", { textContent: fmtDate(r.created) });
   if (r.outcome) meta.textContent += ` · ${t(OUTCOME[r.outcome])}`;
   if (r.numbers) meta.textContent += ` · 🔥 ${r.numbers.fire} · 💧 ${r.numbers.water}`;
-  if (p?.location && p.channels.includes("instagram")) meta.textContent += ` · 📍 ${p.location.name || p.location.id}`;
   if (r.state !== "draft") meta.textContent += ` · ${t(r.state === "sent" ? "po.st.sent" : "po.st.discarded")}${r.decided_by ? ` (${r.decided_by})` : ""}`;
   head.append(h, meta);
   box.append(head);
@@ -665,14 +623,6 @@ export function initPosts(apiFn: Api) {
     void tagCall("POST", tag, true);
   };
   $("post-hashtag-add").onclick = addTag;
-  $("post-place-check").onclick = () => void checkPlace();
-  input("post-place-q").onkeydown = (e) => {
-    if (e.key === "Enter") (e.preventDefault(), void checkPlace());
-  };
-  $("post-place-clear").onclick = () => {
-    setPlace(null);
-    input("post-place-id").dispatchEvent(new Event("input", { bubbles: true }));
-  };
   input("post-hashtag-new").onkeydown = (e) => {
     if (e.key === "Enter") (e.preventDefault(), addTag());
   };

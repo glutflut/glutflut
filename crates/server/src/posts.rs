@@ -215,9 +215,6 @@ pub struct PostIn {
     /// Hashtags, without "#".
     #[serde(default)]
     pub tags: Vec<String>,
-    /// Instagram's place: `{id, name}` (a Facebook page with a location).
-    #[serde(default)]
-    pub location: Option<Value>,
 }
 
 /// The texts: known variants and channels only, within the lengths; at least one.
@@ -269,23 +266,6 @@ pub fn clean_card(v: &Value) -> Result<Value, &'static str> {
         out[k] = t.unwrap_or_default().into();
     }
     Ok(out)
-}
-
-/// A post's place: `{id, name}`, id digits only; null for none.
-pub fn clean_location(v: &Option<Value>) -> Result<Option<Value>, &'static str> {
-    let Some(v) = v.as_ref().filter(|v| !v.is_null()) else {
-        return Ok(None);
-    };
-    let id = match &v["id"] {
-        Value::String(s) => s.trim().to_string(),
-        Value::Number(n) => n.to_string(),
-        _ => return Err("place: an id is needed"),
-    };
-    if id.is_empty() || id.len() > 30 || !id.chars().all(|c| c.is_ascii_digit()) {
-        return Err("place: the id is digits only");
-    }
-    let name = clean_text(v.get("name"), 80).map_err(|_| "place: name at most 80 characters")?;
-    Ok(Some(json!({ "id": id, "name": name.unwrap_or_default() })))
 }
 
 /// A hashtag as stored: without "#", letters, digits and "_", not only digits.
@@ -744,8 +724,7 @@ pub(super) async fn list(
                 .query(
                     &format!(
                         "SELECT id, title, trigger, {}, chapter, offset_min, texts::text, card::text, \
-                         channels, created_by, tags, location::text FROM game.posts \
-                         WHERE region = $1 ORDER BY id DESC",
+                         channels, created_by, tags FROM game.posts WHERE region = $1 ORDER BY id DESC",
                         epoch("at")
                     ),
                     &[&slug],
@@ -764,7 +743,6 @@ pub(super) async fn list(
                         "channels": r.get::<_, Vec<String>>(8),
                         "by": r.get::<_, String>(9),
                         "tags": r.get::<_, Vec<String>>(10),
-                        "location": r.get::<_, Option<String>>(11).and_then(|c| serde_json::from_str::<Value>(&c).ok()),
                     })
                 })
                 .collect();
@@ -860,10 +838,6 @@ pub(super) async fn save(
         Ok(v) => v,
         Err(e) => return bad(e),
     };
-    let location = match clean_location(&req.location) {
-        Ok(v) => v,
-        Err(e) => return bad(e),
-    };
     let at = (req.trigger == "at").then_some(req.at).flatten();
     let chapter = req
         .trigger
@@ -887,16 +861,14 @@ pub(super) async fn save(
                 }
             }
             let card_s = card.as_ref().map(Value::to_string);
-            let loc_s = location.as_ref().map(Value::to_string);
             let id: Option<i64> = match req.id {
                 Some(id) => t
                     .query_opt(
                         "UPDATE game.posts SET title = $3, trigger = $4, at = to_timestamp($5), \
                          chapter = $6, offset_min = $7, texts = $8::text::jsonb, card = $9::text::jsonb, \
-                         channels = $10, tags = $11, location = $12::text::jsonb \
-                         WHERE region = $1 AND id = $2 RETURNING id",
+                         channels = $10, tags = $11 WHERE region = $1 AND id = $2 RETURNING id",
                         &[&slug, &id, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                          &texts.to_string(), &card_s, &channels, &tags, &loc_s],
+                          &texts.to_string(), &card_s, &channels, &tags],
                     )?
                     .map(|r| r.get(0)),
                 None => {
@@ -909,11 +881,11 @@ pub(super) async fn save(
                     Some(
                         t.query_one(
                             "INSERT INTO game.posts (region, title, trigger, at, chapter, offset_min, \
-                             texts, card, channels, tags, location, created_by) VALUES ($1, $2, $3, \
-                             to_timestamp($4), $5, $6, $7::text::jsonb, $8::text::jsonb, $9, $10, \
-                             $11::text::jsonb, $12) RETURNING id",
+                             texts, card, channels, tags, created_by) VALUES ($1, $2, $3, \
+                             to_timestamp($4), $5, $6, $7::text::jsonb, $8::text::jsonb, $9, $10, $11) \
+                             RETURNING id",
                             &[&slug, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                              &texts.to_string(), &card_s, &channels, &tags, &loc_s, &by],
+                              &texts.to_string(), &card_s, &channels, &tags, &by],
                         )?
                         .get(0),
                     )
@@ -935,7 +907,7 @@ pub(super) async fn save(
                 &by,
                 json!({ "title": title, "trigger": req.trigger, "at": at, "chapter": chapter,
                         "offset_min": req.offset_min, "texts": texts, "card": card, "channels": channels,
-                        "tags": tags, "location": location }),
+                        "tags": tags }),
             )?;
             t.commit()?;
             Ok(Ok(id))
@@ -1268,96 +1240,6 @@ pub(super) async fn tag_delete(
     }
 }
 
-/// What the editor typed for a place: a page id, or a Facebook link to the
-/// page (`profile.php?id=`, `/pages/Name/123`, `/name`); the id or the name.
-pub fn place_key(q: &str) -> Option<String> {
-    let q = q.trim();
-    if !q.is_empty() && q.chars().all(|c| c.is_ascii_digit()) {
-        return Some(q.to_string());
-    }
-    let u = url::Url::parse(q).ok()?;
-    if !u.host_str()?.ends_with("facebook.com") {
-        return None;
-    }
-    if let Some((_, id)) = u.query_pairs().find(|(k, _)| k == "id") {
-        return id
-            .chars()
-            .all(|c| c.is_ascii_digit())
-            .then(|| id.to_string());
-    }
-    let parts: Vec<&str> = u.path_segments()?.filter(|p| !p.is_empty()).collect();
-    if let Some(last) = parts
-        .last()
-        .filter(|l| l.chars().all(|c| c.is_ascii_digit()))
-    {
-        return Some(last.to_string());
-    }
-    // A page's own name: letters, digits, dots.
-    let name = parts.first()?;
-    name.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '.')
-        .then(|| name.to_string())
-}
-
-#[derive(Deserialize)]
-pub(super) struct PlaceQ {
-    region: Option<String>,
-    q: String,
-}
-
-/// `GET /api/ops/posts/place?region=&q=` (editor): asks Meta, with the
-/// region's Instagram token, which page `q` is and whether it has a place.
-pub(super) async fn place(
-    State(s): State<AppState>,
-    Query(q): Query<PlaceQ>,
-    headers: HeaderMap,
-    Extension(c): Extension<Client>,
-) -> Response {
-    let slug = match s.slug(q.region.as_deref()) {
-        Ok(v) => v,
-        Err(e) => return e,
-    };
-    if !who(&s, c, &headers).await.may(&slug, Role::Editor) {
-        return StatusCode::UNAUTHORIZED.into_response();
-    }
-    let Some(key) = place_key(&q.q) else {
-        return bad("place: a page id or a Facebook link to the page");
-    };
-    let a = match instagram(&s, &slug).await {
-        Ok(a) => a,
-        Err(e) => return bad(&e),
-    };
-    let got = tokio::task::spawn_blocking(move || {
-        let agent = crate::media::agent().ok_or("no TLS")?;
-        ig_get(
-            &agent,
-            &key,
-            &[("fields", "id,name,location"), ("access_token", &a.token)],
-        )
-    })
-    .await
-    .unwrap_or_else(|e| Err(e.to_string()));
-    match got {
-        Ok(v) => {
-            let loc = &v["location"];
-            let city = loc["city"].as_str().unwrap_or("");
-            Json(json!({
-                "id": id_of(&v["id"]),
-                "name": v["name"],
-                "city": city,
-                "street": loc["street"],
-                "has_place": loc.is_object() && (loc.get("latitude").is_some() || !city.is_empty()),
-            }))
-            .into_response()
-        }
-        Err(e) => (
-            StatusCode::BAD_GATEWAY,
-            Json(json!({ "error": format!("Meta: {e}") })),
-        )
-            .into_response(),
-    }
-}
-
 // --- Sending -----------------------------------------------------------------
 
 /// The region's name in environment variables: `konstanz-altstadt` → `KONSTANZ_ALTSTADT`.
@@ -1583,14 +1465,12 @@ pub(super) async fn send(
                    AND results -> $4 ->> 'url' IS NULL \
                    AND coalesce((results -> $4 ->> 'sending')::float8, 0) \
                      < extract(epoch FROM now()) - 600 \
-                 RETURNING texts::text, image, \
-                   (SELECT p.location ->> 'id' FROM game.posts p WHERE p.id = post_id)",
+                 RETURNING texts::text, image",
                 &[&sl, &id, &texts.as_ref().map(Value::to_string), &ch],
             )? {
                 return Ok(Ok((
                     serde_json::from_str::<Value>(r.get(0)).unwrap_or(Value::Null),
                     r.get::<_, Option<Vec<u8>>>(1),
-                    r.get::<_, Option<String>>(2),
                     primary(db, &sl)?,
                 )));
             }
@@ -1607,7 +1487,7 @@ pub(super) async fn send(
     .await
     .ok()
     .flatten();
-    let (texts, image, place, lang) = match got {
+    let (texts, image, lang) = match got {
         Some(Ok(v)) => v,
         Some(Err(None)) => return bad("no such draft"),
         Some(Err(Some((_, Some(url))))) => return bad_url("already sent", &url),
@@ -1633,7 +1513,7 @@ pub(super) async fn send(
                     rand::random::<u32>()
                 ));
                 store.put(&k, &jpg).map_err(|e| format!("picture: {e}"))?;
-                send_instagram(&a, &text, &alt, &store.fetch_url(&k), place.as_deref())
+                send_instagram(&a, &text, &alt, &store.fetch_url(&k))
             }
         }
     })
@@ -1870,13 +1750,7 @@ async fn instagram(s: &AppState, slug: &str) -> Result<Insta, String> {
 }
 
 /// Publishes one picture with caption and alt text; the post's link.
-fn send_instagram(
-    a: &Insta,
-    caption: &str,
-    alt: &str,
-    image_url: &str,
-    place: Option<&str>,
-) -> Result<String, String> {
+fn send_instagram(a: &Insta, caption: &str, alt: &str, image_url: &str) -> Result<String, String> {
     let agent = crate::media::agent().ok_or("no TLS")?;
     let tok = a.token.as_str();
     let mut form = vec![
@@ -1886,9 +1760,6 @@ fn send_instagram(
     ];
     if !alt.is_empty() {
         form.push(("alt_text", alt));
-    }
-    if let Some(p) = place {
-        form.push(("location_id", p));
     }
     let c = ig_post(&agent, &format!("{}/media", a.user_id), &form)
         .map_err(|e| format!("container: {e}"))?;
@@ -2122,39 +1993,11 @@ mod tests {
             card: Some(json!({ "width_m": 950, "title": "Ergebnis" })),
             channels: vec!["mastodon".into(), "mastodon".into()],
             tags: vec!["#Konstanz".into(), "konstanz".into(), "GlutUndFlut".into()],
-            location: None,
         };
         let (_, _, card, ch, tags) = clean_post(&ok).unwrap();
         assert_eq!(tags, vec!["Konstanz", "GlutUndFlut"]);
         assert_eq!(clean_tag("#Glut_2026"), Some("Glut_2026".into()));
         assert_eq!(clean_tag("2026"), None);
-        assert_eq!(
-            place_key(" 108229489200476 ").as_deref(),
-            Some("108229489200476")
-        );
-        assert_eq!(
-            place_key("https://www.facebook.com/profile.php?id=61550000000001").as_deref(),
-            Some("61550000000001")
-        );
-        assert_eq!(
-            place_key("https://de-de.facebook.com/pages/Konstanz/123456").as_deref(),
-            Some("123456")
-        );
-        assert_eq!(
-            place_key("https://www.facebook.com/konstanz.tourismus/").as_deref(),
-            Some("konstanz.tourismus")
-        );
-        assert_eq!(place_key("https://example.com/x"), None);
-        assert_eq!(
-            clean_location(&Some(json!({ "id": "12a" }))),
-            Err("place: the id is digits only")
-        );
-        assert_eq!(
-            clean_location(&Some(json!({ "id": 123, "name": "Konstanz" })))
-                .unwrap()
-                .unwrap()["id"],
-            "123"
-        );
         assert_eq!(clean_tag("glut und flut"), None);
 
         assert_eq!(ch, vec!["mastodon"]);
