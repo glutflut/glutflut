@@ -560,14 +560,14 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/hotspot", post(ops_hotspot))
                     .route("/api/ops/reload", post(ops_reload))
                     .route("/api/ops/nodes", get(ops_nodes))
-                    .route("/api/ops/card.png", get(posts::card_png))
+                    .route("/api/ops/card.jpg", get(posts::card_jpg))
                     .route(
                         "/api/ops/posts",
                         get(posts::list).post(posts::save).delete(posts::delete),
                     )
                     .route("/api/ops/posts/draft", post(posts::draft_now))
                     .route("/api/ops/posts/run", post(posts::decide))
-                    .route("/api/ops/posts/run.png", get(posts::run_png))
+                    .route("/api/ops/posts/run.jpg", get(posts::run_jpg))
                     .route("/api/ops/indoor", get(ops_indoor))
                     .route("/api/ops/regions", get(ops_regions))
                     .route("/api/ops/pending", get(ops_pending))

@@ -65,6 +65,11 @@ Common conventions:
 | `GET/POST/DELETE /api/ops/chapters`, `GET /api/ops/chapters/suggest` | editor | Chapter editor (`editor.rs`). |
 | `GET/POST/DELETE /api/ops/mottos`, `GET/POST /api/ops/places` | editor | Campaign phrases, places (finds may carry a `text` per language and a `campaign`). |
 | `GET/POST/DELETE /api/ops/notices` | editor | News flashes (`editor_notices.rs`): `{id?, names: {lang: {title, text}}, url, starts, ends}`; the app shows running ones. |
+| `GET/POST/DELETE /api/ops/posts` | editor | Posts from the game (`posts.rs`): `{id?, title, trigger: at\|chapter_start\|chapter_end\|manual, at?, chapter?, offset_min, texts: {any\|fire\|water\|tie: {instagram, mastodon, alt}}, card?: {lat?, lon?, width_m, title, note}, channels}`. GET also gives the drafts of the last 60 days. When due (main cell, every minute) a draft with the outcome's texts (`{fire}` `{water}` `{chapter}` filled in) and the card. |
+| `POST /api/ops/posts/draft?id=` | editor | A draft of the post now. |
+| `POST /api/ops/posts/run?id=` | editor | `{state: sent\|discarded\|draft, texts?}`: what became of a draft (posted by hand). |
+| `GET /api/ops/posts/run.jpg?id=` | editor | A draft's picture. |
+| `GET /api/ops/card.jpg` | editor | The game state as an old map (`card.rs`, 1080×1350 JPEG): `chapter=` (its end) or now, `lat`, `lon` (default: middle of the junctions with a side), `width_m`, `title`, `note`. |
 | `GET/POST/DELETE /api/ops/media`, `POST /api/ops/media/commons`, `/decide` | editor | Images. |
 | `POST /api/ops/hotspot` `{node, minutes}` | admin | Start a hotspot. 202. |
 | `GET /api/ops/nodes` | editor | `{t, fire, water, front}`: junction ids per side now. 503 + `Retry-After` until the region has built it (only on request). For pictures of the game state (posts, posters). |

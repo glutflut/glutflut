@@ -7,6 +7,7 @@ import { listRegions } from "./region";
 import { initPlaces, loadPlaces } from "./editor-places";
 import { initMottos, loadMottos } from "./editor-mottos";
 import { initNotices, loadNotices } from "./editor-notices";
+import { initPosts, loadPosts } from "./editor-posts";
 import { initQuestions, loadQuestions } from "./editor-questions";
 import { initKeys, loadKeys } from "./editor-keys";
 import { initMedia, loadMedia } from "./editor-media";
@@ -121,7 +122,7 @@ async function regions() {
     sel.replaceChildren();
     $("list").textContent = t("access.login");
     $("new").hidden = true;
-    for (const id of ["mottos-card", "notices-card", "questions-card", "places-card", "keys-card", "media-card"]) $(id).hidden = true;
+    for (const id of ["mottos-card", "notices-card", "posts-card", "questions-card", "places-card", "keys-card", "media-card"]) $(id).hidden = true;
     syncTabs();
     return;
   }
@@ -152,6 +153,7 @@ async function load() {
   drawList();
   await loadMottos(region, admin, primary);
   await loadNotices(region, primary);
+  await loadPosts(region, primary, chapters);
   await loadQuestions(region, primary);
   await loadPlaces(region, primary);
   await loadKeys(region);
@@ -449,6 +451,7 @@ watchForm("form");
 initPlaces(api);
 initMottos(api);
 initNotices(api);
+initPosts(api);
 initQuestions(api);
 initKeys(api);
 initMedia(api);

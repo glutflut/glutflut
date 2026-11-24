@@ -14,7 +14,7 @@
 .ed-form textarea { min-height: 60px; resize: vertical; }
 .ed-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .ed-row label { flex: 1; min-width: 180px; }
-.ed-form button, .map-head button, .ed-table button {
+.ed-form button, .map-head button, .ed-table button, .post-run button {
   font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary); cursor: pointer;
 }
@@ -128,3 +128,23 @@ h3.with-search input { flex: 0 1 240px; font-size: 14px; font-weight: 400; }
 .q-bar { position: relative; margin: 2px 0; padding: 2px 6px; font-size: 13px; }
 .q-bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent, #ffd43b); opacity: 0.35; border-radius: 4px; z-index: -1; }
 .q-bar span { position: relative; }
+
+/* Posts (editor-posts.ts) */
+#post-variants { margin: 4px 0 8px; }
+#post-variants button.has::after { content: " ●"; font-size: 10px; color: var(--seq, currentColor); }
+.post-pic { width: 100%; max-width: 270px; aspect-ratio: 4 / 5; border: 1px solid var(--border); border-radius: 6px; display: block; background: var(--page); }
+#post-preview { margin-top: 8px; }
+.post-run { margin: 8px 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.post-run.draft { border-color: var(--seq, var(--border)); }
+.post-run h3 { margin: 0; }
+.post-run-body { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
+.post-run-pic { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; width: min(270px, 100%); }
+.post-run-texts { flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.post-run-texts label { display: flex; flex-direction: column; gap: 4px; }
+.post-run-texts textarea { width: 100%; min-height: 90px; box-sizing: border-box; font: inherit; font-size: 14px; }
+.post-run button { margin-right: 4px; }
+.post-acts { display: flex; flex-wrap: wrap; gap: 4px; }
+.post-acts button { margin: 0; }
+#posts-list { overflow-x: auto; }
+.post-run-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.post-done summary { cursor: pointer; margin: 8px 0; }

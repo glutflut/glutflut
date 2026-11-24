@@ -38,6 +38,23 @@ pub fn snapshot_sides(
         }))
 }
 
+/// Where the game happens: the middle (median) of the junctions with a
+/// side, else the region's centre.
+pub fn centre(
+    db: &mut postgres::Client,
+    slug: &str,
+    sides: &Sides,
+) -> Result<(f64, f64), postgres::Error> {
+    let ids: Vec<i64> = sides.fire.iter().chain(&sides.water).copied().collect();
+    let r = db.query_one(
+        "SELECT coalesce((SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY n.lat) FROM geo.nodes n WHERE n.id = ANY($2)), ST_Y(r.centroid_geom)), \
+                coalesce((SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY n.lon) FROM geo.nodes n WHERE n.id = ANY($2)), ST_X(r.centroid_geom)) \
+         FROM geo.regions r WHERE r.slug = $1",
+        &[&slug, &ids],
+    )?;
+    Ok((r.get(0), r.get(1)))
+}
+
 /// The sides now: asks the running region and waits for it (a few seconds).
 // Err is the ready answer, as axum handlers return it.
 #[allow(clippy::result_large_err)]
@@ -82,10 +99,10 @@ pub(super) struct CardQ {
     credit: Option<String>,
 }
 
-/// `GET /api/ops/card.png?region=&chapter=&lat=&lon=&width_m=&title=&note=`
+/// `GET /api/ops/card.jpg?region=&chapter=&lat=&lon=&width_m=&title=&note=`
 /// (editor): the picture of the game state, centred on the region if no
 /// place is given.
-pub(super) async fn card_png(
+pub(super) async fn card_jpg(
     State(s): State<AppState>,
     Query(q): Query<CardQ>,
     headers: HeaderMap,
@@ -123,20 +140,19 @@ pub(super) async fn card_png(
     let st = s.clone();
     let out = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
-            if !(spec.lat.is_finite() && spec.lon.is_finite()) {
-                let r = db.query_one(
-                    "SELECT ST_Y(centroid_geom), ST_X(centroid_geom) FROM geo.regions WHERE slug = $1",
-                    &[&slug],
-                )?;
-                (spec.lat, spec.lon) = (r.get(0), r.get(1));
-            }
             let sides = match (live, &q.chapter) {
                 (Some(v), _) => Some(v),
                 (None, Some(k)) => snapshot_sides(db, &slug, k)?,
                 (None, None) => None,
             };
+            let Some(sides) = sides else {
+                return Ok(None);
+            };
+            if !(spec.lat.is_finite() && spec.lon.is_finite()) {
+                (spec.lat, spec.lon) = centre(db, &slug, &sides)?;
+            }
             let geo = card::load(db, &slug, &spec)?;
-            Ok(sides.map(|sd| card::svg(&spec, &geo, &sd)))
+            Ok(Some(card::svg(&spec, &geo, &sides)))
         })
     })
     .await
@@ -149,13 +165,13 @@ pub(super) async fn card_png(
         }
         None => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };
-    match tokio::task::spawn_blocking(move || card::png(&svg)).await {
-        Ok(Ok(png)) => (
+    match tokio::task::spawn_blocking(move || card::jpeg(&svg)).await {
+        Ok(Ok(jpg)) => (
             [
-                (header::CONTENT_TYPE, "image/png"),
+                (header::CONTENT_TYPE, "image/jpeg"),
                 (header::CACHE_CONTROL, "no-store"),
             ],
-            png,
+            jpg,
         )
             .into_response(),
         Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
@@ -414,19 +430,13 @@ pub(super) async fn draft(
                 (Some(k), "chapter_end") => snapshot_sides(db, &sl, k)?,
                 _ => None,
             };
-            let centre = db
-                .query_opt(
-                    "SELECT ST_Y(centroid_geom), ST_X(centroid_geom) FROM geo.regions WHERE slug = $1",
-                    &[&sl],
-                )?
-                .map(|r| (r.get::<_, f64>(0), r.get::<_, f64>(1)));
-            Ok(Some((p, lang, ch, snap, centre)))
+            Ok(Some((p, lang, ch, snap)))
         })
     })
     .await
     .map_err(|e| e.to_string())?
     .ok_or("database")?;
-    let Some((p, lang, ch, snap, centre)) = first else {
+    let Some((p, lang, ch, snap)) = first else {
         return Ok(None);
     };
     let mut notes: Vec<String> = Vec::new();
@@ -464,10 +474,7 @@ pub(super) async fn draft(
             }
         };
         if let Some(sides) = sides {
-            let (lat, lon) = match (c["lat"].as_f64(), c["lon"].as_f64()) {
-                (Some(a), Some(b)) => (a, b),
-                _ => centre.unwrap_or((0.0, 0.0)),
-            };
+            let given = c["lat"].as_f64().zip(c["lon"].as_f64());
             let fillv = |k: &str| {
                 let mut t = c[k].as_str().unwrap_or("").to_string();
                 for (name, val) in &vars {
@@ -475,9 +482,9 @@ pub(super) async fn draft(
                 }
                 t
             };
-            let spec = Spec {
-                lat,
-                lon,
+            let mut spec = Spec {
+                lat: f64::NAN,
+                lon: f64::NAN,
                 width_m: c["width_m"].as_f64().unwrap_or(900.0),
                 title: fillv("title"),
                 note: fillv("note"),
@@ -486,13 +493,19 @@ pub(super) async fn draft(
             let st = s.clone();
             let sl = slug.to_string();
             let svg = tokio::task::spawn_blocking(move || {
-                st.with_db(|db| card::load(db, &sl, &spec).map(|g| card::svg(&spec, &g, &sides)))
+                st.with_db(|db| {
+                    (spec.lat, spec.lon) = match given {
+                        Some(v) => v,
+                        None => centre(db, &sl, &sides)?,
+                    };
+                    card::load(db, &sl, &spec).map(|g| card::svg(&spec, &g, &sides))
+                })
             })
             .await
             .ok()
             .flatten();
-            match svg.map(|v| card::png(&v)) {
-                Some(Ok(png)) => image = Some(png),
+            match svg.map(|v| card::jpeg(&v)) {
+                Some(Ok(jpg)) => image = Some(jpg),
                 Some(Err(e)) => notes.push(format!("picture failed: {e}")),
                 None => notes.push("picture failed: database".into()),
             }
@@ -842,8 +855,8 @@ pub(super) async fn draft_now(
     }
 }
 
-/// `GET /api/ops/posts/run.png?region=&id=` (editor): a draft's picture.
-pub(super) async fn run_png(
+/// `GET /api/ops/posts/run.jpg?region=&id=` (editor): a draft's picture.
+pub(super) async fn run_jpg(
     State(s): State<AppState>,
     Query(q): Query<IdQ>,
     headers: HeaderMap,
@@ -872,12 +885,12 @@ pub(super) async fn run_png(
     .ok()
     .flatten();
     match img {
-        Some(Some(png)) => (
+        Some(Some(jpg)) => (
             [
-                (header::CONTENT_TYPE, "image/png"),
+                (header::CONTENT_TYPE, "image/jpeg"),
                 (header::CACHE_CONTROL, "private, max-age=86400"),
             ],
-            png,
+            jpg,
         )
             .into_response(),
         Some(None) => StatusCode::NOT_FOUND.into_response(),

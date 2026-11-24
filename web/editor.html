@@ -29,6 +29,7 @@
         <button type="button" role="tab" data-tab="kapitel" data-i18n="tab.kapitel">Kapitel</button>
         <button type="button" role="tab" data-tab="inschriften" data-i18n="tab.inschriften">Inschriften</button>
         <button type="button" role="tab" data-tab="aktuelles" data-i18n="tab.aktuelles">Aktuelles</button>
+        <button type="button" role="tab" data-tab="beitraege"><span data-i18n="tab.beitraege">Beiträge</span> <span class="badge"></span></button>
         <button type="button" role="tab" data-tab="fragen" data-i18n="tab.fragen">Fragen</button>
         <button type="button" role="tab" data-tab="orte" data-i18n="tab.orte">Orte</button>
         <button type="button" role="tab" data-tab="bilder"><span data-i18n="tab.bilder">Bilder</span> <span class="badge"></span></button>
@@ -141,6 +142,62 @@
           <p id="notice-error" class="ed-error"></p>
         </div>
         <div id="notices-list"></div>
+      </section>
+      </div>
+
+      <div data-panel="beitraege" role="tabpanel" hidden>
+      <section class="card" id="posts-card" hidden>
+        <div class="map-head"><h2 data-i18n="po.title">Beiträge</h2><button type="button" id="post-new" data-i18n="po.new">Neuer Beitrag</button></div>
+        <details class="help"><summary data-i18n="po.help.sum"></summary>
+          <p data-i18n-html="po.help.more"></p></details>
+        <h3 data-i18n="po.runs">Entwürfe</h3>
+        <div id="post-runs"></div>
+        <div id="post-form" class="ed-form place-form" hidden>
+          <h3 id="post-form-title" data-i18n="po.new">Neuer Beitrag</h3>
+          <label><span><span data-i18n="po.f.name">Name</span> <small data-i18n="po.f.name.hint">(nur hier sichtbar)</small></span> <input id="post-name" maxlength="80" /></label>
+          <div class="ed-row">
+            <label><span data-i18n="po.f.trigger">Wann</span>
+              <select id="post-trigger">
+                <option value="chapter_end" data-i18n="po.tr.end">Kapitelende</option>
+                <option value="chapter_start" data-i18n="po.tr.start">Kapitelstart</option>
+                <option value="at" data-i18n="po.tr.at">Zeitpunkt</option>
+                <option value="manual" data-i18n="po.tr.manual">Von Hand</option>
+              </select></label>
+            <label id="post-at-row"><span data-i18n="po.f.at">Zeitpunkt</span> <input id="post-at" type="datetime-local" /></label>
+          </div>
+          <div class="ed-row" id="post-chapter-row">
+            <label><span data-i18n="po.f.chapter">Kapitel</span> <select id="post-chapter"></select></label>
+            <label><span data-i18n="po.f.offset">Minuten danach</span> <input id="post-offset" type="number" min="-10080" max="10080" step="1" /></label>
+          </div>
+          <div class="ed-row">
+            <label class="check"><input type="checkbox" id="post-ch-instagram" /> <span data-i18n="po.f.instagram">Instagram</span></label>
+            <label class="check"><input type="checkbox" id="post-ch-mastodon" /> <span data-i18n="po.f.mastodon">Mastodon</span></label>
+          </div>
+          <p><small id="post-variants-hint"></small></p>
+          <div class="tabs" id="post-variants"></div>
+          <label><span><span data-i18n="po.f.instagram">Instagram</span> <small id="post-instagram-count"></small></span> <textarea id="post-instagram" maxlength="2200" rows="6"></textarea></label>
+          <label><span><span data-i18n="po.f.mastodon">Mastodon</span> <small id="post-mastodon-count"></small></span> <textarea id="post-mastodon" maxlength="500" rows="5"></textarea></label>
+          <label><span><span data-i18n="po.f.alt">Alt-Text</span> <small id="post-alt-count"></small></span> <textarea id="post-alt" maxlength="1000" rows="3"></textarea></label>
+          <label class="check"><input type="checkbox" id="post-card-on" /> <span data-i18n="po.f.card">Bild: Spielstand als Karte</span></label>
+          <div id="post-card-fields">
+            <div class="ed-row">
+              <label><span data-i18n="po.f.lat">Mitte Breite</span> <input id="post-card-lat" inputmode="decimal" data-i18n-placeholder="po.f.centre.ph" /></label>
+              <label><span data-i18n="po.f.lon">Mitte Länge</span> <input id="post-card-lon" inputmode="decimal" data-i18n-placeholder="po.f.centre.ph" /></label>
+              <label><span data-i18n="po.f.width">Breite in Metern</span> <input id="post-card-width" type="number" min="200" max="5000" step="50" /></label>
+            </div>
+            <label><span><span data-i18n="po.f.cardtitle">Titel im Bild</span> <small data-i18n="po.f.cardtitle.hint">(höchstens 40 Zeichen)</small></span> <input id="post-card-title" maxlength="40" /></label>
+            <label><span><span data-i18n="po.f.cardnote">Notiz unten links</span> <small data-i18n="po.f.cardnote.hint">(höchstens 120 Zeichen)</small></span> <input id="post-card-note" maxlength="120" /></label>
+            <div class="ed-row"><button type="button" id="post-preview-btn" data-i18n="po.preview">Vorschau</button></div>
+            <div id="post-preview"></div>
+          </div>
+          <div class="ed-row">
+            <button type="button" id="post-save" class="primary" data-i18n="ui.save">Speichern</button>
+            <button type="button" id="post-cancel" data-i18n="ui.cancel">Abbrechen</button>
+          </div>
+          <p id="post-error" class="ed-error"></p>
+        </div>
+        <h3 data-i18n="po.planned">Geplant</h3>
+        <div id="posts-list"></div>
       </section>
       </div>
 

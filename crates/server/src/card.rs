@@ -1,6 +1,6 @@
 //! A picture of the game state for posts: the city as an old map, streets in
 //! ink on paper, junctions red (fire), blue (water), violet (front). Drawn as
-//! SVG here, rasterised with resvg; 1080×1350 (4:5, Instagram).
+//! SVG here, rasterised with resvg, JPEG; 1080×1350 (4:5, Instagram).
 
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
@@ -339,8 +339,9 @@ fn fonts() -> Arc<usvg::fontdb::Database> {
         .clone()
 }
 
-/// The SVG as PNG.
-pub fn png(svg: &str) -> Result<Vec<u8>, String> {
+/// The SVG as JPEG (Instagram takes only JPEG; the paper's grain makes a
+/// PNG four times as big).
+pub fn jpeg(svg: &str) -> Result<Vec<u8>, String> {
     let db = fonts();
     let family = db
         .faces()
@@ -356,7 +357,18 @@ pub fn png(svg: &str) -> Result<Vec<u8>, String> {
     let tree = usvg::Tree::from_str(svg, &opt).map_err(|e| e.to_string())?;
     let mut pix = tiny_skia::Pixmap::new(W as u32, H as u32).ok_or("pixmap")?;
     resvg::render(&tree, tiny_skia::Transform::default(), &mut pix.as_mut());
-    pix.encode_png().map_err(|e| e.to_string())
+    // Opaque (the paper covers it all): premultiplied RGBA is plain RGB.
+    let rgb: Vec<u8> = pix
+        .data()
+        .chunks_exact(4)
+        .flat_map(|p| [p[0], p[1], p[2]])
+        .collect();
+    let img = image::RgbImage::from_raw(W as u32, H as u32, rgb).ok_or("image")?;
+    let mut out = Vec::new();
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 90)
+        .encode_image(&img)
+        .map_err(|e| e.to_string())?;
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -389,8 +401,8 @@ mod tests {
         let svg = svg(&s, &geo, &sides);
         assert!(svg.contains(FIRE) && svg.contains(WATER));
         assert!(svg.contains("&lt;Glut&gt; &amp; Flut"), "texts escaped");
-        let png = png(&svg).expect("renders");
-        assert_eq!(&png[1..4], b"PNG");
+        let jpg = jpeg(&svg).expect("renders");
+        assert_eq!(&jpg[..3], &[0xff, 0xd8, 0xff]);
     }
 
     #[test]
