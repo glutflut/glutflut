@@ -116,6 +116,7 @@ Drafts of posts (editor, tab Beiträge) can be sent from the editor to the chann
 | Variable | Read by | Default | Meaning |
 | --- | --- | --- | --- |
 | `ELEMENTS_POST_MASTODON_<REGION>` | server | none (no sending) | **Secret, in `.env`.** `https://instance token` for the region (slug upper case, `-` as `_`, e.g. `ELEMENTS_POST_MASTODON_KONSTANZ`). Token of the account with the scopes `write:statuses write:media`. |
+| `ELEMENTS_POST_INSTAGRAM_<REGION>` | server | none (no sending) | **Secret, in `.env`.** Access token of an Instagram professional account (Business or Creator) from a Meta app with "API setup with Instagram login" (`instagram_business_basic`, `instagram_business_content_publish`). The server stores it in `game.post_accounts` with the account's id and renews it weekly there (a token lives 60 days); a new token here replaces the stored one. Needs the media bucket (`ELEMENTS_MEDIA_S3_*`): Meta fetches the picture from there. The editor warns when renewing fails. |
 
 ### Globe export
 

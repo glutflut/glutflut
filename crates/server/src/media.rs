@@ -373,6 +373,15 @@ impl Store {
         }
     }
 
+    /// A URL anyone can fetch `key` from for an hour at least (posts).
+    pub fn fetch_url(&self, key: &str) -> String {
+        if self.private {
+            self.presigned(key)
+        } else {
+            format!("{}/{key}", self.public)
+        }
+    }
+
     /// A GET valid for an hour (private bucket).
     pub fn presigned(&self, key: &str) -> String {
         use rusty_s3::S3Action;

@@ -69,7 +69,7 @@ Common conventions:
 | `POST /api/ops/posts/draft?id=` | editor | A draft of the post now. |
 | `POST /api/ops/posts/run?id=` | editor | `{state: sent\|discarded\|draft, texts?}`: what became of a draft (posted by hand). |
 | `GET /api/ops/posts/run.jpg?id=` | editor | A draft's picture. |
-| `POST /api/ops/posts/send?id=&channel=` | editor | `{texts?}`: sends a draft to a channel (now `mastodon`; account per region in `ELEMENTS_POST_MASTODON_<REGION>="https://instance token"`, region slug upper case, `-` as `_`). Stores `{url}` or `{error}` under `results`; sent once every channel of the post has its URL. `GET /api/ops/posts` lists the ready channels as `ready`. |
+| `POST /api/ops/posts/send?id=&channel=` | editor | `{texts?}`: sends a draft to a channel (now `mastodon`; account per region in `ELEMENTS_POST_MASTODON_<REGION>="https://instance token"`, region slug upper case, `-` as `_`). Stores `{url}` or `{error}` under `results`; sent once every channel of the post has its URL. `GET /api/ops/posts` lists the ready channels as `ready` and the Instagram account as `instagram` (`{username, expires, error}`). |
 | `GET /api/ops/card.jpg` | editor | The game state as an old map (`card.rs`, 1080×1350 JPEG): `chapter=` (its end) or now, `lat`, `lon` (default: middle of the junctions with a side), `width_m`, `title`, `note`. |
 | `GET/POST/DELETE /api/ops/media`, `POST /api/ops/media/commons`, `/decide` | editor | Images. |
 | `POST /api/ops/hotspot` `{node, minutes}` | admin | Start a hotspot. 202. |

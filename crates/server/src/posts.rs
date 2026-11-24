@@ -548,10 +548,16 @@ pub(super) async fn draft(
 pub(super) async fn tick_loop(s: AppState) {
     let mut every = tokio::time::interval(Duration::from_secs(60));
     every.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    let mut n: u64 = 0;
     loop {
         every.tick().await;
         if !s.host.is_main() {
             continue;
+        }
+        // Tokens hourly, from the second minute on (the lease settles first).
+        n += 1;
+        if n % 60 == 2 {
+            renew_accounts(&s).await;
         }
         let st = s.clone();
         let shard = s.host.shard().to_string();
@@ -673,7 +679,27 @@ pub(super) async fn list(
                     })
                 })
                 .collect();
-            Ok(json!({ "posts": posts, "runs": runs, "ready": ready(&slug) }))
+            // The Instagram account as the server sees it (expiry, renewal error).
+            let instagram = match instagram_env(&slug) {
+                Some(env) => db
+                    .query_opt(
+                        &format!(
+                            "SELECT username, {}, error FROM game.post_accounts \
+                             WHERE region = $1 AND channel = 'instagram' AND seed = $2",
+                            epoch("expires_at")
+                        ),
+                        &[&slug, &seed_of(&env)],
+                    )?
+                    .map(|r| {
+                        json!({
+                            "username": r.get::<_, Option<String>>(0),
+                            "expires": r.get::<_, Option<f64>>(1),
+                            "error": r.get::<_, Option<String>>(2),
+                        })
+                    }),
+                None => None,
+            };
+            Ok(json!({ "posts": posts, "runs": runs, "ready": ready(&slug), "instagram": instagram }))
         })
     })
     .await
@@ -1012,6 +1038,9 @@ fn ready(slug: &str) -> Vec<&'static str> {
     if mastodon(slug).is_some() {
         out.push("mastodon");
     }
+    if instagram_env(slug).is_some() && crate::media::store().is_some() {
+        out.push("instagram");
+    }
     out
 }
 
@@ -1022,7 +1051,11 @@ fn brief(e: ureq::Error) -> String {
             let body = r.into_string().unwrap_or_default();
             let msg = serde_json::from_str::<Value>(&body)
                 .ok()
-                .and_then(|v| v["error"].as_str().map(str::to_string))
+                .and_then(|v| {
+                    // Mastodon: {error}; Meta: {error: {message}}.
+                    let e = &v["error"];
+                    e.as_str().or(e["message"].as_str()).map(str::to_string)
+                })
                 .unwrap_or(body);
             format!("HTTP {code}: {}", msg.chars().take(200).collect::<String>())
         }
@@ -1121,8 +1154,9 @@ pub(super) struct SendIn {
 }
 
 /// `POST /api/ops/posts/send?region=&id=&channel=` (editor): sends a draft
-/// to a channel. Stores `{url}` or `{error}` under `results.<channel>`; once
-/// every channel of the post has its URL, the draft counts as sent.
+/// to a channel. Marks `results.<channel>` as `{sending}` first (a second
+/// click waits 10 minutes), then stores `{url}` or `{error}`; once every
+/// channel of the post has its URL, the draft counts as sent.
 pub(super) async fn send(
     State(s): State<AppState>,
     Query(q): Query<SendQ>,
@@ -1139,12 +1173,21 @@ pub(super) async fn send(
         return StatusCode::UNAUTHORIZED.into_response();
     }
     let channel = q.channel.clone();
-    let m = match channel.as_str() {
+    let via = match channel.as_str() {
         "mastodon" => match mastodon(&slug) {
-            Some(m) => m,
+            Some(m) => Via::Mastodon(m),
             None => return bad("Mastodon is not set up for this region"),
         },
-        _ => return bad("this channel cannot send yet"),
+        "instagram" => {
+            if crate::media::store().is_none() {
+                return bad("Instagram needs the media bucket for the picture");
+            }
+            match instagram(&s, &slug).await {
+                Ok(a) => Via::Instagram(a),
+                Err(e) => return bad(&e),
+            }
+        }
+        _ => return bad("unknown channel"),
     };
     let texts = match &req.texts {
         Some(v) => match clean_texts(&json!({ "any": v })) {
@@ -1154,49 +1197,68 @@ pub(super) async fn send(
         None => None,
     };
     let (st, sl, id, ch) = (s.clone(), slug.clone(), q.id, channel.clone());
-    // The draft, with the edited texts stored first.
+    // Claim the channel and store the edited texts; else say why not.
     let got = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
-            let Some(r) = db.query_opt(
-                "UPDATE game.post_runs SET texts = CASE WHEN state = 'draft' \
-                 THEN coalesce($3::text::jsonb, texts) ELSE texts END \
-                 WHERE region = $1 AND id = $2 \
-                 RETURNING state, texts::text, image, results -> $4 ->> 'url'",
+            if let Some(r) = db.query_opt(
+                "UPDATE game.post_runs SET texts = coalesce($3::text::jsonb, texts), \
+                   results = jsonb_set(coalesce(results, '{}'), ARRAY[$4::text], \
+                     jsonb_build_object('sending', extract(epoch FROM now()))) \
+                 WHERE region = $1 AND id = $2 AND state = 'draft' \
+                   AND results -> $4 ->> 'url' IS NULL \
+                   AND coalesce((results -> $4 ->> 'sending')::float8, 0) \
+                     < extract(epoch FROM now()) - 600 \
+                 RETURNING texts::text, image",
                 &[&sl, &id, &texts.as_ref().map(Value::to_string), &ch],
-            )?
-            else {
-                return Ok(None);
-            };
-            Ok(Some((
-                r.get::<_, String>(0),
-                serde_json::from_str::<Value>(r.get(1)).unwrap_or(Value::Null),
-                r.get::<_, Option<Vec<u8>>>(2),
-                r.get::<_, Option<String>>(3),
-                primary(db, &sl)?,
-            )))
+            )? {
+                return Ok(Ok((
+                    serde_json::from_str::<Value>(r.get(0)).unwrap_or(Value::Null),
+                    r.get::<_, Option<Vec<u8>>>(1),
+                    primary(db, &sl)?,
+                )));
+            }
+            let why = db
+                .query_opt(
+                    "SELECT state, results -> $3 ->> 'url' FROM game.post_runs \
+                     WHERE region = $1 AND id = $2",
+                    &[&sl, &id, &ch],
+                )?
+                .map(|r| (r.get::<_, String>(0), r.get::<_, Option<String>>(1)));
+            Ok(Err(why))
         })
     })
     .await
     .ok()
     .flatten();
-    let (state, texts, image, done, lang) = match got {
-        Some(Some(v)) => v,
-        Some(None) => return bad("no such draft"),
+    let (texts, image, lang) = match got {
+        Some(Ok(v)) => v,
+        Some(Err(None)) => return bad("no such draft"),
+        Some(Err(Some((_, Some(url))))) => return bad_url("already sent", &url),
+        Some(Err(Some((state, None)))) if state != "draft" => return bad("only drafts are sent"),
+        Some(Err(Some(_))) => return bad("being sent, try again in 10 minutes"),
         None => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };
-    if state != "draft" {
-        return bad("only drafts are sent");
-    }
-    if let Some(url) = done {
-        return bad_url("already sent", &url);
-    }
-    let Some(text) = texts[&channel].as_str().map(str::to_string) else {
-        return bad("no text for this channel");
-    };
+    let text = texts[&channel].as_str().unwrap_or("").to_string();
     let alt = texts["alt"].as_str().unwrap_or("").to_string();
     let key = format!("glutflut-run-{}-{channel}", q.id);
+    let (sl, id) = (slug.clone(), q.id);
     let sent = tokio::task::spawn_blocking(move || {
-        send_mastodon(&m, &key, &text, &alt, image.as_deref(), &lang)
+        if text.is_empty() {
+            return Err("no text for this channel".to_string());
+        }
+        match via {
+            Via::Mastodon(m) => send_mastodon(&m, &key, &text, &alt, image.as_deref(), &lang),
+            Via::Instagram(a) => {
+                let jpg = image.ok_or("Instagram needs a picture")?;
+                let store = crate::media::store().ok_or("no media bucket")?;
+                let k = store.key(&format!(
+                    "{sl}/posts/{id}-{:08x}.jpg",
+                    rand::random::<u32>()
+                ));
+                store.put(&k, &jpg).map_err(|e| format!("picture: {e}"))?;
+                send_instagram(&a, &text, &alt, &store.fetch_url(&k))
+            }
+        }
     })
     .await
     .unwrap_or_else(|e| Err(e.to_string()));
@@ -1209,13 +1271,13 @@ pub(super) async fn send(
     let stored = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
             let mut t = db.transaction()?;
-            // Sent once every channel of the post has its URL.
             t.execute(
                 "UPDATE game.post_runs r SET results = jsonb_set(coalesce(r.results, '{}'), \
                    ARRAY[$3::text], $4::text::jsonb) \
                  WHERE r.region = $1 AND r.id = $2",
                 &[&sl, &id, &ch, &res.to_string()],
             )?;
+            // Sent once every channel of the post has its URL.
             t.execute(
                 "UPDATE game.post_runs r SET state = 'sent', decided_by = $3, decided_at = now() \
                  FROM game.posts p WHERE p.id = r.post_id AND r.region = $1 AND r.id = $2 \
@@ -1250,6 +1312,283 @@ pub(super) async fn send(
     }
 }
 
+enum Via {
+    Mastodon(Mastodon),
+    Instagram(Insta),
+}
+
+// --- Instagram -----------------------------------------------------------------
+
+/// Instagram API with Instagram Login.
+const IG: &str = "https://graph.instagram.com";
+// Meta retires a version about two years after its release; bump then.
+const IG_VERSION: &str = "v24.0";
+
+/// An Instagram professional account as stored (`game.post_accounts`).
+struct Insta {
+    token: String,
+    user_id: String,
+    username: Option<String>,
+}
+
+/// The token in the environment: `ELEMENTS_POST_INSTAGRAM_<REGION>`.
+fn instagram_env(slug: &str) -> Option<String> {
+    std::env::var(format!("ELEMENTS_POST_INSTAGRAM_{}", env_name(slug)))
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty() && !v.contains(char::is_whitespace))
+}
+
+fn seed_of(token: &str) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(token.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+fn ig_get(agent: &ureq::Agent, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
+    let mut r = agent.get(&format!("{IG}/{path}"));
+    for (k, v) in query {
+        r = r.query(k, v);
+    }
+    r.call()
+        .map_err(brief)?
+        .into_json()
+        .map_err(|e| e.to_string())
+}
+
+fn ig_post(agent: &ureq::Agent, path: &str, form: &[(&str, &str)]) -> Result<Value, String> {
+    agent
+        .post(&format!("{IG}/{path}"))
+        .send_form(form)
+        .map_err(brief)?
+        .into_json()
+        .map_err(|e| e.to_string())
+}
+
+/// The region's account: the stored one, or the environment's token stored
+/// first (with the account's id) when it is new there.
+async fn instagram(s: &AppState, slug: &str) -> Result<Insta, String> {
+    let env = instagram_env(slug).ok_or("Instagram is not set up for this region")?;
+    let seed = seed_of(&env);
+    let (st, sl, sd) = (s.clone(), slug.to_string(), seed.clone());
+    let stored = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            Ok(db
+                .query_opt(
+                    "SELECT token, user_id, username FROM game.post_accounts \
+                     WHERE region = $1 AND channel = 'instagram' AND seed = $2",
+                    &[&sl, &sd],
+                )?
+                .map(|r| Insta {
+                    token: r.get(0),
+                    user_id: r.get(1),
+                    username: r.get(2),
+                }))
+        })
+    })
+    .await
+    .ok()
+    .flatten()
+    .ok_or("database")?;
+    if let Some(a) = stored {
+        return Ok(a);
+    }
+    let tok = env.clone();
+    let me = tokio::task::spawn_blocking(move || {
+        let agent = crate::media::agent().ok_or("no TLS")?;
+        ig_get(
+            &agent,
+            &format!("{IG_VERSION}/me"),
+            &[("fields", "user_id,username"), ("access_token", &tok)],
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| format!("Instagram account: {e}"))?;
+    let user_id = match &me["user_id"] {
+        Value::String(v) => v.clone(),
+        Value::Number(n) => n.to_string(),
+        _ => return Err("Instagram account: no user_id".into()),
+    };
+    let username = me["username"].as_str().map(str::to_string);
+    let a = Insta {
+        token: env,
+        user_id,
+        username,
+    };
+    let (st, sl) = (s.clone(), slug.to_string());
+    let (tok, uid, un) = (a.token.clone(), a.user_id.clone(), a.username.clone());
+    tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            db.execute(
+                "INSERT INTO game.post_accounts (region, channel, seed, token, user_id, username) \
+                 VALUES ($1, 'instagram', $2, $3, $4, $5) \
+                 ON CONFLICT (region, channel) DO UPDATE SET seed = $2, token = $3, user_id = $4, \
+                   username = $5, expires_at = NULL, refreshed_at = now(), error = NULL",
+                &[&sl, &seed, &tok, &uid, &un],
+            )
+        })
+    })
+    .await
+    .ok()
+    .flatten()
+    .ok_or("database")?;
+    tracing::info!(region = %slug, user = ?a.username, "posts: Instagram account from the environment");
+    Ok(a)
+}
+
+/// Publishes one picture with caption and alt text; the post's link.
+fn send_instagram(a: &Insta, caption: &str, alt: &str, image_url: &str) -> Result<String, String> {
+    let agent = crate::media::agent().ok_or("no TLS")?;
+    let tok = a.token.as_str();
+    let mut form = vec![
+        ("image_url", image_url),
+        ("caption", caption),
+        ("access_token", tok),
+    ];
+    if !alt.is_empty() {
+        form.push(("alt_text", alt));
+    }
+    let c = ig_post(&agent, &format!("{IG_VERSION}/{}/media", a.user_id), &form)
+        .map_err(|e| format!("container: {e}"))?;
+    let cid = c["id"].as_str().ok_or("container: no id")?.to_string();
+    // Meta fetches the picture; wait until the container is ready.
+    let mut ready = false;
+    for _ in 0..40 {
+        std::thread::sleep(Duration::from_secs(3));
+        let v = ig_get(
+            &agent,
+            &format!("{IG_VERSION}/{cid}"),
+            &[("fields", "status_code,status"), ("access_token", tok)],
+        )
+        .map_err(|e| format!("container status: {e}"))?;
+        match v["status_code"].as_str() {
+            Some("FINISHED") => {
+                ready = true;
+                break;
+            }
+            Some("IN_PROGRESS") | None => {}
+            Some(code) => {
+                return Err(format!(
+                    "container {code}: {}",
+                    v["status"].as_str().unwrap_or("")
+                ))
+            }
+        }
+    }
+    if !ready {
+        return Err("container not ready after 2 minutes".into());
+    }
+    let p = ig_post(
+        &agent,
+        &format!("{IG_VERSION}/{}/media_publish", a.user_id),
+        &[("creation_id", &cid), ("access_token", tok)],
+    )
+    .map_err(|e| format!("publish: {e}"))?;
+    let mid = p["id"].as_str().ok_or("publish: no id")?.to_string();
+    // Published; the link is nice to have.
+    let link = ig_get(
+        &agent,
+        &format!("{IG_VERSION}/{mid}"),
+        &[("fields", "permalink"), ("access_token", tok)],
+    )
+    .ok()
+    .and_then(|v| v["permalink"].as_str().map(str::to_string));
+    Ok(link.unwrap_or_else(|| match &a.username {
+        Some(u) => format!("https://www.instagram.com/{u}/"),
+        None => "https://www.instagram.com/".into(),
+    }))
+}
+
+/// Renews the shard's Instagram tokens once a week (a token lives 60 days;
+/// renewing needs it 24 hours old); stores a new token from the environment
+/// first. A failure is kept in `error` and tried again an hour later.
+async fn renew_accounts(s: &AppState) {
+    let (st, shard) = (s.clone(), s.host.shard().to_string());
+    let slugs = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            Ok(db
+                .query("SELECT slug FROM geo.regions WHERE shard = $1", &[&shard])?
+                .iter()
+                .map(|r| r.get::<_, String>(0))
+                .collect::<Vec<_>>())
+        })
+    })
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or_default();
+    for slug in slugs.into_iter().filter(|sl| instagram_env(sl).is_some()) {
+        let a = match instagram(s, &slug).await {
+            Ok(a) => a,
+            Err(e) => {
+                tracing::warn!(region = %slug, error = %e, "posts: Instagram account");
+                continue;
+            }
+        };
+        let (st, sl) = (s.clone(), slug.clone());
+        let due = tokio::task::spawn_blocking(move || {
+            st.with_db(|db| {
+                Ok(db
+                    .query_opt(
+                        "SELECT 1 FROM game.post_accounts WHERE region = $1 AND channel = 'instagram' \
+                         AND refreshed_at < now() - interval '7 days'",
+                        &[&sl],
+                    )?
+                    .is_some())
+            })
+        })
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+        if !due {
+            continue;
+        }
+        let tok = a.token.clone();
+        let got = tokio::task::spawn_blocking(move || {
+            let agent = crate::media::agent().ok_or("no TLS")?;
+            let v = ig_get(
+                &agent,
+                "refresh_access_token",
+                &[("grant_type", "ig_refresh_token"), ("access_token", &tok)],
+            )?;
+            let t = v["access_token"].as_str().ok_or("no token in the answer")?;
+            Ok::<_, String>((t.to_string(), v["expires_in"].as_i64().unwrap_or(0)))
+        })
+        .await
+        .unwrap_or_else(|e| Err(e.to_string()));
+        let (st, sl) = (s.clone(), slug.clone());
+        match &got {
+            Ok(_) => tracing::info!(region = %slug, "posts: Instagram token renewed"),
+            Err(e) => {
+                tracing::warn!(region = %slug, error = %e, "posts: Instagram token not renewed")
+            }
+        }
+        tokio::task::spawn_blocking(move || {
+            st.with_db(|db| {
+                match got {
+                Ok((token, secs)) => db.execute(
+                    "UPDATE game.post_accounts SET token = $2, refreshed_at = now(), error = NULL, \
+                       expires_at = CASE WHEN $3 > 0 THEN now() + make_interval(secs => $3) END \
+                     WHERE region = $1 AND channel = 'instagram'",
+                    &[&sl, &token, &(secs as f64)],
+                ),
+                Err(e) => db.execute(
+                    "UPDATE game.post_accounts SET error = $2 \
+                     WHERE region = $1 AND channel = 'instagram'",
+                    &[&sl, &e],
+                ),
+            }
+            })
+        })
+        .await
+        .ok();
+    }
+}
+
 fn now_s() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -1279,6 +1618,8 @@ mod tests {
         assert!(mastodon_of("http://mastodon.social abc").is_none());
         assert!(mastodon_of("https://mastodon.social").is_none());
         assert!(mastodon_of("https://mastodon.social a b").is_none());
+        assert_eq!(seed_of("abc").len(), 64);
+        assert_ne!(seed_of("abc"), seed_of("abd"));
     }
 
     #[test]

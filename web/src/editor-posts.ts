@@ -2,7 +2,8 @@
 // time, a chapter's start or end, or by hand), texts per outcome and channel,
 // and maybe the picture of the game state. When it is due the server makes a
 // draft with the numbers filled in; here it is copied, posted by hand and
-// marked, or sent from here to the channels the server has an account for.
+// marked, or sent from here to the channels the server has an account for
+// (Mastodon, Instagram).
 import { ask, clean, errorOf, fmtDate, fromLocal, mayLeave, toast, toLocal, watchForm } from "./editor-ui";
 import { t, type EKey } from "./editor-i18n";
 
@@ -34,7 +35,7 @@ type Run = {
   note: string | null;
   decided_by: string | null;
   decided: number | null;
-  results: Record<string, { url?: string; error?: string }> | null;
+  results: Record<string, { url?: string; error?: string; sending?: number }> | null;
 };
 export type ChapterRef = { key: string; names: Record<string, { title: string }>; starts: number; ends: number };
 type Api = (path: string, init?: RequestInit) => Promise<Response>;
@@ -57,6 +58,8 @@ let posts: Post[] = [];
 let runs: Run[] = [];
 /** Channels the server can send to for this region. */
 let ready: string[] = [];
+/** The Instagram account as the server sees it. */
+let insta: { username: string | null; expires: number | null; error: string | null } | null = null;
 let editing: Post | null = null;
 /** The form's texts per variant (the shown one lives in the text areas). */
 let texts: Partial<Record<Variant, Texts>> = {};
@@ -273,7 +276,8 @@ function drawRun(r: Run): HTMLElement {
     const tools = el("span");
     tools.append(copyButton(() => a.value));
     const done = r.results?.[f];
-    if (done?.url) tools.append(el("a", { className: "ed-link", href: done.url, target: "_blank", rel: "noopener", textContent: t("po.sent.view") }));
+    if (done?.sending && !done.url) tools.append(el("small", { textContent: t("po.sending") }));
+    else if (done?.url) tools.append(el("a", { className: "ed-link", href: done.url, target: "_blank", rel: "noopener", textContent: t("po.sent.view") }));
     else if (r.state === "draft" && ready.includes(f)) {
       const b = el("button", { type: "button", textContent: t("po.send") });
       b.onclick = () => void send(r, f, changed() ? edited() : undefined, b);
@@ -310,6 +314,17 @@ function drawRuns() {
   const open = runs.filter((r) => r.state === "draft");
   const done = runs.filter((r) => r.state !== "draft").slice(0, 10);
   host.replaceChildren();
+  // Renewal is the server's job; only a failing one is worth a word.
+  if (insta?.error) {
+    const user = insta.username ?? "?";
+    const soon = insta.expires != null && insta.expires * 1000 - Date.now() < 14 * 86400e3;
+    host.append(
+      el("p", {
+        className: "notice",
+        textContent: soon ? t("po.ig.expires", { user, date: fmtDate(insta.expires!) }) : t("po.ig.error", { user, err: insta.error }),
+      }),
+    );
+  }
   if (!open.length) host.append(el("p", { className: "empty", textContent: t("po.runs.none") }));
   for (const r of open) host.append(drawRun(r));
   if (done.length) {
@@ -396,7 +411,7 @@ export async function loadPosts(slug: string, lang: string, chs: ChapterRef[]) {
   const res = await api(`/api/ops/posts?${q()}`).catch(() => null);
   $("posts-card").hidden = !res?.ok;
   if (!res?.ok) return;
-  ({ posts, runs, ready } = (await res.json()) as { posts: Post[]; runs: Run[]; ready: string[] });
+  ({ posts, runs, ready, instagram: insta } = (await res.json()) as { posts: Post[]; runs: Run[]; ready: string[]; instagram: typeof insta });
   drawRuns();
   drawList();
   const n = runs.filter((r) => r.state === "draft").length;
