@@ -559,6 +559,7 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/hotspot", post(ops_hotspot))
                     .route("/api/ops/reload", post(ops_reload))
                     .route("/api/ops/nodes", get(ops_nodes))
+                    .route("/api/ops/card.png", get(posts::card_png))
                     .route("/api/ops/indoor", get(ops_indoor))
                     .route("/api/ops/regions", get(ops_regions))
                     .route("/api/ops/pending", get(ops_pending))
@@ -2842,6 +2843,9 @@ mod maintenance;
 /// The mood map (public).
 #[path = "mood.rs"]
 mod mood;
+/// Posts from the game: the card of the game state (editor).
+#[path = "posts.rs"]
+mod posts;
 /// Before/after report per focus place.
 #[path = "report.rs"]
 mod report;

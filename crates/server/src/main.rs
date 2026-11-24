@@ -21,6 +21,7 @@ mod analytics;
 mod area;
 mod bench;
 mod campaign;
+mod card;
 mod cells;
 mod challenge;
 mod cheat;

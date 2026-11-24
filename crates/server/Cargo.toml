@@ -59,6 +59,8 @@ url = "2"
 # Editor images (media.rs): decode JPEG/PNG/WebP, encode JPEG.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 base64 = "0.22"
+# Post pictures (card.rs): SVG to PNG, fonts embedded (no system fonts).
+resvg = { version = "0.50", default-features = false, features = ["text"] }
 
 [lints]
 workspace = true
