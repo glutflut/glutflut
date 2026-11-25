@@ -134,6 +134,7 @@ export const en: Dict = {
   "fool.hint": "Fool’s day! Everything is upside down today: fire runs downhill, water climbs, and the colours are swapped.",
   "dream.night": "The city is dreaming: until morning you see it as it dreams. What you claim now also plants a dream, and some come true.",
   "dream.dawn": "The city has dreamt: {n} of {of} dreams came true this morning.",
+  "wisp.hint": "A will-o’-the-wisp wanders through the city. It goes where it is fed: claim near it (80 m) and it takes your side’s colour, works as your source and drifts into your ground. If nobody feeds it, it fades again.",
   "ring.fire": "Ring of fire closed: {n} junctions hold better against water for 30 minutes.",
   "ring.water": "Moat closed: {n} junctions hold better against fire for 30 minutes.",
   "net.busy": "Lots of new players from this network right now. We'll continue in a moment.",

@@ -509,6 +509,17 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
     if res.is_ok() && rules.dream.enabled {
         game.dreams.plant(node, faction);
     }
+    // Near the will-o'-the-wisp a claim feeds it (`wisp.rs`).
+    if res.is_ok() && rules.wisp.enabled {
+        if let Some((g, _)) = game
+            .node_by_id
+            .get(&node)
+            .and_then(|&e| game.nodes.get(e).ok())
+        {
+            let at = (g.lat, g.lon);
+            game.wisp.feed(&rules.wisp, faction, at);
+        }
+    }
     if tunnel {
         if res.is_ok() {
             game.tunnels.open.remove(&tunnel_key(conn, slot));

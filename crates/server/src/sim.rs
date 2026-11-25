@@ -159,6 +159,8 @@ impl NodeById {
 pub struct ElementSim {
     /// Node entities in dense-index order.
     nodes: Vec<Entity>,
+    /// Sources beside the components: the will-o'-the-wisp (`wisp.rs`).
+    pub extra: Vec<(usize, Faction, f32)>,
     /// Street each node carries (m), for holding points.
     metres: Vec<f32>,
     field: Option<Field>,
@@ -410,6 +412,7 @@ pub fn setup_elements(
         ents: node_entities.clone(),
     });
     commands.insert_resource(ElementSim {
+        extra: Vec::new(),
         nodes: node_entities,
         metres,
         field: Some(field),
@@ -449,7 +452,7 @@ pub fn element_tick(
         return;
     };
     let n = sim.nodes.len();
-    let mut sources: Vec<(usize, Faction, f32)> = Vec::new();
+    let mut sources: Vec<(usize, Faction, f32)> = sim.extra.clone();
     for (idx, _geo, source, es) in &q {
         sim.cur[idx.0] = (es.fire, es.water);
         if let Some(s) = source {

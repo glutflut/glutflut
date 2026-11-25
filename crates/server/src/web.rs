@@ -451,6 +451,17 @@ pub fn tide_tick(
     to_all(&clients, &ServerMsg::Tide(s));
 }
 
+/// The will-o'-the-wisp to every app when it moved or leant (`wisp.rs`).
+pub fn wisp_tick(wisp: Res<crate::wisp::Wisp>, clients: Res<WebClients>, mut seen: Local<u32>) {
+    if wisp.version == *seen {
+        return;
+    }
+    *seen = wisp.version;
+    if let Some(s) = wisp.shown {
+        to_all(&clients, &ServerMsg::Wisp(s));
+    }
+}
+
 /// Night or day in the dreaming city to every app when it changes (`dream.rs`).
 pub fn dream_tick(
     dreams: Res<crate::dream::Dreams>,

@@ -281,6 +281,8 @@ pub enum ServerMsg<'a> {
     Weather(weather::Shown),
     /// The tide at the waterfront (`tide.rs`), in regions with a gauge.
     Tide(crate::tide::Shown),
+    /// The will-o'-the-wisp (`wisp.rs`): where it is, which side it leans to.
+    Wisp(crate::wisp::Shown),
     /// The dreaming city (`dream.rs`): night now, the last dawn.
     Dream(crate::dream::Shown),
     /// Walked rings in force (`ring.rs`).
@@ -899,6 +901,7 @@ fn typescript() -> String {
         crate::wind::Shown,
         crate::ring::View,
         crate::dream::Shown,
+        crate::wisp::Shown,
         challenge::View,
         info::Src,
         elements_shared::progression::Challenge,

@@ -32,6 +32,8 @@ export const KEYS = {
   fogSeen: "elements.fog.seen",
   /** The local date of a fool's day the server announced (fool.ts). */
   fool: "elements.fool",
+  /** The will-o'-the-wisp was introduced once (wisp.ts). */
+  wispSeen: "elements.wisp.seen",
   /** The dream hint was shown on this date; the dawn summary for this dawn (dream.ts). */
   dreamSeen: "elements.dream.seen",
   dawnSeen: "elements.dawn.seen",

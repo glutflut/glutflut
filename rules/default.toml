@@ -154,3 +154,9 @@ days = ["2027-02-04"]
 # dreams; claims then also plant a dream, half of them come true at 5.
 [dream]
 enabled = true
+
+# The will-o'-the-wisp: one light per region wanders from the hotspot, one
+# junction every 40 s; claims within 80 m feed it to their side, and leaning
+# it is that side's source and walks into its ground.
+[wisp]
+enabled = true

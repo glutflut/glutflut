@@ -43,6 +43,7 @@ import { setupFog } from "./fog";
 import { FOOL, foolFromServer, startFool } from "./fool";
 import { setupRings } from "./ring";
 import { setupDream } from "./dream";
+import { setupWisp } from "./wisp";
 import type { Wind } from "./spill";
 import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
@@ -131,6 +132,7 @@ async function main() {
   // Fog at the front (fog.ts), above the streets.
   const rings = setupRings(map);
   const dream = setupDream(map, tiles);
+  const wisp = setupWisp(map, () => toast(t("wisp.hint")));
   const fog = setupFog(map, nodePos, () => player.me(), meta.region.centroid[1]);
 
   // The moment of a claim or a new permanent source (burst.ts); off for "reduce motion".
@@ -605,6 +607,12 @@ async function main() {
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
     rings: (m) => rings.set(m.items),
+    wisp: (m) => {
+      if (wisp.set(m) && load(KEYS.wispSeen) !== "1") {
+        save(KEYS.wispSeen, "1");
+        toast(t("wisp.hint"));
+      }
+    },
     dream: (m) => {
       const day = new Date().toLocaleDateString("sv");
       if (dream.set(m.on) && load(KEYS.dreamSeen) !== day) {

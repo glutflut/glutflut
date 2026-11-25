@@ -133,6 +133,7 @@ export const de = {
   "fool.hint": "Narrentag! Heute ist alles verkehrt: Glut fließt bergab, Flut steigt bergauf, und die Farben sind vertauscht.",
   "dream.night": "Die Stadt träumt: Bis zum Morgen siehst du sie, wie sie träumt. Was du jetzt eroberst, sät auch einen Traum, und manche werden wahr.",
   "dream.dawn": "Die Stadt hat geträumt: {n} von {of} Träumen sind heute früh wahr geworden.",
+  "wisp.hint": "Ein Irrlicht wandert durch die Stadt. Es geht dorthin, wo es gefüttert wird: Erobere in seiner Nähe (80 m), dann färbt es sich in deiner Seite, wirkt als ihre Quelle und zieht in euer Gebiet. Füttert es niemand, verblasst es wieder.",
   "ring.fire": "Feuerring geschlossen: {n} Kreuzungen halten 30 Minuten besser gegen Flut.",
   "ring.water": "Wassergraben geschlossen: {n} Kreuzungen halten 30 Minuten besser gegen Glut.",
   "net.busy": "Aus diesem Netz kommen gerade sehr viele neue Spielende. Gleich geht es weiter.",

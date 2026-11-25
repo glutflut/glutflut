@@ -89,6 +89,8 @@ pub struct Rules {
     pub fool: Fool,
     /// The dreaming city at night (`[dream]`).
     pub dream: Dream,
+    /// The will-o'-the-wisp (`[wisp]`).
+    pub wisp: Wisp,
     /// Weekly streaks of play days (`[streak]`, server).
     pub streak: crate::streak::StreakRules,
     /// Chance that a new player joins the weaker side (fewer players today,
@@ -129,6 +131,38 @@ impl Dream {
             h >= self.from_h && h < self.to_h
         } else {
             h >= self.from_h || h < self.to_h
+        }
+    }
+}
+
+/// The will-o'-the-wisp (vault `wilde-ideen.md`): a light that wanders the
+/// streets, one junction every `step_s`, never more than `roam_m` from the
+/// region's hotspot. A claim within `feed_m` pulls its lean (-1 water .. +1
+/// fire) by `feed` towards that side; each step the lean fades by `fade`.
+/// Leaning, it is a source of that side (`strength` × lean) and prefers
+/// junctions that side holds: whoever feeds it herds it home.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Wisp {
+    pub enabled: bool,
+    pub step_s: f32,
+    pub feed_m: f32,
+    pub feed: f32,
+    pub fade: f32,
+    pub strength: f32,
+    pub roam_m: f32,
+}
+
+impl Default for Wisp {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            step_s: 40.0,
+            feed_m: 80.0,
+            feed: 0.2,
+            fade: 0.03,
+            strength: 0.9,
+            roam_m: 1200.0,
         }
     }
 }
@@ -432,6 +466,7 @@ impl Default for Rules {
             ring: Default::default(),
             fool: Default::default(),
             dream: Default::default(),
+            wisp: Default::default(),
             streak: Default::default(),
             join_weaker: 0.67,
             indoor: Default::default(),

@@ -135,6 +135,7 @@ export const es: Dict = {
   "fool.hint": "¡Día de los locos! Hoy todo va al revés: el fuego baja, el agua sube y los colores están cambiados.",
   "dream.night": "La ciudad sueña: hasta la mañana la ves como sueña. Lo que conquistes ahora también siembra un sueño, y algunos se cumplen.",
   "dream.dawn": "La ciudad ha soñado: {n} de {of} sueños se cumplieron esta mañana.",
+  "wisp.hint": "Un fuego fatuo vaga por la ciudad. Va adonde lo alimentan: conquista cerca de él (80 m) y toma el color de tu bando, actúa como su fuente y se adentra en vuestro terreno. Si nadie lo alimenta, vuelve a palidecer.",
   "ring.fire": "Anillo de fuego cerrado: {n} cruces resisten mejor al agua durante 30 minutos.",
   "ring.water": "Foso cerrado: {n} cruces resisten mejor al fuego durante 30 minutos.",
   "net.busy": "Ahora mismo llegan muchas personas nuevas desde esta red. Seguimos en un momento.",

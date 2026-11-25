@@ -134,6 +134,7 @@ export const pt: Dict = {
   "fool.hint": "Dia dos tolos! Hoje está tudo ao contrário: o fogo desce, a água sobe e as cores estão trocadas.",
   "dream.night": "A cidade sonha: até de manhã você a vê como ela sonha. O que você conquistar agora também planta um sonho, e alguns se realizam.",
   "dream.dawn": "A cidade sonhou: {n} de {of} sonhos se realizaram esta manhã.",
+  "wisp.hint": "Um fogo-fátuo vagueia pela cidade. Vai para onde é alimentado: conquiste perto dele (80 m) e ele ganha a cor do seu time, funciona como fonte dele e vai para o seu território. Se ninguém o alimenta, ele volta a empalidecer.",
   "ring.fire": "Anel de fogo fechado: {n} cruzamentos resistem melhor à água durante 30 minutos.",
   "ring.water": "Fosso fechado: {n} cruzamentos resistem melhor ao fogo durante 30 minutos.",
   "net.busy": "Muitos jogadores novos estão chegando desta rede agora. Já já continua.",

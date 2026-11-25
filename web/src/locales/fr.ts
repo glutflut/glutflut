@@ -134,6 +134,7 @@ export const fr: Dict = {
   "fool.hint": "Jour des fous ! Aujourd’hui tout est à l’envers : le feu descend, l’eau monte et les couleurs sont inversées.",
   "dream.night": "La ville rêve : jusqu’au matin, tu la vois telle qu’elle rêve. Ce que tu conquiers maintenant sème aussi un rêve, et certains se réalisent.",
   "dream.dawn": "La ville a rêvé : {n} rêves sur {of} se sont réalisés ce matin.",
+  "wisp.hint": "Un feu follet erre dans la ville. Il va là où on le nourrit : conquiers près de lui (80 m) et il prend la couleur de ton camp, agit comme sa source et dérive vers votre terrain. Si personne ne le nourrit, il pâlit à nouveau.",
   "ring.fire": "Cercle de feu fermé : {n} carrefours résistent mieux à l’eau pendant 30 minutes.",
   "ring.water": "Douve fermée : {n} carrefours résistent mieux au feu pendant 30 minutes.",
   "net.busy": "Beaucoup de nouveaux joueurs depuis ce réseau en ce moment. On reprend dans un instant.",

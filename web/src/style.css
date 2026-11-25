@@ -1910,3 +1910,33 @@ body.dreaming #map::after {
     radial-gradient(ellipse at center, rgba(95, 61, 196, 0.08) 35%, rgba(95, 61, 196, 0.5) 100%),
     linear-gradient(rgba(177, 151, 252, 0.06), rgba(177, 151, 252, 0.06));
 }
+
+/* The will-o'-the-wisp (wisp.ts): a floating, flickering light. */
+.wisp {
+  --c: #e9f1ff;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  animation: wisp-float 3.2s ease-in-out infinite;
+}
+.wisp-core {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 15%, var(--c) 50%, color-mix(in srgb, var(--c) 55%, transparent) 100%);
+  box-shadow: 0 0 26px 10px color-mix(in srgb, var(--c) 70%, transparent);
+  opacity: 0.85;
+  animation: wisp-flicker 1.7s ease-in-out infinite alternate;
+  transition: box-shadow 1s, background 1s;
+}
+@keyframes wisp-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
+}
+@keyframes wisp-flicker {
+  from { opacity: 0.65; scale: 0.92; }
+  to { opacity: 0.95; scale: 1.06; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wisp, .wisp-core { animation: none; }
+}

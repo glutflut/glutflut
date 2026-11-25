@@ -69,6 +69,7 @@ mod tiles;
 mod weather;
 mod web;
 mod wind;
+mod wisp;
 mod world;
 mod writers;
 
@@ -597,6 +598,7 @@ pub fn build(p: Prepared) -> App {
     app.init_resource::<fog::LiveFog>();
     app.init_resource::<ring::Rings>();
     app.init_resource::<dream::Dreams>();
+    app.init_resource::<wisp::Wisp>();
     app.insert_resource(sim::GameRules(rules));
     app.init_resource::<area::Blocks>();
     app.init_resource::<marble::Claims>();
@@ -643,6 +645,9 @@ pub fn build(p: Prepared) -> App {
                         .run_if(resource_exists::<sim::ElementSim>),
                     (ring::tick, web::rings_tick).chain(),
                     (dream::tick, web::dream_tick).chain(),
+                    (wisp::tick, web::wisp_tick)
+                        .chain()
+                        .run_if(resource_exists::<sim::ElementSim>),
                     (wind::update, web::wind_tick)
                         .chain()
                         .run_if(resource_exists::<wind::LiveWind>),
