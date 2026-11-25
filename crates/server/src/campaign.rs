@@ -581,7 +581,8 @@ impl crate::writers::Lane for Worker {
 
 /// Today's weather: stored once a day from the first forecast
 /// (`game.weather_days`), so a restart doesn't change the day. Then today's
-/// weather day (weekdays, 9 to 21 h local), unless a chapter runs then.
+/// weather day (every day, 9 to 22 h local: past the Christmas market's
+/// 21:30 closing), unless a chapter runs then.
 fn weather_day(
     c: &mut postgres::Client,
     region: &str,
@@ -655,11 +656,11 @@ fn weather_day(
     c.execute(
         "INSERT INTO game.chapters (region, key, campaign, names, starts, ends, goal, target, target_water, kind) \
          SELECT $1, 'wx-' || d, 'weather', '{}', (d + time '09:00') AT TIME ZONE r.timezone, \
-                (d + time '21:00') AT TIME ZONE r.timezone, $2, $3, $4, $5 \
+                (d + time '22:00') AT TIME ZONE r.timezone, $2, $3, $4, $5 \
          FROM geo.regions r, LATERAL (SELECT (now() AT TIME ZONE r.timezone)::date AS d) x \
-         WHERE r.slug = $1 AND extract(isodow FROM d) <= 5 \
+         WHERE r.slug = $1 \
            AND NOT EXISTS (SELECT 1 FROM game.chapters ch WHERE ch.region = $1 \
-                AND ch.status = 'published' AND ch.starts < (d + time '21:00') AT TIME ZONE r.timezone \
+                AND ch.status = 'published' AND ch.starts < (d + time '22:00') AT TIME ZONE r.timezone \
                 AND ch.ends > (d + time '09:00') AT TIME ZONE r.timezone) \
          ON CONFLICT (region, key) DO NOTHING",
         &[&region, &plan.goal, &fire, &water, &plan.kind],
