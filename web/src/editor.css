@@ -151,6 +151,8 @@ h3.with-search input { flex: 0 1 240px; font-size: 14px; font-weight: 400; }
 .tag-chip.on { opacity: 1; border-color: currentColor; font-weight: 600; }
 .post-tags-pick, .post-place { margin: 8px 0; }
 .post-place input#post-place-q { flex: 1 1 220px; min-width: 0; }
+.post-place-results { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.post-place-results button { text-align: left; white-space: normal; }
 .tag-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 4px 0; }
 small.over { color: #c92a2a; font-weight: 600; }
 .post-map-wrap { position: relative; width: 100%; max-width: 480px; aspect-ratio: 1; margin: 6px 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }

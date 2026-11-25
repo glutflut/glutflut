@@ -1342,7 +1342,11 @@ pub(super) async fn place(
         return StatusCode::UNAUTHORIZED.into_response();
     }
     let Some(key) = place_key(&q.q) else {
-        return bad("place: a page id or a Facebook link to the page");
+        let name = q.q.trim().to_string();
+        if !(2..=80).contains(&name.chars().count()) || name.starts_with("http") {
+            return bad("place: a page id, a Facebook link to the page, or a name");
+        }
+        return search_places(&s, &slug, name).await;
     };
     let a = match instagram(&s, &slug).await {
         Ok(a) => a,
@@ -1401,6 +1405,94 @@ pub(super) async fn place(
         )
             .into_response(),
     }
+}
+
+/// Pages with a place whose name matches (`/pages/search`; needs the app
+/// feature Page Public Metadata Access), nearest to the region first:
+/// `{results: [{id, name, city, street, km}]}`, at most 15.
+async fn search_places(s: &AppState, slug: &str, name: String) -> Response {
+    let a = match instagram(s, slug).await {
+        Ok(a) => a,
+        Err(e) => return bad(&e),
+    };
+    let (st, sl) = (s.clone(), slug.to_string());
+    let centre = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let r = db.query_one(
+                "SELECT ST_Y(centroid_geom), ST_X(centroid_geom) FROM geo.regions WHERE slug = $1",
+                &[&sl],
+            )?;
+            Ok((r.get::<_, f64>(0), r.get::<_, f64>(1)))
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    let got = tokio::task::spawn_blocking(move || {
+        let agent = crate::media::agent().ok_or("no TLS")?;
+        ig_get(
+            &agent,
+            "pages/search",
+            &[
+                ("q", &name),
+                ("fields", "id,name,location"),
+                ("limit", "50"),
+                ("access_token", &a.token),
+            ],
+        )
+    })
+    .await
+    .unwrap_or_else(|e| Err(e.to_string()));
+    let v = match got {
+        Ok(v) => v,
+        Err(e) => {
+            return (
+                StatusCode::BAD_GATEWAY,
+                Json(json!({ "error": format!("Meta: {e}") })),
+            )
+                .into_response()
+        }
+    };
+    Json(json!({ "results": places_of(&v, centre) })).into_response()
+}
+
+/// The search's pages that have a place, nearest first (km from `centre`).
+pub fn places_of(v: &Value, centre: Option<(f64, f64)>) -> Vec<Value> {
+    let mut out: Vec<(f64, Value)> = v["data"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|p| {
+            let loc = p["location"].as_object()?;
+            let city = loc.get("city").and_then(Value::as_str).unwrap_or("");
+            let pos = loc
+                .get("latitude")
+                .and_then(Value::as_f64)
+                .zip(loc.get("longitude").and_then(Value::as_f64));
+            if pos.is_none() && city.is_empty() {
+                return None;
+            }
+            let km = match (pos, centre) {
+                (Some((la, lo)), Some((cla, clo))) => {
+                    let k = cla.to_radians().cos();
+                    ((la - cla) * 110.54).hypot((lo - clo) * 111.32 * k)
+                }
+                _ => f64::INFINITY,
+            };
+            Some((
+                km,
+                json!({
+                    "id": id_of(&p["id"])?,
+                    "name": p["name"],
+                    "city": city,
+                    "street": loc.get("street").and_then(Value::as_str).unwrap_or(""),
+                    "km": km.is_finite().then(|| (km * 10.0).round() / 10.0),
+                }),
+            ))
+        })
+        .collect();
+    out.sort_by(|a, b| a.0.total_cmp(&b.0));
+    out.into_iter().take(15).map(|(_, v)| v).collect()
 }
 
 /// A blank 4:5 picture in the paper's colour, for trying a place.
@@ -2221,6 +2313,15 @@ mod tests {
             Some("konstanz.tourismus")
         );
         assert_eq!(place_key("https://example.com/x"), None);
+        let found = json!({ "data": [
+            { "id": "1", "name": "Far", "location": { "city": "Ulm", "latitude": 48.4, "longitude": 9.99 } },
+            { "id": "2", "name": "No place" },
+            { "id": "3", "name": "Near", "location": { "city": "Konstanz", "street": "Hafenstraße 2", "latitude": 47.66, "longitude": 9.18 } },
+        ] });
+        let r = places_of(&found, Some((47.66, 9.176)));
+        assert_eq!(r.len(), 2);
+        assert_eq!(r[0]["id"], "3");
+        assert_eq!(r[0]["km"], 0.3);
         assert_eq!(
             clean_location(&Some(json!({ "id": "12a" }))),
             Err("place: the id is digits only")

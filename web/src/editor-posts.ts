@@ -159,16 +159,40 @@ function setPlace(p: Place | null, note = "") {
   input("post-place-name").style.display = p ? "" : "none";
 }
 
+type Found = { id: string; name: string; city: string; street: string; km: number | null };
+
+/** Search results: one button per page with a place; a click takes it. */
+function drawFound(list: Found[]) {
+  const host = $("post-place-results");
+  host.hidden = false;
+  if (!list.length) return void host.replaceChildren(el("small", { textContent: t("po.f.place.found0") }));
+  host.replaceChildren(el("small", { textContent: t("po.f.place.pick") }));
+  for (const f of list) {
+    const where = [f.street, f.city].filter(Boolean).join(", ");
+    const b = el("button", { type: "button", textContent: `📍 ${f.name}${where ? ` · ${where}` : ""}${f.km != null ? ` · ${f.km} km` : ""}` });
+    b.onclick = () => {
+      const before = input("post-place-id").value;
+      setPlace({ id: f.id, name: f.city && !f.name.includes(f.city) ? `${f.name}, ${f.city}` : f.name });
+      host.hidden = true;
+      input("post-place-q").value = "";
+      if (input("post-place-id").value !== before) input("post-place-id").dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    host.append(b);
+  }
+}
+
 async function checkPlace() {
   const raw = input("post-place-q").value.trim();
   if (!raw) return;
   const btn = $<HTMLButtonElement>("post-place-check");
   btn.disabled = true;
+  $("post-place-results").hidden = true;
   const res = await api(`/api/ops/posts/place?${q()}&q=${encodeURIComponent(raw)}`).catch(() => null);
   btn.disabled = false;
   const before = input("post-place-id").value;
   if (res?.ok) {
-    const v = (await res.json()) as { id: string; name: string; city: string; has_place: boolean; checked: "page" | "container" };
+    const v = (await res.json()) as { results?: Found[]; id: string; name: string; city: string; has_place: boolean; checked: "page" | "container" };
+    if (v.results) return drawFound(v.results);
     const name = v.name ? (v.city && !v.name.includes(v.city) ? `${v.name}, ${v.city}` : v.name) : input("post-place-name").value;
     setPlace({ id: v.id, name }, v.checked === "container" ? t("po.f.place.tried") : v.has_place ? "" : t("po.f.place.noloc"));
     if (!name) input("post-place-name").focus();
