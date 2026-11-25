@@ -132,6 +132,8 @@ export const en: Dict = {
   "gfx.slow": "Graphics simplified: this device could not keep up",
   "fog.hint": "Steam over the front: where fire and water have clashed for long, you only see up close. Go there!",
   "fool.hint": "Fool’s day! Everything is upside down today: fire runs downhill, water climbs, and the colours are swapped.",
+  "dream.night": "The city is dreaming: until morning you see it as it dreams. What you claim now also plants a dream, and some come true.",
+  "dream.dawn": "The city has dreamt: {n} of {of} dreams came true this morning.",
   "ring.fire": "Ring of fire closed: {n} junctions hold better against water for 30 minutes.",
   "ring.water": "Moat closed: {n} junctions hold better against fire for 30 minutes.",
   "net.busy": "Lots of new players from this network right now. We'll continue in a moment.",

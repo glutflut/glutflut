@@ -31,6 +31,7 @@ mod clock;
 mod cog;
 mod db;
 mod demo;
+mod dream;
 mod finds;
 mod fog;
 mod found;
@@ -595,6 +596,7 @@ pub fn build(p: Prepared) -> App {
     app.init_resource::<tide::LiveTide>();
     app.init_resource::<fog::LiveFog>();
     app.init_resource::<ring::Rings>();
+    app.init_resource::<dream::Dreams>();
     app.insert_resource(sim::GameRules(rules));
     app.init_resource::<area::Blocks>();
     app.init_resource::<marble::Claims>();
@@ -640,6 +642,7 @@ pub fn build(p: Prepared) -> App {
                         .chain()
                         .run_if(resource_exists::<sim::ElementSim>),
                     (ring::tick, web::rings_tick).chain(),
+                    (dream::tick, web::dream_tick).chain(),
                     (wind::update, web::wind_tick)
                         .chain()
                         .run_if(resource_exists::<wind::LiveWind>),

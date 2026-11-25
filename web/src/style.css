@@ -1895,3 +1895,18 @@ body.indoor #gps { cursor: pointer; }
   color: #fff;
   background: rgba(0, 0, 0, 0.5);
 }
+
+/* The dreaming city (dream.ts): hazy and violet. */
+/* The sides keep their colours (no hue shift): only haze and a violet frame. */
+body.dreaming #map canvas {
+  filter: saturate(0.7) brightness(0.88) blur(0.4px);
+}
+body.dreaming #map::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, rgba(95, 61, 196, 0.08) 35%, rgba(95, 61, 196, 0.5) 100%),
+    linear-gradient(rgba(177, 151, 252, 0.06), rgba(177, 151, 252, 0.06));
+}

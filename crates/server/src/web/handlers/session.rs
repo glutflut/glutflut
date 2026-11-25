@@ -246,6 +246,9 @@ pub(super) fn hello(
     if let Some(t) = game.tide.as_ref().and_then(|t| t.shown()) {
         send(&out, &ServerMsg::Tide(t));
     }
+    if game.dreams.shown.on || game.dreams.shown.dawn > 0 {
+        send(&out, &ServerMsg::Dream(game.dreams.shown));
+    }
     if !game.rings.active.is_empty() {
         send(
             &out,

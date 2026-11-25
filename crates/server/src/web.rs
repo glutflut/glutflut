@@ -451,6 +451,19 @@ pub fn tide_tick(
     to_all(&clients, &ServerMsg::Tide(s));
 }
 
+/// Night or day in the dreaming city to every app when it changes (`dream.rs`).
+pub fn dream_tick(
+    dreams: Res<crate::dream::Dreams>,
+    clients: Res<WebClients>,
+    mut seen: Local<u32>,
+) {
+    if dreams.version == *seen {
+        return;
+    }
+    *seen = dreams.version;
+    to_all(&clients, &ServerMsg::Dream(dreams.shown));
+}
+
 /// The walked rings to every app when they changed (`ring.rs`).
 pub fn rings_tick(rings: Res<crate::ring::Rings>, clients: Res<WebClients>, mut seen: Local<u32>) {
     if rings.version == *seen {

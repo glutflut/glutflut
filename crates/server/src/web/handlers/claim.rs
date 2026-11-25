@@ -505,6 +505,10 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         }
         (r, _) => r,
     };
+    // At night a claim also plants a dream (`dream.rs`).
+    if res.is_ok() && rules.dream.enabled {
+        game.dreams.plant(node, faction);
+    }
     if tunnel {
         if res.is_ok() {
             game.tunnels.open.remove(&tunnel_key(conn, slot));

@@ -87,6 +87,8 @@ pub struct Rules {
     /// Fool's days (`[fool] days`, local `YYYY-MM-DD`): the field upside
     /// down, the app swaps the sides' colours (Fasnacht).
     pub fool: Fool,
+    /// The dreaming city at night (`[dream]`).
+    pub dream: Dream,
     /// Weekly streaks of play days (`[streak]`, server).
     pub streak: crate::streak::StreakRules,
     /// Chance that a new player joins the weaker side (fewer players today,
@@ -94,6 +96,41 @@ pub struct Rules {
     pub join_weaker: f32,
     /// Indoors (`[indoor]`): a scanned code places the player, not GPS.
     pub indoor: Indoor,
+}
+
+/// The dreaming city (vault `wilde-ideen.md`): from `from_h` to `to_h` local
+/// time the app shows the city as it dreams; every claim then also plants a
+/// dream on its junction, and at `to_h` each comes true with `come_true`:
+/// the junction flares up once more for the side that dreamt it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Dream {
+    pub enabled: bool,
+    pub from_h: f32,
+    pub to_h: f32,
+    pub come_true: f32,
+}
+
+impl Default for Dream {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            from_h: 0.0,
+            to_h: 5.0,
+            come_true: 0.5,
+        }
+    }
+}
+
+impl Dream {
+    /// Night at local hour `h` (0..24); the window may wrap midnight.
+    pub fn night(&self, h: f32) -> bool {
+        if self.from_h <= self.to_h {
+            h >= self.from_h && h < self.to_h
+        } else {
+            h >= self.from_h || h < self.to_h
+        }
+    }
 }
 
 /// Fool's days: local dates (`YYYY-MM-DD`) when everything is the other way round.
@@ -394,6 +431,7 @@ impl Default for Rules {
             fog: Default::default(),
             ring: Default::default(),
             fool: Default::default(),
+            dream: Default::default(),
             streak: Default::default(),
             join_weaker: 0.67,
             indoor: Default::default(),
@@ -685,6 +723,14 @@ mod decay_tests {
             .with_overrides(r#"fool.days=["2026-11-25"]"#)
             .unwrap();
         assert!(r.fool.on("2026-11-25"));
+        let d = Dream::default();
+        assert!(d.night(0.0) && d.night(4.9) && !d.night(5.0) && !d.night(23.0));
+        let wrap = Dream {
+            from_h: 23.0,
+            to_h: 2.0,
+            ..d
+        };
+        assert!(wrap.night(23.5) && wrap.night(1.0) && !wrap.night(12.0));
         assert_eq!(
             Rules::default()
                 .with_overrides("\"claim_ttl_s=7\"")

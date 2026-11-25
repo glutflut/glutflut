@@ -68,6 +68,7 @@ pub struct Game<'w, 's> {
     wind: Option<Res<'w, crate::wind::LiveWind>>,
     fog: Res<'w, crate::fog::LiveFog>,
     rings: ResMut<'w, crate::ring::Rings>,
+    dreams: ResMut<'w, crate::dream::Dreams>,
     tunnels: Local<'s, Tunnels>,
     labels: Option<Res<'w, crate::indoor::Labels>>,
     /// Asks into other regions waiting for their answer.

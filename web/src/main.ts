@@ -42,6 +42,7 @@ import { claimNotes } from "./melody";
 import { setupFog } from "./fog";
 import { FOOL, foolFromServer, startFool } from "./fool";
 import { setupRings } from "./ring";
+import { setupDream } from "./dream";
 import type { Wind } from "./spill";
 import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
@@ -129,6 +130,7 @@ async function main() {
 
   // Fog at the front (fog.ts), above the streets.
   const rings = setupRings(map);
+  const dream = setupDream(map, tiles);
   const fog = setupFog(map, nodePos, () => player.me(), meta.region.centroid[1]);
 
   // The moment of a claim or a new permanent source (burst.ts); off for "reduce motion".
@@ -603,6 +605,18 @@ async function main() {
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
     rings: (m) => rings.set(m.items),
+    dream: (m) => {
+      const day = new Date().toLocaleDateString("sv");
+      if (dream.set(m.on) && load(KEYS.dreamSeen) !== day) {
+        save(KEYS.dreamSeen, day);
+        toast(t("dream.night"));
+      }
+      // The morning after: how many dreams came true (once per dawn, within 12 h).
+      if (!m.on && m.dreamt > 0 && Date.now() / 1000 - m.dawn < 12 * 3600 && load(KEYS.dawnSeen) !== String(m.dawn)) {
+        save(KEYS.dawnSeen, String(m.dawn));
+        toast(t("dream.dawn", { n: m.came_true, of: m.dreamt }));
+      }
+    },
     ringclosed: (m) => {
       sound.ring(m.side);
       toast(t(m.side === "fire" ? "ring.fire" : "ring.water", { n: m.nodes }));

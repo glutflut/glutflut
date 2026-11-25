@@ -149,3 +149,8 @@ enabled = true
 # climbs) and the app swaps the sides' colours. Schmotziger Dunschtig 2027.
 [fool]
 days = ["2027-02-04"]
+
+# The dreaming city: midnight to 5 local, the app shows the city as it
+# dreams; claims then also plant a dream, half of them come true at 5.
+[dream]
+enabled = true

@@ -132,6 +132,8 @@ export const pl: Dict = {
   "gfx.slow": "Grafika uproszczona: to urządzenie nie nadążało",
   "fog.hint": "Para nad frontem: gdzie ogień i woda długo się ścierają, widać tylko z bliska. Idź tam!",
   "fool.hint": "Dzień błazna! Dziś wszystko na opak: ogień spływa w dół, woda wspina się w górę, a kolory są zamienione.",
+  "dream.night": "Miasto śni: do rana widzisz je takim, jakim śni. To, co teraz zdobędziesz, zasiewa też sen, a niektóre się spełniają.",
+  "dream.dawn": "Miasto śniło: {n} z {of} snów spełniło się dziś rano.",
   "ring.fire": "Krąg ognia zamknięty: {n} skrzyżowań lepiej opiera się wodzie przez 30 minut.",
   "ring.water": "Fosa zamknięta: {n} skrzyżowań lepiej opiera się ogniowi przez 30 minut.",
   "net.busy": "Z tej sieci dołącza właśnie bardzo wielu nowych graczy. Za chwilę kontynuujemy.",

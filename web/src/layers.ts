@@ -57,7 +57,9 @@ export async function createMap(meta: Meta, gameView: boolean, full: boolean, op
 
   localLabels(map);
 
-  const OWNER: maplibregl.ExpressionSpecification = ["coalesce", ["feature-state", "o"], 0];
+  /** Streets gone from the dreaming city (dream.ts) almost vanish. */
+const GONE: maplibregl.ExpressionSpecification = ["case", ["boolean", ["feature-state", "gone"], false], 0.07, 1];
+const OWNER: maplibregl.ExpressionSpecification = ["coalesce", ["feature-state", "o"], 0];
   const STRENGTH: maplibregl.ExpressionSpecification = ["min", 1, ["coalesce", ["feature-state", "s"], 0]];
   const byOwner = (fallback: string, c: { fire: string; water: string; front: string } = gameView ? GLOW : COLORS) =>
     ["match", OWNER, 1, c.fire, 2, c.water, 3, c.front, fallback] as maplibregl.ExpressionSpecification;
@@ -123,7 +125,7 @@ export async function createMap(meta: Meta, gameView: boolean, full: boolean, op
         "line-color": byOwner("rgba(0,0,0,0)"),
         "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 13, 3, 16, 10, 19, 24],
         "line-blur": ["interpolate", ["exponential", 1.6], ["zoom"], 13, 2, 16, 7, 19, 16],
-        "line-opacity": glowOpacity(),
+        "line-opacity": ["*", GONE, glowOpacity()],
       },
     });
   }
@@ -136,7 +138,7 @@ export async function createMap(meta: Meta, gameView: boolean, full: boolean, op
       ? {
           "line-color": byOwner(GLOW.neutral),
           "line-width": ["interpolate", ["linear"], ["zoom"], 14, 1.5, 18, 5],
-          "line-opacity": ["case", ["==", OWNER, 0], 0.8, ["+", 0.55, ["*", 0.45, STRENGTH]]],
+          "line-opacity": ["*", GONE, ["case", ["==", OWNER, 0], 0.8, ["+", 0.55, ["*", 0.45, STRENGTH]]]],
         }
       : {
           "line-color": byOwner(COLORS.neutral),
@@ -154,7 +156,7 @@ export async function createMap(meta: Meta, gameView: boolean, full: boolean, op
       paint: {
         "line-color": byOwner("rgba(0,0,0,0)", CORE),
         "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 18, 1.6],
-        "line-opacity": ["case", ["==", OWNER, 0], 0, ["*", 0.9, STRENGTH]],
+        "line-opacity": ["*", GONE, ["case", ["==", OWNER, 0], 0, ["*", 0.9, STRENGTH]]],
       },
     });
   }

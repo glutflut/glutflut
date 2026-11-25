@@ -34,6 +34,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "forgotten" }
   | { "t": "weather" } & WeatherShown
   | { "t": "tide" } & TideShown
+  | { "t": "dream" } & DreamShown
   | { "t": "rings", items: Array<RingView>, }
   | { "t": "ringclosed", side: Faction, nodes: number, }
   | { "t": "fog", ids: Array<number>, see_m: number, }
@@ -178,6 +179,11 @@ export type WindShown = { from_deg: number, speed: number, gusts: number, at: nu
  * What the app gets (`ServerMsg::Rings`).
  */
 export type RingView = { side: Faction, line: Array<[number, number]>, until: number, };
+
+/**
+ * What the app gets (`ServerMsg::Dream`).
+ */
+export type DreamShown = { on: boolean, dreamt: number, came_true: number, dawn: number, };
 
 /**
  * What the player sees.

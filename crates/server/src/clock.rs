@@ -33,6 +33,16 @@ impl Clock {
         }
     }
 
+    /// The local hour of `unix` seconds (0..24, with fractions).
+    pub fn hour(&self, unix: f64) -> f32 {
+        Timestamp::from_second(unix.floor() as i64)
+            .map(|t| {
+                let z = t.to_zoned(self.tz.clone());
+                f32::from(z.hour() as u8) + f32::from(z.minute() as u8) / 60.0
+            })
+            .unwrap_or(12.0)
+    }
+
     /// The local date of `unix` seconds, `YYYY-MM-DD`.
     pub fn date(&self, unix: f64) -> String {
         Timestamp::from_second(unix.floor() as i64)

@@ -281,6 +281,8 @@ pub enum ServerMsg<'a> {
     Weather(weather::Shown),
     /// The tide at the waterfront (`tide.rs`), in regions with a gauge.
     Tide(crate::tide::Shown),
+    /// The dreaming city (`dream.rs`): night now, the last dawn.
+    Dream(crate::dream::Shown),
     /// Walked rings in force (`ring.rs`).
     Rings {
         items: Vec<crate::ring::View>,
@@ -896,6 +898,7 @@ fn typescript() -> String {
         crate::tide::Shown,
         crate::wind::Shown,
         crate::ring::View,
+        crate::dream::Shown,
         challenge::View,
         info::Src,
         elements_shared::progression::Challenge,

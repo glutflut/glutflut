@@ -133,6 +133,8 @@ export const es: Dict = {
   "gfx.slow": "Gráficos simplificados: el dispositivo no daba abasto",
   "fog.hint": "Vapor sobre el frente: donde fuego y agua chocan mucho tiempo, solo se ve de cerca. ¡Ve allí!",
   "fool.hint": "¡Día de los locos! Hoy todo va al revés: el fuego baja, el agua sube y los colores están cambiados.",
+  "dream.night": "La ciudad sueña: hasta la mañana la ves como sueña. Lo que conquistes ahora también siembra un sueño, y algunos se cumplen.",
+  "dream.dawn": "La ciudad ha soñado: {n} de {of} sueños se cumplieron esta mañana.",
   "ring.fire": "Anillo de fuego cerrado: {n} cruces resisten mejor al agua durante 30 minutos.",
   "ring.water": "Foso cerrado: {n} cruces resisten mejor al fuego durante 30 minutos.",
   "net.busy": "Ahora mismo llegan muchas personas nuevas desde esta red. Seguimos en un momento.",
