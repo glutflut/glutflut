@@ -75,6 +75,7 @@ export const fr: Dict = {
   "clouds.failed": "Carte des nuages injoignable pour le moment.",
   "nav.sound": "Son activé/désactivé",
   "board.ambient": "Sons d’ambiance",
+  "board.notes": "Notes des rues",
   "feedback.open": "Donner ton avis",
   "news.title": "Nouveautés de Glut & Flut",
   "news.rules": "Règles du jeu",

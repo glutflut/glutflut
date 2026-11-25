@@ -34,6 +34,8 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 export class Sound {
   on = stored(KEY_ON);
   ambientOn = stored(KEY_AMBIENT);
+  /** The streets' notes after a claim (melody.ts). */
+  notesOn = stored(KEYS.soundNotes);
   private ctx: AudioContext | null = null;
   private out!: GainNode;
   private noise!: AudioBuffer;
@@ -88,6 +90,11 @@ export class Sound {
     this.ambientOn = on;
     store(KEY_AMBIENT, on);
     this.ground(...(this.amb?.level ?? [0, 0]));
+  }
+
+  setNotes(on: boolean) {
+    this.notesOn = on;
+    store(KEYS.soundNotes, on);
   }
 
   private ready(): AudioContext | null {
@@ -165,7 +172,7 @@ export class Sound {
    * water a small bell. More steps at once: a chord (a block held closed). */
   note(f: Faction, steps: number[]) {
     const c = this.ready();
-    if (!c || !steps.length) return;
+    if (!c || !this.notesOn || !steps.length) return;
     const t = c.currentTime + (steps.length > 1 ? 0.25 : 0.12);
     steps.forEach((k, i) => {
       const hz = noteHz(k);

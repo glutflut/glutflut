@@ -75,6 +75,7 @@ export const pt: Dict = {
   "clouds.failed": "Mapa de nuvens indisponível no momento.",
   "nav.sound": "Som liga/desliga",
   "board.ambient": "Sons ambientes",
+  "board.notes": "Notas das ruas",
   "feedback.open": "Dar feedback",
   "news.title": "Novidades no Glut & Flut",
   "news.rules": "Regras do jogo",

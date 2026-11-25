@@ -207,6 +207,9 @@ async function main() {
   const ambientBox = $("ambient-on") as HTMLInputElement;
   ambientBox.checked = sound.ambientOn;
   ambientBox.onchange = () => sound.setAmbient(ambientBox.checked);
+  const notesBox = $("notes-on") as HTMLInputElement;
+  notesBox.checked = sound.notesOn;
+  notesBox.onchange = () => sound.setNotes(notesBox.checked);
   // Ambient layer: fire and water of the junction under the player.
   setInterval(() => {
     const me = player.me();

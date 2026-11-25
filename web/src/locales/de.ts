@@ -74,6 +74,7 @@ export const de = {
   "clouds.failed": "Wolkenkarte gerade nicht erreichbar.",
   "nav.sound": "Ton an/aus",
   "board.ambient": "Umgebungsgeräusche",
+  "board.notes": "Töne der Straßen",
   "feedback.open": "Feedback geben",
   "news.title": "Neu in Glut & Flut",
   "news.rules": "Spielregeln",

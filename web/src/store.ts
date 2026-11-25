@@ -44,6 +44,7 @@ export const KEYS = {
   oldAnim: "elements.anim",
   sound: "elements.sound",
   soundAmbient: "elements.sound.ambient",
+  soundNotes: "elements.sound.notes",
   ar: "elements.ar",
   dashboardData: "elements.dashboard.data",
   /** Install hint (install.ts): first day seen, hidden until. */
