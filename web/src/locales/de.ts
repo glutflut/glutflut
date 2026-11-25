@@ -130,6 +130,8 @@ export const de = {
   "gfx.map": "Karte",
   "gfx.slow": "Grafik vereinfacht: das Gerät kam nicht hinterher",
   "fog.hint": "Dampf über der Front: wo Glut und Flut lange aufeinanderprallen, sieht man nur noch aus der Nähe. Hingehen!",
+  "ring.fire": "Feuerring geschlossen: {n} Kreuzungen halten 30 Minuten besser gegen Flut.",
+  "ring.water": "Wassergraben geschlossen: {n} Kreuzungen halten 30 Minuten besser gegen Glut.",
   "net.busy": "Aus diesem Netz kommen gerade sehr viele neue Spielende. Gleich geht es weiter.",
   "presence.ok": "Vor Ort bestätigt: Du spielst ab jetzt mit voller Kraft.",
   "presence.far": "Für die Bestätigung vor Ort geh näher zum Code.",

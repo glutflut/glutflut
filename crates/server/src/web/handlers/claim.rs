@@ -314,7 +314,7 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         return;
     }
     let slot = slot.map(|s| s.0);
-    let power = power_of(
+    let mut power = power_of(
         &game.scores,
         &game.abilities,
         rules,
@@ -322,6 +322,10 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
         slot,
         motion.full_strength(),
     );
+    // Inside another side's walked ring (`ring.rs`): weaker.
+    if rules.ring.enabled {
+        power.mult *= game.rings.factor(node, faction, now, rules.ring.weaken);
+    }
     let refuse = |reason: &'static str| {
         send(
             out,

@@ -191,6 +191,24 @@ export class Sound {
     });
   }
 
+  /** A walked ring closed: the side's notes rising all round. */
+  ring(f: Faction) {
+    const c = this.ready();
+    if (!c) return;
+    const t = c.currentTime + 0.05;
+    [0, 1, 2, 3, 4, 5].forEach((k, i) => {
+      const hz = noteHz(k);
+      const at = t + i * 0.09;
+      if (f === "fire") {
+        this.tone(at, hz, 0.6, 0.12 * EVENT_GAIN, "triangle");
+        this.burst(at, 0.02, 0.08 * EVENT_GAIN, "bandpass", hz * 4, 2);
+      } else {
+        this.tone(at, hz, 1.2, 0.12 * EVENT_GAIN, "sine");
+        this.tone(at, hz * 2.76, 0.5, 0.04 * EVENT_GAIN, "sine");
+      }
+    });
+  }
+
   /** Carried water sloshes over (`amount` 0..1 of a strong spill). */
   slosh(amount: number) {
     const c = this.ready();

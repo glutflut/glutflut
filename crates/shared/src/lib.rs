@@ -26,6 +26,7 @@ pub mod progression;
 pub mod radar;
 pub mod rules;
 pub mod scoring;
+pub mod shape;
 pub mod source;
 pub mod streak;
 pub mod tide;

@@ -131,6 +131,8 @@ export const it: Dict = {
   "gfx.map": "Mappa",
   "gfx.slow": "Grafica semplificata: il dispositivo non stava al passo",
   "fog.hint": "Vapore sul fronte: dove fuoco e acqua si scontrano a lungo, si vede solo da vicino. Vai lì!",
+  "ring.fire": "Anello di fuoco chiuso: {n} incroci resistono meglio all’acqua per 30 minuti.",
+  "ring.water": "Fossato chiuso: {n} incroci resistono meglio al fuoco per 30 minuti.",
   "net.busy": "In questo momento arrivano moltissimi nuovi giocatori da questa rete. Si riparte tra poco.",
   "presence.ok": "Presenza confermata: da ora giochi a piena forza.",
   "presence.far": "Per confermare la presenza, avvicinati al codice.",

@@ -279,6 +279,16 @@ pub enum ServerMsg<'a> {
     Weather(weather::Shown),
     /// The tide at the waterfront (`tide.rs`), in regions with a gauge.
     Tide(crate::tide::Shown),
+    /// Walked rings in force (`ring.rs`).
+    Rings {
+        items: Vec<crate::ring::View>,
+    },
+    /// This player closed a ring: junctions it holds.
+    RingClosed {
+        #[ts(as = "Faction")]
+        side: &'static str,
+        nodes: u32,
+    },
     /// Fog at the front (`fog.rs`): fogged junction ids; seen within `see_m`.
     Fog {
         ids: &'a [i64],
@@ -883,6 +893,7 @@ fn typescript() -> String {
         weather::Shown,
         crate::tide::Shown,
         crate::wind::Shown,
+        crate::ring::View,
         challenge::View,
         info::Src,
         elements_shared::progression::Challenge,

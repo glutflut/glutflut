@@ -56,6 +56,7 @@ mod protocol;
 mod radar;
 mod regions;
 mod remote;
+mod ring;
 mod score;
 mod shards;
 mod siege;
@@ -593,6 +594,7 @@ pub fn build(p: Prepared) -> App {
     app.init_resource::<live_rain::LiveSun>();
     app.init_resource::<tide::LiveTide>();
     app.init_resource::<fog::LiveFog>();
+    app.init_resource::<ring::Rings>();
     app.insert_resource(sim::GameRules(rules));
     app.init_resource::<area::Blocks>();
     app.init_resource::<marble::Claims>();
@@ -637,6 +639,7 @@ pub fn build(p: Prepared) -> App {
                     (fog::tick, web::fog_tick)
                         .chain()
                         .run_if(resource_exists::<sim::ElementSim>),
+                    (ring::tick, web::rings_tick).chain(),
                     (wind::update, web::wind_tick)
                         .chain()
                         .run_if(resource_exists::<wind::LiveWind>),

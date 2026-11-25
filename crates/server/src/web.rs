@@ -451,6 +451,20 @@ pub fn tide_tick(
     to_all(&clients, &ServerMsg::Tide(s));
 }
 
+/// The walked rings to every app when they changed (`ring.rs`).
+pub fn rings_tick(rings: Res<crate::ring::Rings>, clients: Res<WebClients>, mut seen: Local<u32>) {
+    if rings.version == *seen {
+        return;
+    }
+    *seen = rings.version;
+    to_all(
+        &clients,
+        &ServerMsg::Rings {
+            items: rings.views(),
+        },
+    );
+}
+
 /// The fogged junctions to every app when they changed (`fog.rs`).
 pub fn fog_tick(
     fog: Res<crate::fog::LiveFog>,

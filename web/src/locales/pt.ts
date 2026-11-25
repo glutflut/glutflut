@@ -131,6 +131,8 @@ export const pt: Dict = {
   "gfx.map": "Mapa",
   "gfx.slow": "Gráficos simplificados: o aparelho não estava dando conta",
   "fog.hint": "Vapor sobre a frente: onde fogo e água se enfrentam há muito, só se vê de perto. Vai lá!",
+  "ring.fire": "Anel de fogo fechado: {n} cruzamentos resistem melhor à água durante 30 minutos.",
+  "ring.water": "Fosso fechado: {n} cruzamentos resistem melhor ao fogo durante 30 minutos.",
   "net.busy": "Muitos jogadores novos estão chegando desta rede agora. Já já continua.",
   "presence.ok": "Presença confirmada: agora você joga com força total.",
   "presence.far": "Para confirmar a presença, chegue mais perto do código.",

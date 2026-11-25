@@ -40,6 +40,7 @@ import { setupProgress } from "./progress";
 import { setupClaim } from "./claim";
 import { claimNotes } from "./melody";
 import { setupFog } from "./fog";
+import { setupRings } from "./ring";
 import type { Wind } from "./spill";
 import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
@@ -125,6 +126,7 @@ async function main() {
   }
 
   // Fog at the front (fog.ts), above the streets.
+  const rings = setupRings(map);
   const fog = setupFog(map, nodePos, () => player.me(), meta.region.centroid[1]);
 
   // The moment of a claim or a new permanent source (burst.ts); off for "reduce motion".
@@ -593,6 +595,11 @@ async function main() {
     questions: (m) => rate.onQuestions(m.items),
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
+    rings: (m) => rings.set(m.items),
+    ringclosed: (m) => {
+      sound.ring(m.side);
+      toast(t(m.side === "fire" ? "ring.fire" : "ring.water", { n: m.nodes }));
+    },
     fog: (m) => {
       if (fog.set(m.ids, m.see_m) && load(KEYS.fogSeen) !== "1") {
         save(KEYS.fogSeen, "1");

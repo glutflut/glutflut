@@ -245,6 +245,14 @@ pub(super) fn hello(
     if let Some(t) = game.tide.as_ref().and_then(|t| t.shown()) {
         send(&out, &ServerMsg::Tide(t));
     }
+    if !game.rings.active.is_empty() {
+        send(
+            &out,
+            &ServerMsg::Rings {
+                items: game.rings.views(),
+            },
+        );
+    }
     if !game.fog.ids.is_empty() {
         send(
             &out,
@@ -393,6 +401,42 @@ pub(super) fn pos(
         return; // implausible: no analytics while locked
     }
     motion.last_fix = Some((pos.0, now));
+    if c.rules.ring.enabled {
+        let p = Vec2::new(pos.0.x, pos.0.z);
+        if let Some(l) = game.rings.walk(conn, &c.rules.ring, p, now) {
+            let origin = (c.region.centroid_lat, c.region.centroid_lon);
+            let near = c.rules.ring.near_m;
+            let nodes: std::collections::HashSet<i64> = game
+                .nodes
+                .iter()
+                .filter_map(|(g, _)| {
+                    let w = project_enu(g.lat, g.lon, origin.0, origin.1);
+                    let q = Vec2::new(w.x, w.z);
+                    (l.contains(q) || l.distance(q) <= near).then_some(g.id)
+                })
+                .collect();
+            if nodes.len() >= 3 {
+                let n = nodes.len() as u32;
+                game.rings.add(
+                    faction,
+                    nodes,
+                    &l,
+                    origin,
+                    now + f64::from(c.rules.ring.hold_s),
+                );
+                if let Some((_, out)) = game.clients.0.get(&conn) {
+                    send(
+                        out,
+                        &ServerMsg::RingClosed {
+                            side: faction.as_str(),
+                            nodes: n,
+                        },
+                    );
+                }
+                info!(nodes = n, area = l.area_m2 as u32, "ring closed");
+            }
+        }
+    }
     // A made-up track at walking speed: shadow ban for a day (memory).
     if !game.allow_sim.0 {
         let axis = game.agg.street_distance(pos.0);

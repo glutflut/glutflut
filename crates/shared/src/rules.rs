@@ -82,6 +82,8 @@ pub struct Rules {
     pub tide: crate::tide::Tide,
     /// Fog where fire and water clash for long (`[fog]`).
     pub fog: crate::fog::Fog,
+    /// A walked ring holds its ground for a while (`[ring]`).
+    pub ring: crate::shape::Ring,
     /// Weekly streaks of play days (`[streak]`, server).
     pub streak: crate::streak::StreakRules,
     /// Chance that a new player joins the weaker side (fewer players today,
@@ -374,6 +376,7 @@ impl Default for Rules {
             reinforce: Default::default(),
             tide: Default::default(),
             fog: Default::default(),
+            ring: Default::default(),
             streak: Default::default(),
             join_weaker: 0.67,
             indoor: Default::default(),
