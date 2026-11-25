@@ -60,6 +60,7 @@ export default defineConfig({
         knoten: "knoten.html",
         indoor: "indoor.html",
         admin: "admin.html",
+        photo: "photo.html",
       },
     },
   },

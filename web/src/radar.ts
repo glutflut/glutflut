@@ -146,13 +146,21 @@ const json = <T,>(url: string): Promise<T | null> => {
 const touches = (b: Bounds | undefined, v: maplibregl.LngLatBounds) =>
   !b || !(b[2] < v.getWest() || b[0] > v.getEast() || b[3] < v.getSouth() || b[1] > v.getNorth());
 
-function setupProduct(map: maplibregl.Map, toast: (text: string, ms?: number) => void, p: Product, base: URL) {
-  const btn = $(p.button);
-  const credit = $(p.credit);
+/** `fixed` (photo.ts): no button, on or off as given, nothing remembered; the
+ *  sources' credits go to `credits`. Returns the first load. */
+function setupProduct(
+  map: maplibregl.Map,
+  toast: (text: string, ms?: number) => void,
+  p: Product,
+  base: URL,
+  fixed?: { on: boolean; credits: Record<string, string> },
+): Promise<void> {
+  const btn = fixed ? document.createElement("button") : $(p.button);
+  const credit = fixed ? document.createElement("span") : $(p.credit);
   btn.hidden = false;
   const root = `${base.host}${base.pathname.replace(/\/$/, "")}/${p.path}`;
   const host = `${base.protocol}//${root}`;
-  let on = load(p.key) === "1";
+  let on = fixed ? fixed.on : load(p.key) === "1";
   let timer: number | undefined;
   /** Source -> frame directory on the map. */
   const shown = new Map<string, string>();
@@ -216,6 +224,7 @@ function setupProduct(map: maplibregl.Map, toast: (text: string, ms?: number) =>
       if (tell) toast(t(p.text.none), 5000);
       return;
     }
+    if (fixed) fixed.credits[p.name] = latest.map((x) => x.credit).filter(Boolean).join("; ");
     const newest = latest.map((x) => x.time).sort().at(-1)!;
     const time = new Date(newest).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     // Time in the bottom line, so the buttons don't move; the sources
@@ -237,15 +246,14 @@ function setupProduct(map: maplibregl.Map, toast: (text: string, ms?: number) =>
     credit.hidden = false;
   }
 
-  function set(v: boolean) {
+  function set(v: boolean): Promise<void> {
     on = v;
-    save(p.key, v ? "1" : "0");
+    if (!fixed) save(p.key, v ? "1" : "0");
     btn.classList.toggle("on", v);
     clearInterval(timer);
-    if (v) {
-      void refresh(true).catch(() => toast(t(p.text.failed), 5000));
-      timer = window.setInterval(() => void refresh().catch(() => {}), REFRESH_MS);
-    } else clear();
+    if (!v) return (clear(), Promise.resolve());
+    timer = window.setInterval(() => void refresh().catch(() => {}), REFRESH_MS);
+    return refresh(!fixed).catch(() => toast(t(p.text.failed), 5000));
   }
 
   btn.onclick = () => set(!on);
@@ -258,11 +266,17 @@ function setupProduct(map: maplibregl.Map, toast: (text: string, ms?: number) =>
     settle = window.setTimeout(() => void refresh().catch(() => {}), 800);
   });
   // The map is ready when this is called; a remembered choice applies at once.
-  set(on);
+  return set(on);
 }
 
-/** Rain radar and cloud cover layers with their buttons, if the server names a weather host. */
-export async function setupRadar(map: maplibregl.Map, toast: (text: string, ms?: number) => void) {
+/** Rain radar and cloud cover layers with their buttons, if the server names a
+ *  weather host. `fixed` (photo.ts): no buttons, these products on; resolves
+ *  once they are loaded, their credits in `credits`. */
+export async function setupRadar(
+  map: maplibregl.Map,
+  toast: (text: string, ms?: number) => void,
+  fixed?: { on: Partial<Record<"clouds" | "radar", boolean>>; credits: Record<string, string> },
+) {
   const v = (await fetch("/api/version")
     .then((r) => r.json())
     .catch(() => ({}))) as { weather?: string };
@@ -272,5 +286,10 @@ export async function setupRadar(map: maplibregl.Map, toast: (text: string, ms?:
   } catch {
     return;
   }
-  for (const p of PRODUCTS) setupProduct(map, toast, p, base);
+  if (!fixed) return void PRODUCTS.forEach((p) => void setupProduct(map, toast, p, base));
+  await Promise.all(
+    PRODUCTS.filter((p) => fixed.on[p.name as "clouds" | "radar"]).map((p) =>
+      setupProduct(map, toast, p, base, { on: true, credits: fixed.credits }),
+    ),
+  );
 }

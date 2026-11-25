@@ -260,6 +260,11 @@ pub fn clean_texts(v: &Value) -> Result<Value, &'static str> {
     Ok(Value::Object(out))
 }
 
+/// Layers the app's picture can show (web/src/photo.ts).
+const LAYERS: [&str; 8] = [
+    "3d", "flow", "sources", "natural", "areas", "clouds", "radar", "labels",
+];
+
 /// The picture's frame and texts; place optional (the region's centre).
 pub fn clean_card(v: &Value) -> Result<Value, &'static str> {
     let num = |k: &str| v.get(k).and_then(Value::as_f64);
@@ -272,6 +277,18 @@ pub fn clean_card(v: &Value) -> Result<Value, &'static str> {
         Some(l) => Look::parse(l).ok_or("picture: look plan or game")?,
     };
     let mut out = json!({ "width_m": width_m, "look": look.name() });
+    if let Some(l) = v.get("layers").filter(|l| !l.is_null()) {
+        let list: Vec<&str> = l
+            .as_array()
+            .ok_or("picture: layers as a list")?
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        if list.iter().any(|x| !LAYERS.contains(x)) {
+            return Err("picture: unknown layer");
+        }
+        out["layers"] = json!(list);
+    }
     match (num("lat"), num("lon")) {
         (Some(lat), Some(lon))
             if (-85.0..=85.0).contains(&lat) && (-180.0..=180.0).contains(&lon) =>
@@ -592,7 +609,10 @@ pub(super) async fn draft(
         json!({})
     });
     let mut image: Option<Vec<u8>> = None;
+    // The frame as filled in, for the editor to take the app's picture (photo.html).
+    let mut shot: Option<Value> = None;
     if let Some(c) = &p.card {
+        let from_snap = snap.is_some();
         let sides = match snap {
             Some(v) => Some(v),
             None => {
@@ -628,18 +648,28 @@ pub(super) async fn draft(
             };
             let st = s.clone();
             let sl = slug.to_string();
-            let svg = tokio::task::spawn_blocking(move || {
+            let drawn = tokio::task::spawn_blocking(move || {
                 st.with_db(|db| {
                     (spec.lat, spec.lon) = match given {
                         Some(v) => v,
                         None => centre(db, &sl, &sides)?,
                     };
-                    card::load(db, &sl, &spec).map(|g| card::svg(&spec, &g, &sides))
+                    let svg = card::load(db, &sl, &spec).map(|g| card::svg(&spec, &g, &sides))?;
+                    Ok((svg, spec))
                 })
             })
             .await
             .ok()
             .flatten();
+            let svg = drawn.map(|(svg, spec)| {
+                shot = Some(json!({
+                    "lat": spec.lat, "lon": spec.lon, "width_m": spec.width_m,
+                    "title": spec.title, "note": spec.note, "look": spec.look.name(),
+                    "layers": c["layers"].clone(),
+                    "chapter": if from_snap { p.chapter.clone() } else { None },
+                }));
+                svg
+            });
             match svg.map(|v| card::jpeg(&v)) {
                 Some(Ok(jpg)) => image = Some(jpg),
                 Some(Err(e)) => notes.push(format!("picture failed: {e}")),
@@ -657,8 +687,8 @@ pub(super) async fn draft(
         st.with_db(|db| {
             Ok(db
                 .query_opt(
-                    "INSERT INTO game.post_runs (post_id, region, auto, outcome, numbers, texts, image, note) \
-                     VALUES ($1, $2, $3, $4, $5::text::jsonb, $6::text::jsonb, $7, $8) \
+                    "INSERT INTO game.post_runs (post_id, region, auto, outcome, numbers, texts, image, note, results) \
+                     VALUES ($1, $2, $3, $4, $5::text::jsonb, $6::text::jsonb, $7, $8, $9::text::jsonb) \
                      ON CONFLICT (post_id) WHERE auto DO NOTHING RETURNING id",
                     &[
                         &id,
@@ -669,6 +699,7 @@ pub(super) async fn draft(
                         &texts.to_string(),
                         &image,
                         &note,
+                        &shot.as_ref().map(|v| json!({ "card": v }).to_string()),
                     ],
                 )?
                 .map(|r| r.get::<_, i64>(0)))
@@ -1042,6 +1073,76 @@ pub(super) async fn draft_now(
         Ok(None) => bad("no such post"),
         Err(e) => (StatusCode::SERVICE_UNAVAILABLE, e).into_response(),
     }
+}
+
+/// `POST /api/ops/posts/run.jpg?region=&id=` (editor): a draft's picture as
+/// the app draws it (photo.html, captured in the editor), JPEG, at most 2 MB.
+pub(super) async fn run_jpg_put(
+    State(s): State<AppState>,
+    Query(q): Query<IdQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+    body: axum::body::Bytes,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let w = who(&s, c, &headers).await;
+    if !w.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    if let Err(e) = check_jpeg(&body) {
+        return bad(e);
+    }
+    let (st, by, id) = (s.clone(), w.label, q.id);
+    let n = body.len();
+    let done = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let mut t = db.transaction()?;
+            let n_rows = t.execute(
+                "UPDATE game.post_runs SET image = $3, \
+                   results = jsonb_set(coalesce(results, '{}'), '{photo}', 'true') \
+                 WHERE region = $1 AND id = $2 AND state = 'draft'",
+                &[&slug, &id, &body.to_vec()],
+            )?;
+            if n_rows == 1 {
+                audit_entity(
+                    &mut t,
+                    &format!("post run {slug}/{id}"),
+                    "picture from the app",
+                    &by,
+                    json!({ "bytes": n }),
+                )?;
+            }
+            t.commit()?;
+            Ok(n_rows)
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match done {
+        Some(1) => StatusCode::NO_CONTENT.into_response(),
+        Some(_) => bad("only a draft's picture can change"),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+/// A JPEG Instagram takes: magic bytes, at most 2 MB, 320 to 1440 px wide,
+/// 4:5 to 1.91:1.
+pub fn check_jpeg(b: &[u8]) -> Result<(), &'static str> {
+    if b.len() > 2 << 20 || !b.starts_with(&[0xff, 0xd8, 0xff]) {
+        return Err("picture: a JPEG of at most 2 MB");
+    }
+    let (w, h) = image::ImageReader::with_format(std::io::Cursor::new(b), image::ImageFormat::Jpeg)
+        .into_dimensions()
+        .map_err(|_| "picture: not a readable JPEG")?;
+    let r = w as f64 / h.max(1) as f64;
+    if !(320..=1440).contains(&w) || !(0.79..=1.92).contains(&r) {
+        return Err("picture: 320 to 1440 px wide, 4:5 to 1.91:1");
+    }
+    Ok(())
 }
 
 /// `GET /api/ops/posts/run.jpg?region=&id=` (editor): a draft's picture.
@@ -2313,6 +2414,16 @@ mod tests {
             Some("konstanz.tourismus")
         );
         assert_eq!(place_key("https://example.com/x"), None);
+        let jpg = |w: u32, h: u32| {
+            let mut out = Vec::new();
+            image::codecs::jpeg::JpegEncoder::new(&mut out)
+                .encode_image(&image::RgbImage::new(w, h))
+                .unwrap();
+            out
+        };
+        assert!(check_jpeg(&jpg(1080, 1350)).is_ok());
+        assert!(check_jpeg(&jpg(1080, 2000)).is_err(), "taller than 4:5");
+        assert!(check_jpeg(b"\x89PNG").is_err());
         let found = json!({ "data": [
             { "id": "1", "name": "Far", "location": { "city": "Ulm", "latitude": 48.4, "longitude": 9.99 } },
             { "id": "2", "name": "No place" },

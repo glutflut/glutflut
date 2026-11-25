@@ -573,7 +573,10 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                         "/api/ops/posts/tags",
                         post(posts::tag_save).delete(posts::tag_delete),
                     )
-                    .route("/api/ops/posts/run.jpg", get(posts::run_jpg))
+                    .route(
+                        "/api/ops/posts/run.jpg",
+                        get(posts::run_jpg).post(posts::run_jpg_put),
+                    )
                     .route("/api/ops/indoor", get(ops_indoor))
                     .route("/api/ops/regions", get(ops_regions))
                     .route("/api/ops/pending", get(ops_pending))

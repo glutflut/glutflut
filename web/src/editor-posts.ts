@@ -13,7 +13,12 @@ import { listRegions } from "./region";
 /** A post's texts per outcome: `text` for all channels, a channel's own text, the alt text. */
 type Texts = { text?: string; instagram?: string; mastodon?: string; alt?: string };
 type Variant = "any" | "fire" | "water" | "tie";
-type Card = { lat?: number; lon?: number; width_m: number; title: string; note: string; look?: "plan" | "game" };
+type Card = { lat?: number; lon?: number; width_m: number; title: string; note: string; look?: "plan" | "game"; layers?: string[] };
+/** Layers of the app's picture (photo.ts); the default ones ticked for a new post. */
+const LAYERS = ["flow", "sources", "natural", "areas", "3d", "labels", "radar", "clouds"] as const;
+const LAYERS_ON = ["flow", "sources", "natural", "areas"];
+/** The frame as the server filled it in for a draft (`results.card`). */
+type Shot = { lat: number; lon: number; width_m: number; title: string; note: string; look: string; layers: string[] | null; chapter: string | null };
 type Post = {
   id: number;
   title: string;
@@ -401,6 +406,8 @@ function open(p: Post | null) {
   input("post-card-width").value = String(p?.card?.width_m ?? 900);
   // Stored cards without a look are the old map; new ones look like the game.
   $<HTMLSelectElement>("post-card-look").value = p?.card ? (p.card.look ?? "plan") : "game";
+  for (const l of LAYERS) input(`post-layer-${l}`).checked = (p?.card?.layers ?? LAYERS_ON).includes(l);
+  syncLook();
   input("post-card-title").value = p?.card?.title ?? "";
   input("post-card-note").value = p?.card?.note ?? "";
   $("post-preview").replaceChildren();
@@ -417,6 +424,7 @@ function cardOf(): Card | null {
     title: input("post-card-title").value.trim(),
     note: input("post-card-note").value.trim(),
     look: $<HTMLSelectElement>("post-card-look").value as "plan" | "game",
+    layers: LAYERS.filter((l) => input(`post-layer-${l}`).checked),
   };
   const lat = input("post-card-lat").value.trim();
   const lon = input("post-card-lon").value.trim();
@@ -458,6 +466,68 @@ async function picture(path: string): Promise<string | null> {
   return URL.createObjectURL(await res.blob());
 }
 
+/** The app's picture (photo.html) in a hidden frame: the game as players see
+ *  it, without its buttons. Live, or a chapter's end. */
+function photo(c: { lat: number | null; lon: number | null; width_m: number; title: string; note: string; layers?: string[] | null; chapter?: string | null }): Promise<Blob> {
+  const p = new URLSearchParams({ region, width_m: String(c.width_m), title: c.title, note: c.note, layers: (c.layers ?? LAYERS_ON).join(",") });
+  p.set("watch", "");
+  if (c.lat != null && c.lon != null) p.set("lat", String(c.lat)), p.set("lon", String(c.lon));
+  if (c.chapter) p.set("chapter", c.chapter);
+  const frame = el("iframe", { src: `/photo.html?${p}`, title: "photo" });
+  // Off screen but laid out and drawn (a hidden frame would not render WebGL).
+  Object.assign(frame.style, { position: "fixed", left: "-10000px", top: "0", width: "540px", height: "675px", border: "0" });
+  return new Promise<Blob>((resolve, reject) => {
+    const stop = (why?: string, blob?: Blob) => {
+      clearTimeout(timer);
+      window.removeEventListener("message", on);
+      frame.remove();
+      if (blob) resolve(blob);
+      else reject(new Error(why ?? "?"));
+    };
+    const on = (e: MessageEvent) => {
+      if (e.source !== frame.contentWindow || e.origin !== location.origin || e.data?.t !== "photo") return;
+      stop(e.data.error, e.data.blob);
+    };
+    const timer = setTimeout(() => stop("timeout"), 120_000);
+    window.addEventListener("message", on);
+    document.body.append(frame);
+  });
+}
+
+/** Layers only for the app's look. */
+function syncLook() {
+  $("post-layers").hidden = $<HTMLSelectElement>("post-card-look").value !== "game";
+}
+
+/** Beside the channels' results: the filled-in frame and whether the app took the picture. */
+const extra = (r: Run) => (r.results ?? {}) as unknown as { card?: Shot; photo?: boolean };
+
+/** A draft's picture from the app (photo.html) to the server, then shown. */
+const shooting = new Set<number>();
+async function shootRun(r: Run, img: HTMLImageElement, dl: HTMLAnchorElement, btn: HTMLButtonElement) {
+  const c = extra(r).card;
+  if (!c || shooting.has(r.id)) return;
+  shooting.add(r.id);
+  btn.disabled = true;
+  btn.textContent = t("po.photo.wait");
+  try {
+    const blob = await photo(c);
+    const res = await api(`/api/ops/posts/run.jpg?${q()}&id=${r.id}`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
+    if (!res.ok) throw new Error(await errorOf(res, t("ui.savefail")));
+    const u = URL.createObjectURL(blob);
+    pictures.set(r.id, u);
+    img.src = u;
+    dl.href = u;
+    r.results = { ...(r.results ?? {}), photo: true } as unknown as Run["results"];
+  } catch (e) {
+    toast(t("po.photo.fail", { err: (e as Error).message }), "error");
+  } finally {
+    shooting.delete(r.id);
+    btn.disabled = false;
+    btn.textContent = t("po.photo.take");
+  }
+}
+
 async function preview() {
   const c = cardOf() ?? { width_m: 900, title: "", note: "" };
   const p = new URLSearchParams({ region, width_m: String(c.width_m), title: c.title, note: c.note, look: c.look ?? "game" });
@@ -470,7 +540,13 @@ async function preview() {
   }
   const host = $("post-preview");
   host.replaceChildren(el("small", { textContent: t("po.preview.wait") }));
-  const url = await picture(`/api/ops/card.jpg?${p}`);
+  // As in the game: the app draws it here (photo.ts); the old map comes from the server.
+  const url =
+    c.look === "game"
+      ? await photo({ ...c, lat: c.lat ?? null, lon: c.lon ?? null, chapter: p.get("chapter") })
+          .then((b) => URL.createObjectURL(b))
+          .catch((e: Error) => (toast(t("po.photo.fail", { err: e.message }), "error"), null))
+      : await picture(`/api/ops/card.jpg?${p}`);
   host.replaceChildren(url ? el("img", { src: url, className: "post-pic", alt: "" }) : el("small", { textContent: t("po.preview.fail") }));
 }
 
@@ -543,6 +619,13 @@ function drawRun(r: Run): HTMLElement {
         if (u) pictures.set(r.id, u), set(u);
       });
     fig.append(img, dl);
+    // As in the game: the app takes the picture (the server's is a stand-in), once by itself.
+    if (r.state === "draft" && extra(r).card?.look === "game") {
+      const again = el("button", { type: "button", textContent: t("po.photo.take") });
+      again.onclick = () => void shootRun(r, img, dl, again);
+      fig.append(again);
+      if (!extra(r).photo) void shootRun(r, img, dl, again);
+    }
     body.append(fig);
   }
   const fields = el("div", { className: "post-run-texts" });
@@ -702,6 +785,7 @@ export function initPosts(apiFn: Api) {
   };
   $("post-hashtag-add").onclick = addTag;
   $("post-place-check").onclick = () => void checkPlace();
+  $("post-card-look").onchange = syncLook;
   input("post-place-q").onkeydown = (e) => {
     if (e.key === "Enter") (e.preventDefault(), void checkPlace());
   };

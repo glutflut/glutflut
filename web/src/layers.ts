@@ -33,8 +33,9 @@ function hatch(): ImageData {
   return g.getImageData(0, 0, n, n);
 }
 
-/** The map, loaded, with every layer the game draws into (`full`: tilt and 3D buildings). */
-export async function createMap(meta: Meta, gameView: boolean, full: boolean): Promise<maplibregl.Map> {
+/** The map, loaded, with every layer the game draws into (`full`: tilt and 3D
+ *  buildings); `opts` override the map's options (photo.ts). */
+export async function createMap(meta: Meta, gameView: boolean, full: boolean, opts: Partial<maplibregl.MapOptions> = {}): Promise<maplibregl.Map> {
   // A whole city doesn't fit: start at the hotspot area (or the centre) close enough for streets.
   const big = meta.nodes > VIEW_BUDGET;
   const map = new maplibregl.Map({
@@ -47,6 +48,7 @@ export async function createMap(meta: Meta, gameView: boolean, full: boolean): P
     // Far out there is nothing to play; the overview needs the city in view.
     minZoom: 10,
     attributionControl: false,
+    ...opts,
   });
   // In the game the cards cover the top corners: the credit is in the
   // footer's link line (index.html) instead.
