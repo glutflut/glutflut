@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glut &amp; Flut – Tragen</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      body { margin: 0; padding: 16px; font: 16px system-ui, sans-serif; background: #16181d; color: #f1f3f5; }
+      h1 { font-size: 20px; }
+      p, .num { color: #adb5bd; font-size: 14px; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+      button { padding: 12px 14px; font: inherit; font-size: 14px; border: none; border-radius: 10px; color: #fff; background: #343a40; }
+      button.fire { background: #c2410c; }
+      button.water { background: #1d6fc2; }
+      #view svg { width: min(60vw, 220px); height: auto; display: block; margin: 8px auto; }
+      #fill { height: 10px; border-radius: 5px; background: #343a40; overflow: hidden; }
+      #fill div { height: 100%; background: #adb5bd; width: 100%; }
+      label { display: block; margin: 10px 0; font-size: 14px; }
+      input[type="range"] { width: min(100%, 320px); }
+    </style>
+  </head>
+  <body>
+    <h1>Tragen: Krug und Glut</h1>
+    <p>Testseite (nicht verlinkt). Krug: das Telefon so halten wie beim Aufnehmen; kippen oder rennen lässt Wasser überschwappen. Glut: gegen den Wind gehen lässt sie herunterbrennen. Nie unter 30 %.</p>
+    <div class="row">
+      <button class="water" id="water">Krug aufnehmen</button>
+      <button class="fire" id="fire">Glut aufnehmen</button>
+      <button id="gps">Mit GPS gehen</button>
+    </div>
+    <div id="view"></div>
+    <div id="fill"><div></div></div>
+    <p class="num" id="num">Noch nichts aufgenommen.</p>
+    <h2>Wind und Gehen (Probe)</h2>
+    <label>Wind aus <span id="wf-v">270</span>° <input type="range" id="wind-from" min="0" max="359" value="270" /></label>
+    <label>Windstärke <span id="ws-v">6</span> m/s <input type="range" id="wind-speed" min="0" max="15" value="6" /></label>
+    <label>Gehrichtung <span id="wh-v">270</span>° <input type="range" id="walk-heading" min="0" max="359" value="270" /></label>
+    <label>Tempo <span id="wv-v">1.3</span> m/s <input type="range" id="walk-speed" min="0" max="40" value="13" /></label>
+    <script type="module" src="/src/tragen-page.ts"></script>
+  </body>
+</html>
