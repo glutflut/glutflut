@@ -132,3 +132,20 @@ front_only = true
 [tide]
 strength = 0.5
 decay = 0.3
+
+# Fog at the front: a junction contested for 20 min (both elements, less
+# than 0.05 apart) fogs up; the app shows it only within 50 m of the player;
+# it lifts 15 min after.
+[fog]
+enabled = true
+
+# Walked rings: a route that crosses itself around at least 2500 m² within
+# 30 min holds the junctions on and inside it for 30 min (claims of the
+# other side there at half strength).
+[ring]
+enabled = true
+
+# Fool's days (local dates): the slopes turn over (fire runs downhill, water
+# climbs) and the app swaps the sides' colours. Schmotziger Dunschtig 2027.
+[fool]
+days = ["2027-02-04"]
