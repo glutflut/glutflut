@@ -131,6 +131,7 @@ export const es: Dict = {
   "gfx.simple": "Sencillo",
   "gfx.map": "Mapa",
   "gfx.slow": "Gráficos simplificados: el dispositivo no daba abasto",
+  "fog.hint": "Vapor sobre el frente: donde fuego y agua chocan mucho tiempo, solo se ve de cerca. ¡Ve allí!",
   "net.busy": "Ahora mismo llegan muchas personas nuevas desde esta red. Seguimos en un momento.",
   "presence.ok": "Presencia confirmada: desde ahora juegas con toda tu fuerza.",
   "presence.far": "Para confirmar que estás allí, acércate al código.",

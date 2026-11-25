@@ -279,6 +279,11 @@ pub enum ServerMsg<'a> {
     Weather(weather::Shown),
     /// The tide at the waterfront (`tide.rs`), in regions with a gauge.
     Tide(crate::tide::Shown),
+    /// Fog at the front (`fog.rs`): fogged junction ids; seen within `see_m`.
+    Fog {
+        ids: &'a [i64],
+        see_m: f32,
+    },
     /// Wind now at the region's centre (`wind.rs`), for carrying.
     Wind(crate::wind::Shown),
     /// Side switched (test servers).

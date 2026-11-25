@@ -28,6 +28,8 @@ export const KEYS = {
   storySeen: "elements.story.seen",
   /** News flashes shown on this device (notices.ts). */
   noticesSeen: "elements.notices.seen",
+  /** The fog hint was shown once (fog.ts). */
+  fogSeen: "elements.fog.seen",
   /** Maintenance window whose bar was closed / whose 10-minute toast came (maintenance.ts). */
   maintDismissed: "elements.maint.dismissed",
   maintWarned: "elements.maint.warned",

@@ -32,6 +32,7 @@ mod cog;
 mod db;
 mod demo;
 mod finds;
+mod fog;
 mod found;
 mod gateway;
 mod hinterland;
@@ -591,6 +592,7 @@ pub fn build(p: Prepared) -> App {
     app.init_resource::<live_rain::LiveRain>();
     app.init_resource::<live_rain::LiveSun>();
     app.init_resource::<tide::LiveTide>();
+    app.init_resource::<fog::LiveFog>();
     app.insert_resource(sim::GameRules(rules));
     app.init_resource::<area::Blocks>();
     app.init_resource::<marble::Claims>();
@@ -631,9 +633,14 @@ pub fn build(p: Prepared) -> App {
                 (cheer::tick, indoor::hold).chain(),
                 live_rain::update.run_if(resource_exists::<live_rain::LiveRain>),
                 tide::update.run_if(resource_exists::<tide::LiveTide>),
-                (wind::update, web::wind_tick)
-                    .chain()
-                    .run_if(resource_exists::<wind::LiveWind>),
+                (
+                    (fog::tick, web::fog_tick)
+                        .chain()
+                        .run_if(resource_exists::<sim::ElementSim>),
+                    (wind::update, web::wind_tick)
+                        .chain()
+                        .run_if(resource_exists::<wind::LiveWind>),
+                ),
                 weather::apply,
                 (keep::restore, live::restore).chain(),
                 (keep::tick, live::save_on_stop).chain(),

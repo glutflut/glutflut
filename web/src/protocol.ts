@@ -34,6 +34,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "forgotten" }
   | { "t": "weather" } & WeatherShown
   | { "t": "tide" } & TideShown
+  | { "t": "fog", ids: Array<number>, see_m: number, }
   | { "t": "wind" } & WindShown
   | { "t": "side", faction: Faction, }
   | { "t": "code", code: string, }

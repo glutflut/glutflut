@@ -451,6 +451,26 @@ pub fn tide_tick(
     to_all(&clients, &ServerMsg::Tide(s));
 }
 
+/// The fogged junctions to every app when they changed (`fog.rs`).
+pub fn fog_tick(
+    fog: Res<crate::fog::LiveFog>,
+    rules: Res<crate::sim::GameRules>,
+    clients: Res<WebClients>,
+    mut seen: Local<u32>,
+) {
+    if fog.version == *seen {
+        return;
+    }
+    *seen = fog.version;
+    to_all(
+        &clients,
+        &ServerMsg::Fog {
+            ids: &fog.ids,
+            see_m: rules.0.fog.see_m,
+        },
+    );
+}
+
 /// The wind to every app when it changed (`wind.rs`).
 pub fn wind_tick(wind: Res<crate::wind::LiveWind>, clients: Res<WebClients>, mut seen: Local<u32>) {
     if wind.version == *seen {

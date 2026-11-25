@@ -129,6 +129,7 @@ export const de = {
   "gfx.simple": "Einfach",
   "gfx.map": "Karte",
   "gfx.slow": "Grafik vereinfacht: das Gerät kam nicht hinterher",
+  "fog.hint": "Dampf über der Front: wo Glut und Flut lange aufeinanderprallen, sieht man nur noch aus der Nähe. Hingehen!",
   "net.busy": "Aus diesem Netz kommen gerade sehr viele neue Spielende. Gleich geht es weiter.",
   "presence.ok": "Vor Ort bestätigt: Du spielst ab jetzt mit voller Kraft.",
   "presence.far": "Für die Bestätigung vor Ort geh näher zum Code.",

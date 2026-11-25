@@ -66,6 +66,7 @@ pub struct Game<'w, 's> {
     live_sun: Option<Res<'w, crate::live_rain::LiveSun>>,
     tide: Option<Res<'w, crate::tide::LiveTide>>,
     wind: Option<Res<'w, crate::wind::LiveWind>>,
+    fog: Res<'w, crate::fog::LiveFog>,
     tunnels: Local<'s, Tunnels>,
     labels: Option<Res<'w, crate::indoor::Labels>>,
     /// Asks into other regions waiting for their answer.

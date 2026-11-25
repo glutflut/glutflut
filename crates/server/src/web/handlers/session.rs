@@ -245,6 +245,15 @@ pub(super) fn hello(
     if let Some(t) = game.tide.as_ref().and_then(|t| t.shown()) {
         send(&out, &ServerMsg::Tide(t));
     }
+    if !game.fog.ids.is_empty() {
+        send(
+            &out,
+            &ServerMsg::Fog {
+                ids: &game.fog.ids,
+                see_m: rules.fog.see_m,
+            },
+        );
+    }
     if let Some(w) = game.wind.as_ref().and_then(|w| w.shown()) {
         send(&out, &ServerMsg::Wind(w));
     }

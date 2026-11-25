@@ -18,6 +18,7 @@
 pub mod components;
 pub mod elements;
 pub mod field;
+pub mod fog;
 pub mod geo;
 pub mod hinterland;
 pub mod mottos;

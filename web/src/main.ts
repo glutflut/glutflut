@@ -39,6 +39,7 @@ import { setupSources, type SourceItems } from "./sources";
 import { setupProgress } from "./progress";
 import { setupClaim } from "./claim";
 import { claimNotes } from "./melody";
+import { setupFog } from "./fog";
 import type { Wind } from "./spill";
 import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
@@ -122,6 +123,9 @@ async function main() {
         toast(t("gfx.slow"));
       });
   }
+
+  // Fog at the front (fog.ts), above the streets.
+  const fog = setupFog(map, nodePos, () => player.me(), meta.region.centroid[1]);
 
   // The moment of a claim or a new permanent source (burst.ts); off for "reduce motion".
   const burstLayer = gameView && !calm ? new BurstLayer(tiles) : null;
@@ -589,6 +593,12 @@ async function main() {
     questions: (m) => rate.onQuestions(m.items),
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
+    fog: (m) => {
+      if (fog.set(m.ids, m.see_m) && load(KEYS.fogSeen) !== "1") {
+        save(KEYS.fogSeen, "1");
+        toast(t("fog.hint"));
+      }
+    },
     // Wind now (wind.rs), kept for carrying (spill.ts).
     wind: (m) => {
       wind = { fromDeg: m.from_deg, speed: m.speed };
