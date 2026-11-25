@@ -460,14 +460,26 @@ impl Rules {
         };
         // Whole numbers stay integers only where the rule is one.
         let v = value.trim();
-        let parsed = match v.parse::<i64>() {
-            Ok(i) if was.is_integer() => toml::Value::Integer(i),
-            Ok(i) => toml::Value::Float(i as f64),
-            Err(_) => v
-                .parse::<f64>()
-                .map(toml::Value::Float)
-                .or_else(|_| v.parse::<bool>().map(toml::Value::Boolean))
-                .unwrap_or_else(|_| toml::Value::String(v.into())),
+        // Lists of strings: `a,b` or `["a","b"]` (`fool.days`).
+        let parsed = if was.is_array() {
+            toml::Value::Array(
+                v.trim_matches(|c| c == '[' || c == ']')
+                    .split(',')
+                    .map(|x| x.trim().trim_matches('"').trim_matches('\''))
+                    .filter(|x| !x.is_empty())
+                    .map(|x| toml::Value::String(x.into()))
+                    .collect(),
+            )
+        } else {
+            match v.parse::<i64>() {
+                Ok(i) if was.is_integer() => toml::Value::Integer(i),
+                Ok(i) => toml::Value::Float(i as f64),
+                Err(_) => v
+                    .parse::<f64>()
+                    .map(toml::Value::Float)
+                    .or_else(|_| v.parse::<bool>().map(toml::Value::Boolean))
+                    .unwrap_or_else(|_| toml::Value::String(v.into())),
+            }
         };
         cur.insert(last.into(), parsed);
         t.try_into()
@@ -665,6 +677,14 @@ mod decay_tests {
             .unwrap();
         assert!(r.rise.enabled);
         assert_eq!(r.rise.dwell_s, 20.0);
+        let r = Rules::default()
+            .with_overrides("fool.days=2026-11-25,2026-11-26")
+            .unwrap();
+        assert!(r.fool.on("2026-11-26") && !r.fool.on("2026-11-27"));
+        let r = Rules::default()
+            .with_overrides(r#"fool.days=["2026-11-25"]"#)
+            .unwrap();
+        assert!(r.fool.on("2026-11-25"));
         assert_eq!(
             Rules::default()
                 .with_overrides("\"claim_ttl_s=7\"")
