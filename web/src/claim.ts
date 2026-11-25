@@ -66,6 +66,8 @@ export function setupClaim(d: {
   card: { onClaim(node: number): void };
   /** A claim of this player took (invite nudge). */
   claimed: () => void;
+  /** The junction's note (or a block's chord) for a claim (melody.ts). */
+  notes: (node: number, f: Faction) => number[];
   /** "Wie ist es hier?" asks now and then after a claim (rate.ts). */
   rate: { onClaimed(at: [number, number] | null): void };
 }) {
@@ -392,7 +394,10 @@ export function setupClaim(d: {
         d.claimed();
         if (!m.far) d.rate.onClaimed(nodePos.get(m.node) ?? null);
         if (m.doused) sound.steam();
-        else sound.claim(faction);
+        else {
+          sound.claim(faction);
+          if (!m.far) sound.note(faction, d.notes(m.node, faction));
+        }
         if (m.build && m.build >= 2) sound.building(faction, m.build);
       }
       if (!m.far) d.card.onClaim(m.node);

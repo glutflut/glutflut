@@ -21,6 +21,14 @@ function store(key: StoreKey, on: boolean) {
   save(key, on ? "1" : "0");
 }
 
+/** Major pentatonic from A3, two octaves and a bit; `k` wraps. */
+const PENTA = [0, 2, 4, 7, 9];
+export const NOTE_STEPS = 11;
+export function noteHz(k: number): number {
+  const i = ((Math.round(k) % NOTE_STEPS) + NOTE_STEPS) % NOTE_STEPS;
+  return 220 * 2 ** ((PENTA[i % 5] + 12 * Math.floor(i / 5)) / 12);
+}
+
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 export class Sound {
@@ -150,6 +158,30 @@ export class Sound {
       const n = 2 + Math.floor(Math.random() * 2);
       for (let i = 0; i < n; i++) this.bubble(t + i * rnd(0.06, 0.12), rnd(280, 650), 0.45 * EVENT_GAIN);
     }
+  }
+
+  /** The street's own note after a claim (the city as an instrument): `steps`
+   * on the scale (pentatonic, every sequence sounds well); fire plucked,
+   * water a small bell. More steps at once: a chord (a block held closed). */
+  note(f: Faction, steps: number[]) {
+    const c = this.ready();
+    if (!c || !steps.length) return;
+    const t = c.currentTime + (steps.length > 1 ? 0.25 : 0.12);
+    steps.forEach((k, i) => {
+      const hz = noteHz(k);
+      const at = t + i * 0.035;
+      const g = (0.16 * EVENT_GAIN) / Math.sqrt(steps.length);
+      if (f === "fire") {
+        this.tone(at, hz, 0.7, g, "triangle");
+        this.tone(at, hz * 2, 0.25, g * 0.35, "sine");
+        this.burst(at, 0.02, g * 0.8, "bandpass", hz * 4, 2);
+      } else {
+        // Bell partials (inharmonic), the higher ones fade first.
+        this.tone(at, hz, 1.6, g, "sine");
+        this.tone(at, hz * 2.76, 0.7, g * 0.3, "sine");
+        this.tone(at, hz * 5.4, 0.35, g * 0.12, "sine");
+      }
+    });
   }
 
   /** A claim builds up for `secs` (on enemy ground): denser and denser. */

@@ -38,6 +38,7 @@ import { setupOverview } from "./overview";
 import { setupSources, type SourceItems } from "./sources";
 import { setupProgress } from "./progress";
 import { setupClaim } from "./claim";
+import { claimNotes } from "./melody";
 import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
 import { setupPlayer } from "./player";
@@ -322,6 +323,7 @@ async function main() {
     tunnel,
     card,
     claimed: () => invite.claimed(),
+    notes: (node, f) => claimNotes(tiles, state, node, f),
     rate: {
       onClaimed(at: [number, number] | null) {
         rate.onClaimed(at);

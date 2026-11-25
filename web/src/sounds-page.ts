@@ -8,6 +8,12 @@ s.setAmbient(true);
 const events: [string, string, () => void][] = [
   ["Erobern", "fire", () => s.claim("fire")],
   ["Erobern", "water", () => s.claim("water")],
+  ["Ton (Höhe 3)", "fire", () => s.note("fire", [3])],
+  ["Ton (Höhe 3)", "water", () => s.note("water", [3])],
+  ["Block geschlossen", "fire", () => s.note("fire", [1, 4, 6, 8])],
+  ["Block geschlossen", "water", () => s.note("water", [1, 4, 6, 8])],
+  ["Weg bergauf", "fire", () => [0, 1, 2, 2, 3, 5].forEach((k, i) => setTimeout(() => s.note("fire", [k]), i * 450))],
+  ["Weg bergab", "water", () => [7, 6, 4, 4, 3, 1].forEach((k, i) => setTimeout(() => s.note("water", [k]), i * 450))],
   ["Aufbau 6 s", "fire", () => s.building("fire", 6)],
   ["Aufbau 6 s", "water", () => s.building("water", 6)],
   ["Glut setzen", "fire", () => s.keep("fire")],
