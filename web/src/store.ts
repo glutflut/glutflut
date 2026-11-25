@@ -30,6 +30,10 @@ export const KEYS = {
   noticesSeen: "elements.notices.seen",
   /** The fog hint was shown once (fog.ts). */
   fogSeen: "elements.fog.seen",
+  /** The local date of a fool's day the server announced (fool.ts). */
+  fool: "elements.fool",
+  /** The fool's day hint was shown on this date. */
+  foolSeen: "elements.fool.seen",
   /** Maintenance window whose bar was closed / whose 10-minute toast came (maintenance.ts). */
   maintDismissed: "elements.maint.dismissed",
   maintWarned: "elements.maint.warned",

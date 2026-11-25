@@ -7,3 +7,8 @@
   --neutral: #868e96;
   --gold: #ffd43b;
 }
+/* Fool's day (fool.ts): the sides swap colours. */
+:root.fool {
+  --fire: #1c7ed6;
+  --water: #e8590c;
+}

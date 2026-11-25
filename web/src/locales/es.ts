@@ -132,6 +132,7 @@ export const es: Dict = {
   "gfx.map": "Mapa",
   "gfx.slow": "Gráficos simplificados: el dispositivo no daba abasto",
   "fog.hint": "Vapor sobre el frente: donde fuego y agua chocan mucho tiempo, solo se ve de cerca. ¡Ve allí!",
+  "fool.hint": "¡Día de los locos! Hoy todo va al revés: el fuego baja, el agua sube y los colores están cambiados.",
   "ring.fire": "Anillo de fuego cerrado: {n} cruces resisten mejor al agua durante 30 minutos.",
   "ring.water": "Foso cerrado: {n} cruces resisten mejor al fuego durante 30 minutos.",
   "net.busy": "Ahora mismo llegan muchas personas nuevas desde esta red. Seguimos en un momento.",

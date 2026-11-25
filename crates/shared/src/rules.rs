@@ -84,6 +84,9 @@ pub struct Rules {
     pub fog: crate::fog::Fog,
     /// A walked ring holds its ground for a while (`[ring]`).
     pub ring: crate::shape::Ring,
+    /// Fool's days (`[fool] days`, local `YYYY-MM-DD`): the field upside
+    /// down, the app swaps the sides' colours (Fasnacht).
+    pub fool: Fool,
     /// Weekly streaks of play days (`[streak]`, server).
     pub streak: crate::streak::StreakRules,
     /// Chance that a new player joins the weaker side (fewer players today,
@@ -91,6 +94,19 @@ pub struct Rules {
     pub join_weaker: f32,
     /// Indoors (`[indoor]`): a scanned code places the player, not GPS.
     pub indoor: Indoor,
+}
+
+/// Fool's days: local dates (`YYYY-MM-DD`) when everything is the other way round.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Fool {
+    pub days: Vec<String>,
+}
+
+impl Fool {
+    pub fn on(&self, date: &str) -> bool {
+        self.days.iter().any(|d| d == date)
+    }
 }
 
 /// Where nothing is left to take and no anchor fits, a claim may put an
@@ -377,6 +393,7 @@ impl Default for Rules {
             tide: Default::default(),
             fog: Default::default(),
             ring: Default::default(),
+            fool: Default::default(),
             streak: Default::default(),
             join_weaker: 0.67,
             indoor: Default::default(),

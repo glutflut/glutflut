@@ -32,6 +32,9 @@ pub struct FieldParams {
     /// unaffected, long gentle ones and short steep ones alike.
     pub water_climb_m: f32,
     pub fire_drop_m: f32,
+    /// Fool's day (`Rules::fool`): every slope the other way round, fire
+    /// runs downhill and water climbs.
+    pub upside_down: bool,
 }
 
 impl Default for FieldParams {
@@ -45,6 +48,7 @@ impl Default for FieldParams {
             slope_max: 3.0,
             water_climb_m: 0.0,
             fire_drop_m: 0.0,
+            upside_down: false,
         }
     }
 }
@@ -118,6 +122,20 @@ impl Field {
             }
         };
         for e in edges {
+            let flipped;
+            let e = if p.upside_down {
+                flipped = EdgeCosts {
+                    dh: -e.dh,
+                    fire_fwd: e.fire_rev,
+                    fire_rev: e.fire_fwd,
+                    water_fwd: e.water_rev,
+                    water_rev: e.water_fwd,
+                    ..*e
+                };
+                &flipped
+            } else {
+                e
+            };
             let (ff, fr, wf, wr) = e.directed(p);
             let (up_w, down_f) = (
                 against(e.dh, p.water_climb_m),
@@ -497,6 +515,36 @@ mod tests {
         let f = Field::new(2, &line(2, 200.0), &[0.0, 1.0], &p);
         let v = settle(&f, &[(0, Faction::Fire, 1.0), (0, Faction::Water, 1.0)]);
         assert!((v[1].0 - 0.75).abs() < 1e-5 && (v[1].1 - 0.25).abs() < 1e-5);
+    }
+
+    #[test]
+    fn upside_down_turns_the_slope() {
+        // a -> b climbs 3 m; on a fool's day water climbs freely, fire pays going up.
+        let e = EdgeCosts {
+            a: 0,
+            b: 1,
+            fire_fwd: 100.0,
+            fire_rev: 100.0,
+            water_fwd: 100.0,
+            water_rev: 100.0,
+            len: 100.0,
+            dh: 3.0,
+        };
+        let p = FieldParams {
+            water_climb_m: 3.0,
+            fire_drop_m: 3.0,
+            ..Default::default()
+        };
+        let fool = FieldParams {
+            upside_down: true,
+            ..p.clone()
+        };
+        let (n, f) = (
+            Field::new(2, &[e], &[], &p),
+            Field::new(2, &[e], &[], &fool),
+        );
+        assert!(f.inbound(1)[0].2 > n.inbound(1)[0].2, "water up into b");
+        assert!(f.inbound(1)[0].1 < n.inbound(1)[0].1, "fire up into b");
     }
 
     #[test]

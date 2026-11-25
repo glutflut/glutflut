@@ -35,10 +35,13 @@ pub fn apply(
         Has<Spring>,
         Option<&crate::sim::ElemIdx>,
     )>,
-    mut seen: Local<Option<(Option<WeatherDay>, u32, bool, u32, bool, u32)>>,
+    clock: Option<Res<crate::clock::Clock>>,
+    mut seen: Local<Option<(Option<WeatherDay>, u32, bool, u32, bool, u32, bool)>>,
 ) {
-    // Tide alone (`tide.rs`) also needs the natural sources set here.
-    if !base.0.weather.enabled && !base.0.tide.enabled() {
+    // Tide alone (`tide.rs`) and fool's days also need this.
+    let fool = !base.0.fool.days.is_empty()
+        && clock.is_some_and(|c| base.0.fool.on(&c.date(crate::analytics::now_s())));
+    if !base.0.weather.enabled && !base.0.tide.enabled() && base.0.fool.days.is_empty() {
         return;
     }
     let live_on = live.as_ref().is_some_and(|l| l.on);
@@ -50,6 +53,7 @@ pub fn apply(
         sun.as_ref().map_or(0, |l| l.version),
         sun_on,
         tide.as_ref().map_or(0, |t| t.version),
+        fool,
     );
     if *seen == Some(now) {
         return;
@@ -61,10 +65,11 @@ pub fn apply(
         .weather
         .filter(|_| w.enabled)
         .map(|day| live_day(w, day, live_on, sun_on));
-    let new = match used {
+    let mut new = match used {
         Some(day) => base.0.for_weather(&day),
         None => base.0.clone(),
     };
+    new.field.upside_down = fool;
     for (mut n, src, spring, idx) in &mut naturals {
         let at = |l: Option<&crate::live_rain::LiveField>| match (l, idx) {
             (Some(l), Some(i)) => l.at(i.0),
@@ -89,6 +94,9 @@ pub fn apply(
     }
     if new.field != rules.0.field {
         sim.rebuild_field(&new.field);
+    }
+    if new.field.upside_down != rules.0.field.upside_down {
+        info!(fool, "fool's day: field upside down");
     }
     if day_changed {
         if let (Some(day), Some(used)) = (campaign.weather, used) {

@@ -3,6 +3,7 @@
 // the faster the steeper; flat streets barely move; fronts spark in place. Geometry is rebuilt at most a few times a second; per frame
 // only the time uniform changes. Frames are capped (FPS) and stop when nothing
 // held is in view, the tab is hidden or the map is zoomed out.
+import { FOOL } from "./fool";
 import type * as maplibregl from "maplibre-gl";
 import type { TileLayer } from "./tiles";
 import { interleaved, LOOKS, program, uniforms } from "./streetfx";
@@ -147,7 +148,9 @@ export class FlowLayer implements maplibregl.CustomLayerInterface {
       const dh = (nodeElev.get(e.target) ?? 0) - (nodeElev.get(e.source) ?? 0);
       // +1: flows source -> target. Fire up, water down; speed from the grade
       // (flat ~0.35, 5 % ~1, 17 %+ at the cap).
-      const dir = f.o === 3 ? 1 : (f.o === 1 ? dh >= 0 : dh <= 0) ? 1 : -1;
+      // Fool's day: the field runs the other way, and the looks swap like the colours.
+      const dir = f.o === 3 ? 1 : (f.o === 1 ? dh >= 0 : dh <= 0) !== FOOL.on ? 1 : -1;
+      const look = FOOL.on && f.o < 3 ? 3 - f.o : f.o;
       const speed = f.o === 3 ? 1 : clamp(0.35 + 12.5 * Math.abs(dh / d), 0.35, 2.5);
       for (let i = 0; i + 1 < pts.length; i++) {
         const [x0, y0, d0] = pts[i];
@@ -160,7 +163,7 @@ export class FlowLayer implements maplibregl.CustomLayerInterface {
         const b = dir > 0 ? d1 : d - d1;
         const base = v.length / FLOATS;
         for (const [x, y, dd] of [[x0, y0, a], [x1, y1, b]] as const) {
-          for (const side of [-1, 1]) v.push(x - ox, y - oy, nx, ny, side, dd, f.o, Math.min(1, f.s), speed);
+          for (const side of [-1, 1]) v.push(x - ox, y - oy, nx, ny, side, dd, look, Math.min(1, f.s), speed);
         }
         idx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
       }

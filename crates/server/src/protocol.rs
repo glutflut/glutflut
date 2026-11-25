@@ -117,6 +117,8 @@ pub enum ServerMsg<'a> {
         indoor: bool,
         /// Claim radius of this region's rules (m).
         claim_m: f32,
+        /// A fool's day (`[fool]`): the app swaps the sides' colours.
+        fool: bool,
     },
     State {
         nodes: Vec<(i64, f32, f32)>,

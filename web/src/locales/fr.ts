@@ -131,6 +131,7 @@ export const fr: Dict = {
   "gfx.map": "Carte",
   "gfx.slow": "Graphismes simplifiés : l’appareil ne suivait pas",
   "fog.hint": "De la vapeur sur le front : là où le feu et l’eau s’affrontent longtemps, on ne voit plus que de près. Vas-y !",
+  "fool.hint": "Jour des fous ! Aujourd’hui tout est à l’envers : le feu descend, l’eau monte et les couleurs sont inversées.",
   "ring.fire": "Cercle de feu fermé : {n} carrefours résistent mieux à l’eau pendant 30 minutes.",
   "ring.water": "Douve fermée : {n} carrefours résistent mieux au feu pendant 30 minutes.",
   "net.busy": "Beaucoup de nouveaux joueurs depuis ce réseau en ce moment. On reprend dans un instant.",

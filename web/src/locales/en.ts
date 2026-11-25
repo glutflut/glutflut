@@ -131,6 +131,7 @@ export const en: Dict = {
   "gfx.map": "Map",
   "gfx.slow": "Graphics simplified: this device could not keep up",
   "fog.hint": "Steam over the front: where fire and water have clashed for long, you only see up close. Go there!",
+  "fool.hint": "Fool’s day! Everything is upside down today: fire runs downhill, water climbs, and the colours are swapped.",
   "ring.fire": "Ring of fire closed: {n} junctions hold better against water for 30 minutes.",
   "ring.water": "Moat closed: {n} junctions hold better against fire for 30 minutes.",
   "net.busy": "Lots of new players from this network right now. We'll continue in a moment.",

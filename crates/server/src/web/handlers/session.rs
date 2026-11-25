@@ -185,6 +185,7 @@ pub(super) fn hello(
             watch,
             indoor: rules.indoor.enabled,
             claim_m: rules.claim_radius_m,
+            fool: rules.field.upside_down,
         },
     );
     // By tiles: state follows with the first `view`.

@@ -33,6 +33,13 @@ impl Clock {
         }
     }
 
+    /// The local date of `unix` seconds, `YYYY-MM-DD`.
+    pub fn date(&self, unix: f64) -> String {
+        Timestamp::from_second(unix.floor() as i64)
+            .map(|t| t.to_zoned(self.tz.clone()).date().to_string())
+            .unwrap_or_default()
+    }
+
     /// The local day of `unix` seconds (days since 1970-01-01).
     pub fn day(&self, unix: f64) -> i64 {
         let s = unix.floor() as i64;

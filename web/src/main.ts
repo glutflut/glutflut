@@ -40,6 +40,7 @@ import { setupProgress } from "./progress";
 import { setupClaim } from "./claim";
 import { claimNotes } from "./melody";
 import { setupFog } from "./fog";
+import { FOOL, foolFromServer, startFool } from "./fool";
 import { setupRings } from "./ring";
 import type { Wind } from "./spill";
 import { setupRate } from "./rate";
@@ -89,6 +90,7 @@ if (/(?:^#|&)look=/.test(location.hash)) document.documentElement.classList.add(
 type Handlers = { [K in ServerMsg["t"]]: (m: Extract<ServerMsg, { t: K }>) => void };
 
 async function main() {
+  startFool();
   const meta: Meta = await loadMeta(() => ($("me-label").textContent = t("region.waking")));
   const map = await createMap(meta, gameView, gfx === "full");
 
@@ -440,6 +442,11 @@ async function main() {
   let live: ReturnType<typeof setupLive> | null = null;
   const on: Handlers = {
     welcome(m) {
+      if (foolFromServer(m.fool)) return;
+      if (FOOL.on && load(KEYS.foolSeen) !== new Date().toLocaleDateString("sv")) {
+        save(KEYS.foolSeen, new Date().toLocaleDateString("sv"));
+        toast(t("fool.hint"));
+      }
       // Only watching (watch.ts): the map and the live game, no side, no position.
       if (m.watch) {
         // Without a position: into the centre once, close enough to see streets.
