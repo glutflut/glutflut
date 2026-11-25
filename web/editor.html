@@ -187,6 +187,16 @@
             <div id="post-tags" class="tag-chips"></div>
             <input id="post-tag-new" data-i18n-placeholder="po.f.tags.ph" autocomplete="off" />
           </div>
+          <div class="post-place">
+            <span><b data-i18n="po.f.place">Ort bei Instagram</b> <small data-i18n="po.f.place.hint">(ID oder Link der Facebook-Seite des Orts)</small></span>
+            <div class="ed-row">
+              <input id="post-place-q" data-i18n-placeholder="po.f.place.ph" autocomplete="off" />
+              <button type="button" id="post-place-check" data-i18n="po.f.place.check">Prüfen</button>
+              <button type="button" id="post-place-clear" data-i18n="po.f.place.clear">Entfernen</button>
+            </div>
+            <input type="hidden" id="post-place-id" /><input id="post-place-name" maxlength="80" data-i18n-placeholder="po.f.place.name" autocomplete="off" />
+            <small id="post-place-info"></small>
+          </div>
           <label><span><span data-i18n="po.f.alt">Alt-Text</span> <small id="post-alt-count"></small></span> <textarea id="post-alt" maxlength="1000" rows="3"></textarea></label>
           <label class="check"><input type="checkbox" id="post-card-on" /> <span data-i18n="po.f.card">Bild: Spielstand als Karte</span></label>
           <div id="post-card-fields">
