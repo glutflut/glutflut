@@ -1380,13 +1380,20 @@ pub(super) async fn place(
         store
             .put(&k, &probe_jpeg()?)
             .map_err(|e| format!("picture: {e}"))?;
-        ig_container(&agent, &a, &store.fetch_url(&k), "", "", Some(&key))
-            .map_err(|e| format!("Instagram does not take it: {e}"))?;
+        // Instagram's no is final: 422 with its words, the editor drops the id.
+        if let Err(e) = ig_container(&agent, &a, &store.fetch_url(&k), "", "", Some(&key)) {
+            return Ok(json!({ "refused": format!("Instagram does not take it: {e}") }));
+        }
         Ok(json!({ "id": key, "name": "", "city": "", "has_place": true, "checked": "container" }))
     })
     .await
     .unwrap_or_else(|e| Err(e.to_string()));
     match got {
+        Ok(v) if v.get("refused").is_some() => (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({ "error": format!("Meta: {}", v["refused"].as_str().unwrap_or("")) })),
+        )
+            .into_response(),
         Ok(v) => Json(v).into_response(),
         Err(e) => (
             StatusCode::BAD_GATEWAY,

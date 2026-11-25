@@ -177,7 +177,8 @@ async function checkPlace() {
     const msg: string | undefined = res && res.status !== 401 && res.status !== 403 ? (await res.clone().json().catch(() => null))?.error : undefined;
     const err = msg ?? (await errorOf(res, t("ui.savefail")));
     // A bare id stays usable when Meta won't say (that is what sending shows).
-    if (/^\d+$/.test(raw)) setPlace({ id: raw, name: "" }, t("po.f.place.unchecked", { err }));
+    // 422: Instagram refused the id itself; anything else may be passing.
+    if (res?.status !== 422 && /^\d+$/.test(raw)) setPlace({ id: raw, name: "" }, t("po.f.place.unchecked", { err }));
     else return void toast(err, "error");
   }
   input("post-place-q").value = "";
