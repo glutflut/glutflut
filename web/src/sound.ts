@@ -220,14 +220,14 @@ export class Sound {
     for (let i = 0; i < 2 + 3 * k; i++) this.bubble(t + 0.05 + i * rnd(0.04, 0.08), rnd(200, 420), 0.2 * EVENT_GAIN, true);
   }
 
-  /** Carried embers in a headwind: a gust that fans them away. */
-  gust(amount: number) {
+  /** Carried embers tumble out of the lantern (`amount` 0..1 of a strong spill). */
+  tumble(amount: number) {
     const c = this.ready();
     if (!c) return;
     const t = c.currentTime + 0.01;
-    const { f } = this.burst(t, 0.8, (0.1 + 0.2 * Math.min(1, amount)) * EVENT_GAIN, "bandpass", 500, 0.5);
-    f.frequency.exponentialRampToValueAtTime(1400, t + 0.7);
-    this.crackle(t + 0.2, 4, 0.4, 0.15 * EVENT_GAIN);
+    const k = Math.min(1, amount);
+    this.burst(t, 0.12, (0.15 + 0.25 * k) * EVENT_GAIN, "lowpass", 260, 1);
+    this.crackle(t, 4 + Math.round(8 * k), 0.5, (0.2 + 0.25 * k) * EVENT_GAIN);
   }
 
   /** A claim builds up for `secs` (on enemy ground): denser and denser. */

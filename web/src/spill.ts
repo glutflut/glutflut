@@ -1,37 +1,30 @@
 // Carrying you can feel (vault wilde-ideen.md, "Krug schwappt"): a load's
-// fill drops while it's carried. Water spills when the phone tilts away from
-// how it was held at pick-up, or when the carrier runs; fire burns down when
-// the carrier walks into the real wind (shield it: take the way with the wind).
-// Kind to children: spilling alone never takes a load below `FLOOR`, small
-// tilts and walking cost nothing. Without sensors only the wind counts (fire)
-// or nothing (water). The game's carrying uses `fill` at delivery.
+// fill drops while it's carried, the same rule for both sides: tilt the phone
+// away from how it was held at pick-up, or run, and water sloshes out of the
+// jug, embers tumble out of the lantern. Kind to children: never below
+// `FLOOR`, small tilts and walking cost nothing; without sensors nothing is
+// lost. The game's carrying uses `fill` at delivery.
 import type { Faction } from "./net";
 
-/** Spilling and wind never take a load below this. */
+/** Spilling never takes a load below this. */
 export const FLOOR = 0.3;
 /** Tilt from the pick-up hold that is still free (degrees), and where spilling is full. */
 const TILT_FREE = 20;
 const TILT_FULL = 65;
 /** Fill lost per second at full tilt; by shaking at `SHAKE_FULL`. */
-const TILT_RATE = 0.12;
-const SHAKE_RATE = 0.08;
+const TILT_RATE = 0.04;
+const SHAKE_RATE = 0.03;
 /** Movement (m/s², gravity removed, smoothed): walking stays below FREE. */
 const SHAKE_FREE = 5;
 const SHAKE_FULL = 12;
-/** Fire: fill lost per second walking straight into wind of `WIND_FULL` m/s. */
-const WIND_RATE = 0.0015;
-const WIND_FULL = 8;
-/** Walking slower than this has no heading (m/s). */
-const WALKING = 0.6;
-
+/** Wind now at the region's centre (server `wind.rs`; not used by carrying). */
 export type Wind = { fromDeg: number; speed: number };
 
 export type FeelState = {
   fill: number;
-  /** Degrees from the pick-up hold; m/s² of movement; -1..1 into the wind. */
+  /** Degrees from the pick-up hold; m/s² of movement. */
   tilt: number;
   shake: number;
-  headwind: number;
   /** The water surface's angle on screen (degrees), damped like a liquid. */
   surface: number;
   sensors: boolean;
@@ -59,10 +52,6 @@ export class Feel {
   private shakeAvg = 0;
   private surface = 0;
   private surfaceV = 0;
-  private wind: Wind | null = null;
-  private last: { lat: number; lon: number; t: number } | null = null;
-  private heading: number | null = null;
-  private speed = 0;
   private sensors = false;
   private readonly onMotion = (e: DeviceMotionEvent) => this.motion(e);
 
@@ -78,31 +67,6 @@ export class Feel {
 
   stop() {
     window.removeEventListener("devicemotion", this.onMotion);
-  }
-
-  setWind(w: Wind | null) {
-    this.wind = w;
-  }
-
-  /** A GPS fix: the walking heading comes from the last one. */
-  move(lat: number, lon: number, t = Date.now()) {
-    const p = this.last;
-    this.last = { lat, lon, t };
-    if (!p || t - p.t < 1500) {
-      if (p) this.last = p;
-      return;
-    }
-    const k = Math.cos((lat * Math.PI) / 180);
-    const dx = (lon - p.lon) * 111_320 * k;
-    const dy = (lat - p.lat) * 110_540;
-    this.speed = Math.hypot(dx, dy) / ((t - p.t) / 1000);
-    this.heading = this.speed >= WALKING ? ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360 : null;
-  }
-
-  /** Walking heading and speed directly (test page, simulation). */
-  walk(headingDeg: number | null, speed: number) {
-    this.heading = headingDeg;
-    this.speed = speed;
   }
 
   private motion(e: DeviceMotionEvent) {
@@ -129,24 +93,13 @@ export class Feel {
     return n ? (Math.acos(Math.max(-1, Math.min(1, dot / n))) * 180) / Math.PI : 0;
   }
 
-  private headwind(): number {
-    if (!this.wind || this.heading === null || this.speed < WALKING) return 0;
-    return Math.cos(((this.heading - this.wind.fromDeg) * Math.PI) / 180);
-  }
-
   /** Advance by `dt` seconds. */
   tick(dt: number): FeelState {
     const tilt = this.tilt();
     const shake = this.shakeAvg;
-    const head = this.headwind();
-    let loss = 0;
-    if (this.kind === "water") {
-      const t = Math.max(0, Math.min(1, (tilt - TILT_FREE) / (TILT_FULL - TILT_FREE)));
-      const s = Math.max(0, Math.min(1, (shake - SHAKE_FREE) / (SHAKE_FULL - SHAKE_FREE)));
-      loss = (TILT_RATE * t * t + SHAKE_RATE * s) * dt;
-    } else if (head > 0 && this.wind) {
-      loss = WIND_RATE * head * Math.min(1, this.wind.speed / WIND_FULL) * dt;
-    }
+    const t = Math.max(0, Math.min(1, (tilt - TILT_FREE) / (TILT_FULL - TILT_FREE)));
+    const sh = Math.max(0, Math.min(1, (shake - SHAKE_FREE) / (SHAKE_FULL - SHAKE_FREE)));
+    const loss = (TILT_RATE * t * t + SHAKE_RATE * sh) * dt;
     const before = this.fill;
     this.fill = Math.max(FLOOR, this.fill - loss);
     if (before - this.fill > 0) this.onSpill(before - this.fill);
@@ -155,7 +108,7 @@ export class Feel {
     const target = Math.max(-35, Math.min(35, side)) + Math.sin(Date.now() / 120) * Math.min(8, shake);
     this.surfaceV += (target - this.surface) * 18 * dt - this.surfaceV * 5 * dt;
     this.surface += this.surfaceV * dt;
-    return { fill: this.fill, tilt, shake, headwind: head, surface: this.surface, sensors: this.sensors };
+    return { fill: this.fill, tilt, shake, surface: this.surface, sensors: this.sensors };
   }
 }
 
@@ -191,10 +144,13 @@ export function feelView(kind: Faction): { el: SVGSVGElement; draw(s: FeelState)
   return {
     el,
     draw(s) {
-      const flicker = s.headwind > 0 ? Math.random() * 0.25 * s.headwind : 0;
-      glow.setAttribute("r", String(18 + 30 * s.fill * (1 - flicker)));
-      glow.setAttribute("opacity", String(0.4 + 0.6 * s.fill));
-      coal.setAttribute("r", String(5 + 7 * s.fill));
+      // Shaken or tilted: the glow flickers and leans like the water's surface.
+      const unrest = Math.min(1, Math.max(0, (s.tilt - 15) / 50) + s.shake / 12);
+      const k = (s.fill - 0.3) / 0.7; // 0 at the floor, 1 full
+      glow.setAttribute("r", String(10 + 38 * k * (1 - Math.random() * 0.3 * unrest)));
+      glow.setAttribute("opacity", String(0.3 + 0.7 * k));
+      glow.setAttribute("cx", String(60 - s.surface * 0.4));
+      coal.setAttribute("r", String(4 + 9 * k));
     },
   };
 }
