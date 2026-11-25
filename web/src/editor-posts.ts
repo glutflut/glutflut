@@ -504,21 +504,23 @@ const extra = (r: Run) => (r.results ?? {}) as unknown as { card?: Shot; photo?:
 
 /** A draft's picture from the app (photo.html) to the server, then shown. */
 const shooting = new Set<number>();
-async function shootRun(r: Run, img: HTMLImageElement, dl: HTMLAnchorElement, btn: HTMLButtonElement) {
-  const c = extra(r).card;
-  if (!c || shooting.has(r.id)) return;
+async function shootRun(r: Run, img: HTMLImageElement, dl: HTMLAnchorElement, btn: HTMLButtonElement, layers?: string[]) {
+  const base = extra(r).card;
+  if (!base || shooting.has(r.id)) return;
+  const c = layers ? { ...base, layers } : base;
   shooting.add(r.id);
   btn.disabled = true;
   btn.textContent = t("po.photo.wait");
   try {
     const blob = await photo(c);
-    const res = await api(`/api/ops/posts/run.jpg?${q()}&id=${r.id}`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
+    const lay = layers ? `&layers=${encodeURIComponent(layers.join(","))}` : "";
+    const res = await api(`/api/ops/posts/run.jpg?${q()}&id=${r.id}${lay}`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
     if (!res.ok) throw new Error(await errorOf(res, t("ui.savefail")));
     const u = URL.createObjectURL(blob);
     pictures.set(r.id, u);
     img.src = u;
     dl.href = u;
-    r.results = { ...(r.results ?? {}), photo: true } as unknown as Run["results"];
+    r.results = { ...(r.results ?? {}), photo: true, card: c } as unknown as Run["results"];
   } catch (e) {
     toast(t("po.photo.fail", { err: (e as Error).message }), "error");
   } finally {
@@ -621,9 +623,21 @@ function drawRun(r: Run): HTMLElement {
     fig.append(img, dl);
     // As in the game: the app takes the picture (the server's is a stand-in), once by itself.
     if (r.state === "draft" && extra(r).card?.look === "game") {
+      // This draft's layers (from its post; e.g. rain only today), then take it again.
+      const have = extra(r).card?.layers ?? LAYERS_ON;
+      const pick = el("div", { className: "post-layers" });
+      const boxes = LAYERS.map((l) => {
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = have.includes(l);
+        const lab = el("label", { className: "check" });
+        lab.append(box, ` ${t(`po.layer.${l}` as EKey)}`);
+        pick.append(lab);
+        return [l, box] as const;
+      });
       const again = el("button", { type: "button", textContent: t("po.photo.take") });
-      again.onclick = () => void shootRun(r, img, dl, again);
-      fig.append(again);
+      again.onclick = () => void shootRun(r, img, dl, again, boxes.filter(([, b]) => b.checked).map(([l]) => l));
+      fig.append(pick, again);
       if (!extra(r).photo) void shootRun(r, img, dl, again);
     }
     body.append(fig);

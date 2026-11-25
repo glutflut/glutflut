@@ -1075,11 +1075,20 @@ pub(super) async fn draft_now(
     }
 }
 
-/// `POST /api/ops/posts/run.jpg?region=&id=` (editor): a draft's picture as
-/// the app draws it (photo.html, captured in the editor), JPEG, at most 2 MB.
+#[derive(Deserialize)]
+pub(super) struct ShotQ {
+    region: Option<String>,
+    id: i64,
+    /// The layers it was taken with (comma list), kept for the draft.
+    layers: Option<String>,
+}
+
+/// `POST /api/ops/posts/run.jpg?region=&id=&layers=` (editor): a draft's
+/// picture as the app draws it (photo.html, captured in the editor), JPEG, at
+/// most 2 MB; `layers` become the draft's own.
 pub(super) async fn run_jpg_put(
     State(s): State<AppState>,
-    Query(q): Query<IdQ>,
+    Query(q): Query<ShotQ>,
     headers: HeaderMap,
     Extension(c): Extension<Client>,
     body: axum::body::Bytes,
@@ -1095,16 +1104,33 @@ pub(super) async fn run_jpg_put(
     if let Err(e) = check_jpeg(&body) {
         return bad(e);
     }
+    let layers: Option<Vec<String>> = match &q.layers {
+        None => None,
+        Some(l) => {
+            let list: Vec<String> = l
+                .split(',')
+                .filter(|x| !x.is_empty())
+                .map(str::to_string)
+                .collect();
+            if list.iter().any(|x| !LAYERS.contains(&x.as_str())) {
+                return bad("picture: unknown layer");
+            }
+            Some(list)
+        }
+    };
     let (st, by, id) = (s.clone(), w.label, q.id);
     let n = body.len();
+    let layers_s = layers.as_ref().map(|l| json!(l).to_string());
     let done = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
             let mut t = db.transaction()?;
             let n_rows = t.execute(
                 "UPDATE game.post_runs SET image = $3, \
-                   results = jsonb_set(coalesce(results, '{}'), '{photo}', 'true') \
+                   results = CASE WHEN $4::text IS NULL OR results -> 'card' IS NULL \
+                       THEN jsonb_set(coalesce(results, '{}'), '{photo}', 'true') \
+                       ELSE jsonb_set(jsonb_set(results, '{photo}', 'true'), '{card,layers}', $4::text::jsonb) END \
                  WHERE region = $1 AND id = $2 AND state = 'draft'",
-                &[&slug, &id, &body.to_vec()],
+                &[&slug, &id, &body.to_vec(), &layers_s],
             )?;
             if n_rows == 1 {
                 audit_entity(
@@ -1112,7 +1138,7 @@ pub(super) async fn run_jpg_put(
                     &format!("post run {slug}/{id}"),
                     "picture from the app",
                     &by,
-                    json!({ "bytes": n }),
+                    json!({ "bytes": n, "layers": layers }),
                 )?;
             }
             t.commit()?;
