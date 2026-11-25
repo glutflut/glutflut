@@ -22,6 +22,7 @@ mod area;
 mod bench;
 mod campaign;
 mod card;
+mod card_game;
 mod cells;
 mod challenge;
 mod cheat;

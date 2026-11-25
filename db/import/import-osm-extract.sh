@@ -50,6 +50,13 @@ CREATE INDEX IF NOT EXISTS ${SCHEMA}_trees_g ON $SCHEMA.osm_trees USING gist (ge
 CREATE INDEX IF NOT EXISTS ${SCHEMA}_places_g ON $SCHEMA.osm_places USING gist (geometry);
 CREATE INDEX IF NOT EXISTS ${SCHEMA}_closed_g ON $SCHEMA.osm_closed USING gist (geometry);
 ANALYZE $SCHEMA.osm_ways; ANALYZE $SCHEMA.osm_pois; ANALYZE $SCHEMA.osm_boundaries;
+-- Post pictures read the water (V29).
+DO \$\$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'elements_app') THEN
+    GRANT USAGE ON SCHEMA $SCHEMA TO elements_app;
+    GRANT SELECT ON $SCHEMA.osm_water TO elements_app;
+  END IF;
+END \$\$;
 SQL
 psql "$ELEMENTS_DB" -v ON_ERROR_STOP=1 -q -f "$HERE/osm-views.sql"
 rm -rf "$CACHE"

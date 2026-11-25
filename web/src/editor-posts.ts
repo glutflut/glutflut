@@ -13,7 +13,7 @@ import { listRegions } from "./region";
 /** A post's texts per outcome: `text` for all channels, a channel's own text, the alt text. */
 type Texts = { text?: string; instagram?: string; mastodon?: string; alt?: string };
 type Variant = "any" | "fire" | "water" | "tie";
-type Card = { lat?: number; lon?: number; width_m: number; title: string; note: string };
+type Card = { lat?: number; lon?: number; width_m: number; title: string; note: string; look?: "plan" | "game" };
 type Post = {
   id: number;
   title: string;
@@ -374,6 +374,8 @@ function open(p: Post | null) {
   input("post-card-lat").value = p?.card?.lat != null ? String(p.card.lat) : "";
   input("post-card-lon").value = p?.card?.lon != null ? String(p.card.lon) : "";
   input("post-card-width").value = String(p?.card?.width_m ?? 900);
+  // Stored cards without a look are the old map; new ones look like the game.
+  $<HTMLSelectElement>("post-card-look").value = p?.card ? (p.card.look ?? "plan") : "game";
   input("post-card-title").value = p?.card?.title ?? "";
   input("post-card-note").value = p?.card?.note ?? "";
   $("post-preview").replaceChildren();
@@ -385,7 +387,12 @@ function open(p: Post | null) {
 
 function cardOf(): Card | null {
   if (!input("post-card-on").checked) return null;
-  const c: Card = { width_m: Number(input("post-card-width").value) || 900, title: input("post-card-title").value.trim(), note: input("post-card-note").value.trim() };
+  const c: Card = {
+    width_m: Number(input("post-card-width").value) || 900,
+    title: input("post-card-title").value.trim(),
+    note: input("post-card-note").value.trim(),
+    look: $<HTMLSelectElement>("post-card-look").value as "plan" | "game",
+  };
   const lat = input("post-card-lat").value.trim();
   const lon = input("post-card-lon").value.trim();
   if (lat || lon) Object.assign(c, { lat: Number(lat.replace(",", ".")), lon: Number(lon.replace(",", ".")) });
@@ -428,7 +435,7 @@ async function picture(path: string): Promise<string | null> {
 
 async function preview() {
   const c = cardOf() ?? { width_m: 900, title: "", note: "" };
-  const p = new URLSearchParams({ region, width_m: String(c.width_m), title: c.title, note: c.note });
+  const p = new URLSearchParams({ region, width_m: String(c.width_m), title: c.title, note: c.note, look: c.look ?? "game" });
   if (c.lat != null && c.lon != null) p.set("lat", String(c.lat)), p.set("lon", String(c.lon));
   const tr = $<HTMLSelectElement>("post-trigger").value;
   if (tr === "chapter_end") {

@@ -1,6 +1,7 @@
-//! A picture of the game state for posts: the city as an old map, streets in
-//! ink on paper, junctions red (fire), blue (water), violet (front). Drawn as
-//! SVG here, rasterised with resvg, JPEG; 1080×1350 (4:5, Instagram).
+//! A picture of the game state for posts, in one of two looks: the city as an
+//! old map (streets in ink on paper, junctions red, blue, violet), or as in
+//! the app's game view (dark, streets glowing by side and strength, sources).
+//! Drawn as SVG here, rasterised with resvg, JPEG; 1080×1350 (4:5, Instagram).
 
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
@@ -17,9 +18,36 @@ const FIRE: &str = "#b23a1e";
 const WATER: &str = "#24508f";
 const FRONT: &str = "#7a5a8a";
 
+/// The picture's look.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Look {
+    /// The old map on paper.
+    #[default]
+    Plan,
+    /// As in the app.
+    Game,
+}
+
+impl Look {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "plan" => Some(Self::Plan),
+            "game" => Some(Self::Game),
+            _ => None,
+        }
+    }
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Plan => "plan",
+            Self::Game => "game",
+        }
+    }
+}
+
 /// What to draw: the frame and the texts on it.
 #[derive(Clone, Debug)]
 pub struct Spec {
+    pub look: Look,
     pub lat: f64,
     pub lon: f64,
     /// Width of the frame in metres (the height follows 4:5).
@@ -30,19 +58,44 @@ pub struct Spec {
     pub credit: String,
 }
 
-/// Node ids per side.
+/// Node ids per side; for the game look also the element values (0..1) and
+/// the claimed sources `(node, 1 fire | 2 water, permanent)`.
 #[derive(Clone, Debug, Default)]
 pub struct Sides {
     pub fire: Vec<i64>,
     pub water: Vec<i64>,
     pub front: Vec<i64>,
+    pub values: HashMap<i64, (f32, f32)>,
+    pub sources: Vec<(i64, u8, bool)>,
 }
 
-/// Streets and junctions inside the frame (lon, lat).
+impl Sides {
+    /// Fire and water per node: the values, else guessed from the side
+    /// (a chapter's snapshot has only the sides).
+    pub(crate) fn values_all(&self) -> HashMap<i64, (f32, f32)> {
+        let mut m: HashMap<i64, (f32, f32)> = HashMap::new();
+        for &id in &self.fire {
+            m.insert(id, (0.7, 0.0));
+        }
+        for &id in &self.water {
+            m.insert(id, (0.0, 0.7));
+        }
+        for &id in &self.front {
+            m.insert(id, (0.4, 0.4));
+        }
+        m.extend(self.values.iter().map(|(&k, &v)| (k, v)));
+        m
+    }
+}
+
+/// Streets (with their end nodes) and junctions inside the frame (lon, lat).
 #[derive(Default)]
 pub struct Geo {
     pub streets: Vec<Vec<[f64; 2]>>,
+    pub ends: Vec<(i64, i64)>,
     pub junctions: Vec<(i64, f64, f64)>,
+    /// Lakes and rivers as polygons (rings), if the database has them.
+    pub water: Vec<Vec<Vec<[f64; 2]>>>,
 }
 
 impl Spec {
@@ -77,10 +130,10 @@ impl Spec {
 pub fn load(c: &mut postgres::Client, slug: &str, spec: &Spec) -> Result<Geo, postgres::Error> {
     let [x0, y0, x1, y1] = spec.bbox();
     let env = "ST_MakeEnvelope($2, $3, $4, $5, 4326)";
-    let streets = c
+    let (streets, ends) = c
         .query(
             &format!(
-                "SELECT ST_AsGeoJSON(e.geom, 6)::text FROM geo.edges e \
+                "SELECT ST_AsGeoJSON(e.geom, 6)::text, e.source, e.target FROM geo.edges e \
                  JOIN geo.regions r ON r.id = e.region_id \
                  WHERE r.slug = $1 AND e.is_active AND e.geom && {env}"
             ),
@@ -89,9 +142,10 @@ pub fn load(c: &mut postgres::Client, slug: &str, spec: &Spec) -> Result<Geo, po
         .iter()
         .filter_map(|r| {
             let v: serde_json::Value = serde_json::from_str(&r.get::<_, String>(0)).ok()?;
-            serde_json::from_value(v["coordinates"].clone()).ok()
+            let line: Vec<[f64; 2]> = serde_json::from_value(v["coordinates"].clone()).ok()?;
+            Some((line, (r.get::<_, i64>(1), r.get::<_, i64>(2))))
         })
-        .collect();
+        .unzip();
     let junctions = c
         .query(
             &format!(
@@ -104,7 +158,68 @@ pub fn load(c: &mut postgres::Client, slug: &str, spec: &Spec) -> Result<Geo, po
         .iter()
         .map(|r| (r.get(0), r.get(1), r.get(2)))
         .collect();
-    Ok(Geo { streets, junctions })
+    Ok(Geo {
+        streets,
+        ends,
+        junctions,
+        water: water(c, spec).unwrap_or_else(|e| {
+            tracing::debug!(error = %e, "card: no water");
+            Vec::new()
+        }),
+    })
+}
+
+/// Water in the frame from the local OSM copy (each country's
+/// `osm_<cc>.osm_water`, V29), simplified to about a pixel; an error where
+/// there is none.
+fn water(
+    c: &mut postgres::Client,
+    spec: &Spec,
+) -> Result<Vec<Vec<Vec<[f64; 2]>>>, postgres::Error> {
+    let [x0, y0, x1, y1] = spec.bbox();
+    let tol = spec.width_m / W / 111_000.0;
+    let schemas: Vec<String> = c
+        .query(
+            "SELECT table_schema::text FROM information_schema.tables \
+             WHERE table_name = 'osm_water' AND table_schema LIKE 'osm\\_%'",
+            &[],
+        )?
+        .iter()
+        .map(|r| r.get(0))
+        .filter(|s: &String| s.chars().all(|c| c.is_ascii_lowercase() || c == '_'))
+        .collect();
+    if schemas.is_empty() {
+        return Ok(Vec::new());
+    }
+    let union = schemas
+        .iter()
+        .map(|s| format!("SELECT geometry FROM {s}.osm_water WHERE geometry && b.e"))
+        .collect::<Vec<_>>()
+        .join(" UNION ALL ");
+    let mut out = Vec::new();
+    for r in c.query(
+        &format!(
+            "WITH b AS (SELECT ST_MakeEnvelope($1, $2, $3, $4, 4326) e) \
+             SELECT ST_AsGeoJSON(ST_SimplifyPreserveTopology(ST_ClipByBox2D(w.geometry, b.e), $5), 6)::text \
+             FROM b, LATERAL ({union}) w"
+        ),
+        &[&x0, &y0, &x1, &y1, &tol],
+    )? {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&r.get::<_, String>(0)) else {
+            continue;
+        };
+        let polys: Vec<Vec<Vec<[f64; 2]>>> = match v["type"].as_str() {
+            Some("Polygon") => serde_json::from_value(v["coordinates"].clone())
+                .map(|p| vec![p])
+                .unwrap_or_default(),
+            Some("MultiPolygon") => {
+                serde_json::from_value(v["coordinates"].clone()).unwrap_or_default()
+            }
+            _ => Vec::new(),
+        };
+        out.extend(polys);
+    }
+    Ok(out)
 }
 
 fn esc(s: &str) -> String {
@@ -156,6 +271,23 @@ fn text_width(s: &str, size: f64) -> f64 {
 
 /// The picture as SVG.
 pub fn svg(spec: &Spec, geo: &Geo, sides: &Sides) -> String {
+    match spec.look {
+        Look::Plan => plan_svg(spec, geo, sides),
+        Look::Game => crate::card_game::svg(spec, geo, sides),
+    }
+}
+
+/// Where a point lands in the picture (for the game look).
+pub(crate) fn px(spec: &Spec, lon: f64, lat: f64) -> (f64, f64) {
+    spec.px(lon, lat)
+}
+
+pub(crate) fn escape(s: &str) -> String {
+    esc(s)
+}
+
+/// The old map.
+fn plan_svg(spec: &Spec, geo: &Geo, sides: &Sides) -> String {
     use std::fmt::Write;
     let mut s = String::with_capacity(1 << 20);
     // The pencil frame's inset; streets and junctions stay inside it.
@@ -334,6 +466,8 @@ fn fonts() -> Arc<usvg::fontdb::Database> {
             let mut db = usvg::fontdb::Database::new();
             db.load_font_data(include_bytes!("../fonts/EBGaramond12-Regular.ttf").to_vec());
             db.load_font_data(include_bytes!("../fonts/EBGaramond12-Italic.ttf").to_vec());
+            db.load_font_data(include_bytes!("../fonts/NotoSans-Regular.ttf").to_vec());
+            db.load_font_data(include_bytes!("../fonts/NotoSans-Bold.ttf").to_vec());
             Arc::new(db)
         })
         .clone()
@@ -377,6 +511,7 @@ mod tests {
 
     fn spec() -> Spec {
         Spec {
+            look: Look::Plan,
             lat: 47.66,
             lon: 9.176,
             width_m: 900.0,
@@ -391,16 +526,32 @@ mod tests {
         let s = spec();
         let geo = Geo {
             streets: vec![vec![[9.172, 47.658], [9.18, 47.662]]],
+            ends: vec![(1, 2)],
             junctions: vec![(1, 9.172, 47.658), (2, 9.18, 47.662), (3, 9.176, 47.66)],
+            water: vec![vec![vec![
+                [9.17, 47.655],
+                [9.175, 47.655],
+                [9.175, 47.657],
+                [9.17, 47.655],
+            ]]],
         };
         let sides = Sides {
             fire: vec![1],
             water: vec![2],
-            front: vec![],
+            sources: vec![(1, 1, true)],
+            ..Default::default()
         };
         let svg = svg(&s, &geo, &sides);
         assert!(svg.contains(FIRE) && svg.contains(WATER));
         assert!(svg.contains("&lt;Glut&gt; &amp; Flut"), "texts escaped");
+        let jpg = jpeg(&svg).expect("renders");
+        assert_eq!(&jpg[..3], &[0xff, 0xd8, 0xff]);
+        let game = Spec {
+            look: Look::Game,
+            ..s
+        };
+        let svg = super::svg(&game, &geo, &sides);
+        assert!(svg.contains("&lt;Glut&gt; &amp; Flut") && svg.contains("Noto Sans"));
         let jpg = jpeg(&svg).expect("renders");
         assert_eq!(&jpg[..3], &[0xff, 0xd8, 0xff]);
     }

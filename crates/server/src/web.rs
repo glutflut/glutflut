@@ -813,8 +813,15 @@ pub fn overview_tick(
 
 const OVERVIEW_EVERY_S: f64 = 4.0;
 
-/// When asked: `{t, fire, water, front}` with the node ids per side (unix s).
-pub fn nodes_tick(share: Res<NodesJson>, sim: Res<ElementSim>, geo: Query<&GeoNode>) {
+/// When asked: `{t, fire, water, front, v, src}`: node ids per side (unix s),
+/// `v` `[id, fire %, water %]` of every node with a side, `src` the claimed
+/// sources `[id, 1 fire | 2 water, permanent]` (pictures for posts).
+pub fn nodes_tick(
+    share: Res<NodesJson>,
+    sim: Res<ElementSim>,
+    geo: Query<&GeoNode>,
+    sources: Query<(&GeoNode, &ElementSource)>,
+) {
     if !share
         .0
         .wanted
@@ -823,8 +830,27 @@ pub fn nodes_tick(share: Res<NodesJson>, sim: Res<ElementSim>, geo: Query<&GeoNo
         return;
     }
     let s = sides(&sim, &geo);
-    let json =
-        serde_json::json!({ "t": now_s(), "fire": s.fire, "water": s.water, "front": s.front });
+    let pct = |x: f32| (x.clamp(0.0, 1.0) * 100.0).round() as u8;
+    let v: Vec<(i64, u8, u8)> = sim
+        .state()
+        .iter()
+        .zip(sim.nodes())
+        .filter_map(|(&(f, w), &e)| {
+            let g = geo.get(e).ok()?;
+            let es = ElementState { fire: f, water: w };
+            (es.owner().is_some() || es.contested()).then(|| (g.id, pct(f), pct(w)))
+        })
+        .collect();
+    let src: Vec<(i64, u8, bool)> = sources
+        .iter()
+        .filter(|(_, s)| s.life.is_some() && s.kind != SourceKind::Spark)
+        .map(|(g, s)| {
+            let side = if s.faction == Faction::Fire { 1 } else { 2 };
+            (g.id, side, s.kind == SourceKind::Keep)
+        })
+        .collect();
+    let json = serde_json::json!({ "t": now_s(), "fire": s.fire, "water": s.water,
+                                   "front": s.front, "v": v, "src": src });
     *share.0.json.write().unwrap() = Some(json.to_string().into());
 }
 

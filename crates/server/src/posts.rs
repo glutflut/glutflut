@@ -16,7 +16,7 @@ use serde_json::{json, Value};
 
 use super::editor::{audit_entity, bad, clean_text, primary};
 use super::{who, AppState, Client, RegionQ, Role};
-use crate::card::{self, Sides, Spec};
+use crate::card::{self, Look, Sides, Spec};
 
 pub const CREDIT: &str = "© OpenStreetMap";
 
@@ -35,6 +35,7 @@ pub fn snapshot_sides(
             fire: r.get(0),
             water: r.get(1),
             front: r.get(2),
+            ..Default::default()
         }))
 }
 
@@ -69,10 +70,17 @@ async fn live_sides(s: &AppState, slug: &str) -> Result<Sides, Response> {
             .filter(|v| v["t"].as_f64().is_some_and(|t| t >= t0 - 1.0))
         {
             let ids = |k: &str| serde_json::from_value(v[k].clone()).unwrap_or_default();
+            let values = serde_json::from_value::<Vec<(i64, u8, u8)>>(v["v"].clone())
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(id, f, w)| (id, (f as f32 / 100.0, w as f32 / 100.0)))
+                .collect();
             return Ok(Sides {
                 fire: ids("fire"),
                 water: ids("water"),
                 front: ids("front"),
+                values,
+                sources: serde_json::from_value(v["src"].clone()).unwrap_or_default(),
             });
         }
         r.nodes.wanted.store(true, Ordering::Relaxed);
@@ -97,9 +105,11 @@ pub(super) struct CardQ {
     title: Option<String>,
     note: Option<String>,
     credit: Option<String>,
+    /// `plan` (default) or `game`.
+    look: Option<String>,
 }
 
-/// `GET /api/ops/card.jpg?region=&chapter=&lat=&lon=&width_m=&title=&note=`
+/// `GET /api/ops/card.jpg?region=&chapter=&lat=&lon=&width_m=&title=&note=&look=`
 /// (editor): the picture of the game state, centred on the region if no
 /// place is given.
 pub(super) async fn card_jpg(
@@ -119,8 +129,12 @@ pub(super) async fn card_jpg(
     if !(200.0..=5000.0).contains(&width_m) {
         return (StatusCode::BAD_REQUEST, "width_m: 200 to 5000").into_response();
     }
+    let Some(look) = Look::parse(q.look.as_deref().unwrap_or("plan")) else {
+        return (StatusCode::BAD_REQUEST, "look: plan or game").into_response();
+    };
     let clip = |t: Option<String>, n: usize| t.unwrap_or_default().chars().take(n).collect();
     let mut spec = Spec {
+        look,
         lat: q.lat.unwrap_or(f64::NAN),
         lon: q.lon.unwrap_or(f64::NAN),
         width_m,
@@ -253,7 +267,11 @@ pub fn clean_card(v: &Value) -> Result<Value, &'static str> {
     if !(200.0..=5000.0).contains(&width_m) {
         return Err("picture: width 200 to 5000 m");
     }
-    let mut out = json!({ "width_m": width_m });
+    let look = match v.get("look").and_then(Value::as_str) {
+        None => Look::Plan,
+        Some(l) => Look::parse(l).ok_or("picture: look plan or game")?,
+    };
+    let mut out = json!({ "width_m": width_m, "look": look.name() });
     match (num("lat"), num("lon")) {
         (Some(lat), Some(lon))
             if (-85.0..=85.0).contains(&lat) && (-180.0..=180.0).contains(&lon) =>
@@ -600,6 +618,7 @@ pub(super) async fn draft(
                 t
             };
             let mut spec = Spec {
+                look: c["look"].as_str().and_then(Look::parse).unwrap_or_default(),
                 lat: f64::NAN,
                 lon: f64::NAN,
                 width_m: c["width_m"].as_f64().unwrap_or(900.0),
