@@ -65,6 +65,7 @@ mod tide;
 mod tiles;
 mod weather;
 mod web;
+mod wind;
 mod world;
 mod writers;
 
@@ -630,6 +631,9 @@ pub fn build(p: Prepared) -> App {
                 (cheer::tick, indoor::hold).chain(),
                 live_rain::update.run_if(resource_exists::<live_rain::LiveRain>),
                 tide::update.run_if(resource_exists::<tide::LiveTide>),
+                (wind::update, web::wind_tick)
+                    .chain()
+                    .run_if(resource_exists::<wind::LiveWind>),
                 weather::apply,
                 (keep::restore, live::restore).chain(),
                 (keep::tick, live::save_on_stop).chain(),
@@ -742,6 +746,10 @@ fn load_geo(
     // Automatic hotspots never at the waterline (`tide.rs`).
     let shore = tide.as_ref().map(tide::Setup::shore).unwrap_or_default();
     commands.insert_resource(tide::LiveTide::new(tide));
+    commands.insert_resource(wind::LiveWind::new(
+        region.centroid_lat,
+        region.centroid_lon,
+    ));
     // Days in local time (`clock.rs`).
     let clock = scores.clock.clone();
     keeps.clock = clock.clone();

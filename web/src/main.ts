@@ -39,6 +39,7 @@ import { setupSources, type SourceItems } from "./sources";
 import { setupProgress } from "./progress";
 import { setupClaim } from "./claim";
 import { claimNotes } from "./melody";
+import type { Wind } from "./spill";
 import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
 import { setupPlayer } from "./player";
@@ -176,6 +177,8 @@ async function main() {
   onMove();
 
   let faction: Faction | null = null;
+  /** Wind now at the region's centre, once the server sent it. */
+  let wind: Wind | null = null;
 
   // Side colours everywhere; on test servers also the switch in the settings.
   const sideBtn = $("side-switch") as HTMLButtonElement;
@@ -586,6 +589,10 @@ async function main() {
     questions: (m) => rate.onQuestions(m.items),
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
+    // Wind now (wind.rs), kept for carrying (spill.ts).
+    wind: (m) => {
+      wind = { fromDeg: m.from_deg, speed: m.speed };
+    },
     info: (m) => card.onInfo(m),
     keep: onKeep,
     kept: onKeep,

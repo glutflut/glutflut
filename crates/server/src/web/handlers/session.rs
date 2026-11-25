@@ -245,6 +245,9 @@ pub(super) fn hello(
     if let Some(t) = game.tide.as_ref().and_then(|t| t.shown()) {
         send(&out, &ServerMsg::Tide(t));
     }
+    if let Some(w) = game.wind.as_ref().and_then(|w| w.shown()) {
+        send(&out, &ServerMsg::Wind(w));
+    }
     // By tiles: the sources follow with each `view`, like the state.
     if !(by_tiles && game.tiles.is_some()) {
         send(

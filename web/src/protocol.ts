@@ -34,6 +34,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "forgotten" }
   | { "t": "weather" } & WeatherShown
   | { "t": "tide" } & TideShown
+  | { "t": "wind" } & WindShown
   | { "t": "side", faction: Faction, }
   | { "t": "code", code: string, }
   | { "t": "recovered", token: string, }
@@ -164,6 +165,11 @@ export type WeatherShown = { effect: "rain" | "heat" | "frost" | null, side: Fac
  * What the app shows (`ServerMsg::Tide`): off, or the phase and its direction.
  */
 export type TideShown = { on: boolean, phase: number, rising: boolean, level_m: number, next_high: number | null, next_low: number | null, hilo_estimated: boolean, };
+
+/**
+ * What the app gets (`ServerMsg::Wind`).
+ */
+export type WindShown = { from_deg: number, speed: number, gusts: number, at: number, };
 
 /**
  * What the player sees.

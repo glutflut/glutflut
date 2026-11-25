@@ -279,6 +279,8 @@ pub enum ServerMsg<'a> {
     Weather(weather::Shown),
     /// The tide at the waterfront (`tide.rs`), in regions with a gauge.
     Tide(crate::tide::Shown),
+    /// Wind now at the region's centre (`wind.rs`), for carrying.
+    Wind(crate::wind::Shown),
     /// Side switched (test servers).
     Side {
         #[ts(as = "Faction")]
@@ -875,6 +877,7 @@ fn typescript() -> String {
         campaign::Question,
         weather::Shown,
         crate::tide::Shown,
+        crate::wind::Shown,
         challenge::View,
         info::Src,
         elements_shared::progression::Challenge,

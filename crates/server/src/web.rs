@@ -76,6 +76,13 @@ pub struct Views(HashMap<u64, Option<HashSet<TileKey>>>);
 #[derive(Resource, Default)]
 pub struct WebClients(HashMap<u64, (Entity, Outbox)>);
 
+impl WebClients {
+    /// Nobody connected.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 /// Session token -> faction and last hello, so a returning browser keeps
 /// its side. Players have a score row anyway; this matters for bots and is
 /// forgotten after a day.
@@ -442,6 +449,17 @@ pub fn tide_tick(
     }
     *seen = (version, now, s.on);
     to_all(&clients, &ServerMsg::Tide(s));
+}
+
+/// The wind to every app when it changed (`wind.rs`).
+pub fn wind_tick(wind: Res<crate::wind::LiveWind>, clients: Res<WebClients>, mut seen: Local<u32>) {
+    if wind.version == *seen {
+        return;
+    }
+    *seen = wind.version;
+    if let Some(s) = wind.shown() {
+        to_all(&clients, &ServerMsg::Wind(s));
+    }
 }
 
 /// The player's finds in this region and the collection sizes (`running`:
