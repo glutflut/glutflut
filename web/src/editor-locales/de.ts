@@ -82,6 +82,8 @@ export const de = {
   "po.tags.none": "Noch keine Hashtags.",
   "po.tags.bad": "Hashtags: nur Buchstaben, Ziffern und _",
   "po.count.with": "mit Hashtags",
+  "ui.legal": "Impressum",
+  "ui.privacy": "Datenschutz (Redaktion)",
   "po.f.place": "Ort bei Instagram",
   "po.f.place.hint": "(Name, Link oder ID der Facebook-Seite des Orts)",
   "po.f.place.ph": "z. B. Konzil Konstanz, https://www.facebook.com/… oder 1082…",

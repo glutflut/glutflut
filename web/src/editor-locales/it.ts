@@ -83,6 +83,8 @@ export const it: EDict = {
   "po.tags.none": "Ancora nessun hashtag.",
   "po.tags.bad": "Hashtag: solo lettere, cifre e _",
   "po.count.with": "con hashtag",
+  "ui.legal": "Note legali",
+  "ui.privacy": "Privacy (redazione)",
   "po.f.place": "Luogo su Instagram",
   "po.f.place.hint": "(nome, link o id della pagina Facebook del luogo)",
   "po.f.place.ph": "es. Konzil Konstanz, https://www.facebook.com/… o 1082…",

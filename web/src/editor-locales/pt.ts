@@ -83,6 +83,8 @@ export const pt: EDict = {
   "po.tags.none": "Ainda sem hashtags.",
   "po.tags.bad": "Hashtags: só letras, algarismos e _",
   "po.count.with": "com hashtags",
+  "ui.legal": "Aviso legal",
+  "ui.privacy": "Privacidade (redação)",
   "po.f.place": "Local no Instagram",
   "po.f.place.hint": "(nome, link ou id da página do Facebook do local)",
   "po.f.place.ph": "p. ex. Konzil Konstanz, https://www.facebook.com/… ou 1082…",
