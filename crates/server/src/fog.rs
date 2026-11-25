@@ -51,11 +51,41 @@ pub fn tick(
     let mut ids: Vec<i64> = fog
         .clock
         .fogged()
-        .filter_map(|i| geo.get(nodes[i]).ok().map(|g| g.id))
+        .filter_map(|i| geo.get(*nodes.get(i)?).ok().map(|g| g.id))
         .collect();
     ids.sort_unstable();
     if ids != fog.ids {
         fog.ids = ids;
         fog.version = fog.version.wrapping_add(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testkit::*;
+    use bevy::ecs::system::RunSystemOnce;
+    use elements_shared::rules::Rules;
+
+    #[test]
+    fn fog_over_a_long_front() {
+        let mut rules = Rules::default();
+        rules.fog.enabled = true;
+        rules.fog.after_s = 60.0;
+        // Fire at 1, water at 5: they meet at 3.
+        let (nodes, edges) = line(5, 50.0, &[(1, "fire_source"), (5, "water_source")]);
+        let mut w = world(rules, nodes, edges);
+        steps(&mut w, 50);
+        w.insert_resource(LiveFog::default());
+        for _ in 0..8 {
+            w.run_system_once(tick).unwrap();
+            w.resource_mut::<LiveFog>().next = 1.0;
+        }
+        let s = state(&w, 3);
+        assert!(
+            !w.resource::<LiveFog>().ids.is_empty(),
+            "no fog; middle {:?}",
+            (s.fire, s.water)
+        );
     }
 }
