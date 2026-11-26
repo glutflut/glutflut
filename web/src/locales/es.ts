@@ -144,6 +144,7 @@ export const es: Dict = {
   "carry.deliver": "Entregar",
   "carry.take.water": "Llenar un cántaro",
   "carry.take.fire": "Brasas al farol",
+  "carry.take.far": "Acércate: a {m} m (máx. {max} m)",
   "carry.fresh.water": "Llevas un cántaro. Llévalo a la obra de la fuente (mapa). A los 10 minutos se te acaban las fuerzas: déjalo y otra persona sigue. Sostén el teléfono quieto o el agua se derrama.",
   "carry.fresh.fire": "Llevas un farol con brasas. Llévalo a la obra de la fragua (mapa). A los 10 minutos se te acaban las fuerzas: déjalo y otra persona sigue. Sostén el teléfono quieto o se caen brasas.",
   "carry.handed.water": "Sigues llevando el cántaro.",

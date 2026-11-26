@@ -142,6 +142,7 @@ export const de = {
   "carry.deliver": "Abliefern",
   "carry.take.water": "Krug füllen",
   "carry.take.fire": "Glut in die Laterne",
+  "carry.take.far": "Näher ran: {m} m entfernt (bis {max} m)",
   "carry.fresh.water": "Du trägst einen Krug. Bring ihn zum Bauplatz des Brunnens (Karte). Nach 10 Minuten reicht die Kraft nicht mehr: dann stell ihn ab, jemand anderes trägt weiter. Halte das Telefon ruhig, sonst schwappt es.",
   "carry.fresh.fire": "Du trägst eine Laterne mit Glut. Bring sie zum Bauplatz der Esse (Karte). Nach 10 Minuten reicht die Kraft nicht mehr: dann stell sie ab, jemand anderes trägt weiter. Halte das Telefon ruhig, sonst fällt Glut heraus.",
   "carry.handed.water": "Du trägst den Krug weiter.",

@@ -12,6 +12,9 @@ import { $ } from "./page";
 
 export type InfoMsg = Extract<ServerMsg, { t: "info" }>;
 
+/** Taking a load reaches this far from the source (server `carry.reach_m`). */
+const TAKE_M = 30;
+
 function span(s: number): string {
   // 59.5 s and up is a minute (never "60 s").
   if (s < 59.5) return t("node.t.s", { n: Math.max(1, Math.round(s)) });
@@ -35,6 +38,8 @@ export function setupNodeCard(
   carry: { on(): boolean; carrying(): boolean; take(): void },
 ) {
   const card = $("node-card");
+  /** The player's position (`me` below is the side). */
+  const player = me;
   let node: number | null = null;
   let marker: maplibregl.Marker | null = null;
   /** The last answer and when it came. */
@@ -195,7 +200,13 @@ export function setupNodeCard(
     const cb = $("node-carry") as HTMLButtonElement;
     cb.hidden = !(carry.on() && !carry.carrying() && me && s && s.faction === me && (s.kind === "natural" || s.kind === "built" || s.kind === "keep"));
     cb.className = me ?? "";
-    cb.textContent = t(me === "fire" ? "carry.take.fire" : "carry.take.water");
+    // The server takes only within its reach of the source: grey until then.
+    const p = me ? player() : null;
+    const at = marker?.getLngLat();
+    const d = p && at ? distM(p, [at.lng, at.lat]) : m.dist;
+    const far = d > TAKE_M;
+    cb.disabled = far;
+    cb.textContent = far ? t("carry.take.far", { m: Math.round(d), max: TAKE_M }) : t(me === "fire" ? "carry.take.fire" : "carry.take.water");
 
     const btn = $("node-claim") as HTMLButtonElement;
     btn.hidden = !(m.take === "ok" || m.take === "anchor");

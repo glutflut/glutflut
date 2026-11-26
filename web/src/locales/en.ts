@@ -143,6 +143,7 @@ export const en: Dict = {
   "carry.deliver": "Deliver",
   "carry.take.water": "Fill a jug",
   "carry.take.fire": "Embers into the lantern",
+  "carry.take.far": "Get closer: {m} m away (within {max} m)",
   "carry.fresh.water": "You are carrying a jug. Take it to the well’s site (map). After 10 minutes your strength runs out: put it down then, someone else carries on. Hold the phone steady or it sloshes over.",
   "carry.fresh.fire": "You are carrying a lantern with embers. Take it to the forge’s site (map). After 10 minutes your strength runs out: put it down then, someone else carries on. Hold the phone steady or embers fall out.",
   "carry.handed.water": "You carry the jug on.",

@@ -2001,6 +2001,7 @@ body.dreaming #map::after {
 #node-carry { margin-top: 8px; width: 100%; padding: 11px; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; color: #fff; background: var(--neutral); }
 #node-carry.water { background: var(--water); color: #fff; }
 #node-carry.fire { background: var(--fire); color: #fff; }
+#node-carry:disabled { opacity: 0.5; font-size: 14px; font-weight: 600; cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .carry-lying { animation: none; }
 }

@@ -143,6 +143,7 @@ export const it: Dict = {
   "carry.deliver": "Consegna",
   "carry.take.water": "Riempi una brocca",
   "carry.take.fire": "Braci nella lanterna",
+  "carry.take.far": "Avvicinati: a {m} m (entro {max} m)",
   "carry.fresh.water": "Porti una brocca. Portala al cantiere della fontana (mappa). Dopo 10 minuti le forze finiscono: posala, qualcun altro continua. Tieni fermo il telefono o l’acqua trabocca.",
   "carry.fresh.fire": "Porti una lanterna con le braci. Portala al cantiere della fucina (mappa). Dopo 10 minuti le forze finiscono: posala, qualcun altro continua. Tieni fermo il telefono o cadono le braci.",
   "carry.handed.water": "Porti avanti la brocca.",

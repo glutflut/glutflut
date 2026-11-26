@@ -143,6 +143,7 @@ export const pl: Dict = {
   "carry.deliver": "Dostarcz",
   "carry.take.water": "Napełnij dzban",
   "carry.take.fire": "Żar do latarni",
+  "carry.take.far": "Podejdź bliżej: {m} m (do {max} m)",
   "carry.fresh.water": "Niesiesz dzban. Zanieś go na plac budowy studni (mapa). Po 10 minutach siły się kończą: odstaw go, ktoś inny poniesie dalej. Trzymaj telefon prosto, bo woda się wyleje.",
   "carry.fresh.fire": "Niesiesz latarnię z żarem. Zanieś ją na plac budowy kuźni (mapa). Po 10 minutach siły się kończą: odstaw ją, ktoś inny poniesie dalej. Trzymaj telefon prosto, bo żar wypadnie.",
   "carry.handed.water": "Niesiesz dzban dalej.",
