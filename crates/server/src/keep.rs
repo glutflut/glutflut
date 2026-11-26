@@ -524,6 +524,7 @@ pub fn restore(
                 motto: r.motto,
                 sieged: false,
                 linked: r.link.is_some(),
+                aether: 1.0,
             },
             KeepInfo {
                 ticket: r.ticket,

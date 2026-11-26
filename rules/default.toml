@@ -41,7 +41,7 @@ enabled = true
 fade_s = 86400
 floor = 0.3
 hit = 0.0
-gap_m = 60.0
+gap_m = 20.0
 per_player = 2
 per_level = 1
 # A campaign start or end keeps the strong ones (topped up within ~10 h).
@@ -160,4 +160,11 @@ enabled = true
 # 10 min, put it down for another hand (waits 6 h); 4 loads at the side's site
 # make a building, a source of the side for good (strength 0.8 for both).
 [carry]
+enabled = true
+
+# Aether: a permanent source shares it with every lasting source (natural,
+# built, permanent; both sides) within 150 m, each taking 1 - d/150; strength
+# x 1/(1 + sum), at least 0.3. Natural sources and buildings keep theirs. The
+# hard gap shrinks to 20 m: crowding weakens instead of refusing.
+[aether]
 enabled = true

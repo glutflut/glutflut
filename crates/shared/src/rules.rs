@@ -92,6 +92,8 @@ pub struct Rules {
     /// The will-o'-the-wisp (`[wisp]`).
     pub wisp: Wisp,
     pub carry: Carry,
+    /// Permanent sources share the aether with lasting sources nearby (`[aether]`).
+    pub aether: Aether,
     /// Weekly streaks of play days (`[streak]`, server).
     pub streak: crate::streak::StreakRules,
     /// Chance that a new player joins the weaker side (fewer players today,
@@ -214,6 +216,48 @@ impl Default for Carry {
             max_built: 10,
             built_strength: 0.8,
         }
+    }
+}
+
+/// The aether all sources draw from, both elements alike: a permanent
+/// source shares it with every lasting source (natural, built, permanent; of
+/// either side) within `radius_m`, each counting `1 - d / radius_m`. Its
+/// strength is then `1 / (1 + that sum)`, at least `floor`. Natural sources
+/// and buildings draw first and keep theirs.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Aether {
+    pub enabled: bool,
+    pub radius_m: f32,
+    pub floor: f32,
+}
+
+impl Default for Aether {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            radius_m: 150.0,
+            floor: 0.3,
+        }
+    }
+}
+
+impl Aether {
+    /// What one neighbour `d` metres away takes.
+    pub fn weight(&self, d: f32) -> f32 {
+        if self.radius_m <= 0.0 {
+            return 0.0;
+        }
+        (1.0 - d / self.radius_m).max(0.0)
+    }
+
+    /// The share left with neighbours at these distances (1: alone).
+    pub fn share(&self, dists: impl IntoIterator<Item = f32>) -> f32 {
+        if !self.enabled {
+            return 1.0;
+        }
+        let w: f32 = dists.into_iter().map(|d| self.weight(d)).sum();
+        (1.0 / (1.0 + w)).max(self.floor).min(1.0)
     }
 }
 
@@ -529,6 +573,7 @@ impl Default for Rules {
             dream: Default::default(),
             wisp: Default::default(),
             carry: Default::default(),
+            aether: Default::default(),
             streak: Default::default(),
             join_weaker: 0.67,
             indoor: Default::default(),

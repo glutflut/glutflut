@@ -272,6 +272,7 @@ export const pl: Dict = {
   "node.src.keep.fire.faded.yours": "Twój żar osłabł – odnów go, inaczej zgaśnie za {t}",
   "node.src.keep.water.faded.yours": "Twój lód osłabł – odnów go, inaczej stopnieje za {t}",
   "node.build": " · narasta: {t}",
+  "node.aether": " · dzieli eter ze źródłami w pobliżu: {p} % siły",
   "node.take.ok": "Można zdobyć",
   "node.take.own": "To już źródło twojej strony",
   "node.take.mine": "Już należy do twojej strony",

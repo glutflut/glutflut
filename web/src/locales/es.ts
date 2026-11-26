@@ -273,6 +273,7 @@ export const es: Dict = {
   "node.src.keep.fire.faded.yours": "Tus brasas están débiles – refuérzalas o se apagan en {t}",
   "node.src.keep.water.faded.yours": "Tu hielo está débil – refuérzalo o se derrite en {t}",
   "node.build": " · cargándose: {t}",
+  "node.aether": " · comparte el éter con fuentes cercanas: {p} % de fuerza",
   "node.take.ok": "Se puede conquistar",
   "node.take.own": "Ya es una fuente de tu bando",
   "node.take.mine": "Ya es de tu bando",

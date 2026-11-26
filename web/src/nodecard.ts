@@ -150,6 +150,7 @@ export function setupNodeCard(
                 : t(`node.src.keep.${s.faction}${mine ? ".yours" : ""}` as Key, { t: left })
               : t(`node.src.${s.kind}${mine ? ".yours" : ""}` as Key, { side: sideName, t: left });
       if (s.build > 0) src += t("node.build", { t: span(s.build) });
+      if (s.aether !== undefined) src += t("node.aether", { p: s.aether });
     }
     $("node-source").textContent = src;
     // Own permanent source: link it from here (or unlink).

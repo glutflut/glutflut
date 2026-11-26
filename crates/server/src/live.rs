@@ -100,6 +100,7 @@ pub fn source(r: &Row, gap_s: f32) -> Option<ElementSource> {
         motto: 0,
         sieged: false,
         linked: false,
+        aether: 1.0,
     })
 }
 

@@ -271,6 +271,7 @@ export const de = {
   "node.src.keep.fire.faded.yours": "Deine Glut ist verblasst – frisch sie auf, sonst erlischt sie in {t}",
   "node.src.keep.water.faded.yours": "Dein Eis ist verblasst – frisch es auf, sonst erlischt es in {t}",
   "node.build": " · baut sich auf: {t}",
+  "node.aether": " · teilt den Äther mit Quellen in der Nähe: {p} % Stärke",
   "node.take.ok": "Eroberbar",
   "node.take.own": "Schon eine Quelle deiner Seite",
   "node.take.mine": "Gehört schon deiner Seite",

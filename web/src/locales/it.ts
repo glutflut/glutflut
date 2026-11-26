@@ -272,6 +272,7 @@ export const it: Dict = {
   "node.src.keep.fire.faded.yours": "La tua Brace è sbiadita – ravvivala, o si spegne tra {t}",
   "node.src.keep.water.faded.yours": "Il tuo Ghiaccio è sbiadito – rinfrescalo, o si scioglie tra {t}",
   "node.build": " · in crescita: {t}",
+  "node.aether": " · condivide l’etere con le fonti vicine: {p} % di forza",
   "node.take.ok": "Conquistabile",
   "node.take.own": "È già una sorgente della tua squadra",
   "node.take.mine": "È già della tua squadra",

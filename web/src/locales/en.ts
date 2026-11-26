@@ -272,6 +272,7 @@ export const en: Dict = {
   "node.src.keep.fire.faded.yours": "Your embers have faded – top them up, or they go out in {t}",
   "node.src.keep.water.faded.yours": "Your ice has faded – top it up, or it melts in {t}",
   "node.build": " · building up: {t}",
+  "node.aether": " · shares the aether with sources nearby: {p} % strength",
   "node.take.ok": "Can be claimed",
   "node.take.own": "Already a source of your side",
   "node.take.mine": "Already your side’s",

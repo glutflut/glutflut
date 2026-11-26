@@ -17,6 +17,7 @@ use elements_shared::prelude::*;
 
 mod actions;
 mod admin;
+mod aether;
 mod analytics;
 mod area;
 mod bench;
@@ -661,6 +662,7 @@ pub fn build(p: Prepared) -> App {
                     )
                         .chain()
                         .run_if(resource_exists::<sim::ElementSim>),
+                    aether::tick.run_if(resource_exists::<sim::ElementSim>),
                 ),
                 weather::apply,
                 (keep::restore, live::restore).chain(),

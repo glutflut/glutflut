@@ -36,6 +36,10 @@ pub struct Src {
         type = "\"food\" | \"shore\" | \"poi\" | \"fountain\" | \"bath\""
     )]
     pub why: Option<&'static str>,
+    /// Keep: its share of the aether in percent, if crowded (`[aether]`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub aether: Option<u8>,
 }
 
 /// Effective ageing speed of a source at a node with `affinity`.
@@ -58,7 +62,7 @@ fn strength_after(
 ) -> Option<f32> {
     let age = s.age + t * speed(s, rules, affinity);
     match s.kind {
-        SourceKind::Keep => Some(rules.keep.strength(age, wear) * s.mult),
+        SourceKind::Keep => Some(rules.keep.strength(age, wear) * s.mult * s.aether),
         SourceKind::Spark => Some(0.0),
         _ => rules.source_strength(age, s.life?).map(|x| x * s.mult),
     }
@@ -125,6 +129,8 @@ pub fn source(
         why: (kind == "natural")
             .then(|| elements_shared::source::marked(node_type)?.why)
             .flatten(),
+        aether: (s.kind == SourceKind::Keep && s.aether < 0.995)
+            .then(|| (s.aether * 100.0).round() as u8),
     }
 }
 
@@ -184,6 +190,7 @@ mod tests {
             motto: 0,
             sieged: false,
             linked: false,
+            aether: 1.0,
         }
     }
 

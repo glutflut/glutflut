@@ -272,6 +272,7 @@ export const fr: Dict = {
   "node.src.keep.fire.faded.yours": "Tes braises ont pâli – ravive-les, sinon elles s’éteignent dans {t}",
   "node.src.keep.water.faded.yours": "Ta glace a pâli – ravive-la, sinon elle fond dans {t}",
   "node.build": " · en construction : {t}",
+  "node.aether": " · partage l’éther avec les sources voisines : {p} % de force",
   "node.take.ok": "Conquérable",
   "node.take.own": "Déjà une source de ton camp",
   "node.take.mine": "Appartient déjà à ton camp",

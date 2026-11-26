@@ -377,7 +377,7 @@ Permanent player sources. They fade from `strength` to `floor` over `fade_s`; ea
 | `enabled` | false | true | server | Switch. |
 | `per_player` | 1 | 2 | server | Permanent sources per player at level 1. |
 | `per_level` | 0 | 1 | server | One more per level above 1 (with `[progression]`). |
-| `gap_m` | 60 | – | server | At least this far from natural and other permanent sources (m). |
+| `gap_m` | 60 | 20 | server | At least this far from natural and other permanent sources (m). With `[aether]` crowding weakens instead (see there). |
 | `strength` | 0.8 | – | server | Strength when placed or topped up. |
 | `floor` | 0.2 | 0.3 | server | Strength after `fade_s`. |
 | `fade_s` | 3600 | 86400 | server | Fade time (s). |
@@ -392,6 +392,16 @@ Permanent player sources. They fade from `strength` to `floor` over `fade_s`; ea
 | `link_key_every_s` | 86400 | – | server | A top-up adds a key at most this often (and only below `link_keys` unused). |
 | `link_key_days` | 7 | – | server | Unused keys are gone after this many days. |
 | `survive` | 0 | 0.6 | server | A campaign start or end clears the map of permanent sources, except those at least this strong (0 = none survive). A link survives only with both ends. |
+
+### `[aether]`
+
+A permanent source shares the aether with every lasting source (natural, built, permanent; of either side) within `radius_m`: each takes `1 - d / radius_m`, and the source's strength is multiplied by `1 / (1 + sum)`, at least `floor`. Natural sources and buildings keep theirs. Worked out every 5 s (`aether.rs`); the junction card shows the share.
+
+| Key | Default | default.toml | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | false | true | Switch. |
+| `radius_m` | 150 | – | How far sources share (m). |
+| `floor` | 0.3 | – | Least share. |
 
 #### `[weather]` (`weather.rs`)
 

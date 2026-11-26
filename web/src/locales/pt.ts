@@ -272,6 +272,7 @@ export const pt: Dict = {
   "node.src.keep.fire.faded.yours": "A sua Brasa enfraqueceu – reavive, ou ela apaga em {t}",
   "node.src.keep.water.faded.yours": "O seu Gelo enfraqueceu – renove, ou ele derrete em {t}",
   "node.build": " · crescendo: {t}",
+  "node.aether": " · divide o éter com fontes próximas: {p} % de força",
   "node.take.ok": "Dá para conquistar",
   "node.take.own": "Já é uma fonte do seu time",
   "node.take.mine": "Já é do seu time",

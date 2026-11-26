@@ -56,6 +56,9 @@ pub struct Source {
     pub sieged: bool,
     /// Permanent sources: linked with another of the owner's (`Keep::link`, server).
     pub linked: bool,
+    /// Permanent sources: their share of the aether (`Rules::aether`, set
+    /// by the server; 1 alone).
+    pub aether: f32,
 }
 
 impl Source {
@@ -75,6 +78,7 @@ impl Source {
             motto: 0,
             sieged: false,
             linked: false,
+            aether: 1.0,
         }
     }
 
@@ -106,6 +110,7 @@ impl Source {
             motto: 0,
             sieged: false,
             linked: false,
+            aether: 1.0,
         }
     }
 
@@ -126,6 +131,7 @@ impl Source {
             motto: 0,
             sieged: false,
             linked: false,
+            aether: 1.0,
         }
     }
 
@@ -167,7 +173,9 @@ impl Source {
         let ramp = Rules::ramp_factor(self.ramp, self.built);
         match (self.kind, self.life) {
             (Kind::Spark, _) => rules.sparks.strength(self.age),
-            (Kind::Keep, _) => Some(rules.keep.strength(self.age, wear) * self.mult * ramp),
+            (Kind::Keep, _) => {
+                Some(rules.keep.strength(self.age, wear) * self.mult * ramp * self.aether)
+            }
             (_, None) => Some(self.strength),
             (_, Some(life)) => rules
                 .source_strength(self.age, life)
