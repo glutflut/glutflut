@@ -65,7 +65,8 @@ pub struct Site {
 
 impl Site {
     pub fn filled(&self) -> f32 {
-        self.got.iter().map(|d| d.fill).sum()
+        // An empty f32 sum is -0.0, shown as "-0".
+        self.got.iter().map(|d| d.fill).sum::<f32>() + 0.0
     }
 }
 
@@ -977,6 +978,16 @@ impl crate::writers::Lane for Writer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn empty_site_is_plus_zero() {
+        let s = Site {
+            at: spots()[0],
+            opened: 0.0,
+            got: vec![],
+        };
+        assert!(s.filled().is_sign_positive());
+    }
 
     fn spots() -> Vec<Spot> {
         (0..20)

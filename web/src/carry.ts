@@ -50,7 +50,7 @@ export function setupCarry(
   /** A sentence per side (articles differ: einen Krug, eine Laterne). */
   const say = (key: string, f: Faction, vars?: Record<string, string | number>) => t(`${key}.${f}` as Key, vars);
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const num = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  const num = (v: number) => (v + 0).toLocaleString(undefined, { maximumFractionDigits: 1 });
 
   function take() {
     // iOS asks for the motion sensors only after a tap: this is one.
