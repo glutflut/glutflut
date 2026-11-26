@@ -154,7 +154,8 @@ enabled = true
 # junction every 40 s; claims within 80 m feed it to their side, and leaning
 # it is that side's source and walks into its ground.
 [wisp]
-enabled = true
+# Off for now: on only on dev (ELEMENTS_RULES_OVERRIDE there).
+enabled = false
 
 # Carrying (lab rounds 31-34): take a load at an own source, carry it at most
 # 10 min, put it down for another hand (waits 6 h); 4 loads at the side's site
