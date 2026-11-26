@@ -2311,7 +2311,7 @@ async fn check_accounts(s: &AppState) {
             st.with_db(|db| match got {
                 Ok(t) => db.execute(
                     "UPDATE game.post_accounts SET refreshed_at = now(), error = NULL, \
-                       expires_at = CASE WHEN $2 > 0 THEN to_timestamp($2) END \
+                       expires_at = CASE WHEN $2::float8 > 0 THEN to_timestamp($2::float8) END \
                      WHERE region = $1 AND channel = 'instagram'",
                     &[&sl, &(t as f64)],
                 ),
