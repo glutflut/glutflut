@@ -30,6 +30,13 @@ type Find = {
   /** Plays only from / until (unix seconds); null: no bound. */
   starts: number | null;
   ends: number | null;
+  /** Shared: hidden until this many trusted players were near. */
+  quorum: number | null;
+  reach_m: number | null;
+  revealed: boolean;
+  /** Shared, not revealed: players counted so far, on how many days. */
+  seekers: number;
+  seek_days: number;
 };
 type Plan = { id: string; name: string; starts: number; ends: number; by: string | null; lat: number; lon: number };
 type Places = {
@@ -59,6 +66,8 @@ type Edit = {
   campaign: string;
   starts: number | null;
   ends: number | null;
+  quorum: number | null;
+  reach_m: number | null;
 };
 
 const FOCUS = "#e8a400";
@@ -296,7 +305,7 @@ function draw() {
   for (const s of sites) add("site", s.id, s.lon, s.lat, s.name, (s.food?.length ?? 0) > 0);
   // Finds only when shown (Toronto has hundreds) or the one being edited.
   const finds = d.finds.map((f) => (form?.kind === "find" && form.id === f.id ? { ...f, ...form } : f));
-  if (form?.kind === "find" && !form.id) finds.push({ id: "", own: true, by: null, found: 0, ...form });
+  if (form?.kind === "find" && !form.id) finds.push({ id: "", own: true, by: null, found: 0, revealed: false, seekers: 0, seek_days: 0, ...form });
   for (const f of finds) {
     const open = form?.kind === "find" && (form.id ?? "") === f.id;
     if (!open && !input("show-finds").checked) continue;
@@ -329,7 +338,7 @@ function offerNew(at: maplibregl.LngLat) {
   pick = new maplibregl.Popup({ closeButton: true, closeOnClick: false }).setLngLat(at).setDOMContent(box).addTo(map!);
 }
 
-const blank = { radius_m: null, focus: false, collection: "", hidden: false, text: {}, campaign: "", starts: null, ends: null };
+const blank = { radius_m: null, focus: false, collection: "", hidden: false, text: {}, campaign: "", starts: null, ends: null, quorum: null, reach_m: null };
 /** The form holds a new letter laid at an existing find (openLetter). */
 let asLetter = false;
 
@@ -355,7 +364,7 @@ function openFind(f: Find | null, at?: maplibregl.LngLat) {
   clean("place-form");
   asLetter = false;
   editing = f
-    ? { ...blank, kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden: f.hidden, text: { ...(f.text ?? {}) }, campaign: f.campaign, starts: f.starts, ends: f.ends }
+    ? { ...blank, kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden: f.hidden, text: { ...(f.text ?? {}) }, campaign: f.campaign, starts: f.starts, ends: f.ends, quorum: f.quorum, reach_m: f.reach_m }
     : { ...blank, kind: "find", name: "", lat: at!.lat, lon: at!.lng, collection: "fountains" };
   fill();
 }
@@ -416,6 +425,10 @@ function fill() {
   camp.value = e.campaign;
   input("place-starts").value = e.starts == null ? "" : toLocal(e.starts);
   input("place-ends").value = e.ends == null ? "" : toLocal(e.ends);
+  input("place-quorum").value = e.quorum == null ? "" : String(e.quorum);
+  input("place-reach").value = e.reach_m == null ? "" : String(e.reach_m);
+  input("place-reach").placeholder = "150";
+  $("place-shared-fields").hidden = !find;
   drawLetter(e.text);
   ($("place-letter") as HTMLDetailsElement).open = asLetter || Object.values(e.text).some(Boolean);
   $("place-letter-here").hidden = !(find && e.id);
@@ -425,7 +438,7 @@ function fill() {
   $("place-find-note").hidden = !find;
   $("place-find-note").textContent = !f
     ? t(asLetter ? "pl.letter.new.note" : "pl.find.new.note")
-    : `${t("pl.find.found", { origin: t(f.own ? "pl.find.own" : "pl.find.osm"), n: f.found })} ${f.own && !f.found ? "" : t("pl.find.hide.note")}`;
+    : `${t("pl.find.found", { origin: t(f.own ? "pl.find.own" : "pl.find.osm"), n: f.found })} ${f.own && !f.found ? "" : t("pl.find.hide.note")} ${sharedText(f)}`.trim();
   input("place-name").value = e.name;
   input("place-radius").value = e.radius_m == null ? "" : String(e.radius_m);
   input("place-radius").placeholder = t("pl.radius.ph", { m: data.limits.radius_default });
@@ -461,7 +474,16 @@ function formValues(): Edit {
     campaign: e.kind === "find" ? $<HTMLSelectElement>("place-campaign").value : "",
     starts: e.kind === "find" && input("place-starts").value ? fromLocal(input("place-starts").value) : null,
     ends: e.kind === "find" && input("place-ends").value ? fromLocal(input("place-ends").value) : null,
+    quorum: e.kind === "find" && input("place-quorum").value ? Number(input("place-quorum").value) : null,
+    reach_m: e.kind === "find" && input("place-quorum").value && input("place-reach").value ? Number(input("place-reach").value) : null,
   };
+}
+
+/** A shared find's state: "shared: 3 of 7 players, on 1 day" or "revealed". */
+function sharedText(f: Find): string {
+  if (f.quorum == null) return "";
+  if (f.revealed) return t("pl.shared.revealed", { q: f.quorum });
+  return t("pl.shared.state", { n: f.seekers, q: f.quorum, d: f.seek_days });
 }
 
 /** A find's period for the list: "from 29 Oct", "until 24 Dec" or both. */
@@ -657,6 +679,8 @@ function finds() {
     name.append(a);
     // A letter: a small mark; the campaign has its own column.
     if (f.text && Object.keys(f.text).length) name.append(" ", Object.assign(document.createElement("small"), { textContent: "📖" }));
+    // Shared: how far it is (counts only).
+    if (f.quorum != null) name.append(" ", Object.assign(document.createElement("small"), { textContent: f.revealed ? "👥✓" : `👥 ${f.seekers}/${f.quorum}` }));
     tr.insertCell().textContent = COLL_NAME[f.collection] ?? f.collection;
     // Campaign, and the period under it when there is one.
     const when = tr.insertCell();
@@ -672,7 +696,7 @@ function finds() {
     const setHidden = async (hidden: boolean) => {
       const res = await api(`/api/ops/places?region=${encodeURIComponent(region)}`, {
         method: "POST",
-        body: JSON.stringify({ kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden, text: f.text ?? {}, campaign: f.campaign, starts: f.starts, ends: f.ends }),
+        body: JSON.stringify({ kind: "find", id: f.id, name: f.name, lat: f.lat, lon: f.lon, collection: f.collection, hidden, text: f.text ?? {}, campaign: f.campaign, starts: f.starts, ends: f.ends, quorum: f.quorum, reach_m: f.reach_m }),
       }).catch(() => null);
       await loadPlaces(region);
       return res?.ok ? null : await errorOf(res, t("ui.failed"));

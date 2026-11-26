@@ -563,6 +563,10 @@ async function main() {
       finds.onFind(m);
       sound.chime();
     },
+    revealed(m) {
+      finds.onRevealed(m);
+      sound.chime();
+    },
     near: (m) => hotspots.nearFind(finds.nearText(m.c, m.m)),
     beam: (m) => beams.beam(m.from, m.to, m.side),
     badge(m) {

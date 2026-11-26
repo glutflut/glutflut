@@ -1,10 +1,18 @@
 // Badge names (server: score.rs grants them by key): claims-N, level-N,
-// cities-N, coll:<city>:<collection>.
+// cities-N, coll:<city>:<collection>, together:<find id>.
 import { chapterTitle } from "./campaign";
 import { t, type Key } from "./i18n";
 
+/** Names of the finds this player knows (for together:<id>). */
+const findNames = new Map<number, string>();
+export const nameFind = (id: number, name: string) => void findNames.set(id, name);
+
 export function badgeLabel(key: string): string {
   const [kind, a, b] = key.split(/[-:]/);
+  if (kind === "together") {
+    const name = findNames.get(Number(a));
+    return name ? t("badge.together", { name }) : t("badge.together.any");
+  }
   if (key.startsWith("chapter:")) return t("badge.chapter", { title: chapterTitle(key.slice(8)) });
   if (key.startsWith("chapter-win:")) return t("badge.chapter.win", { title: chapterTitle(key.slice(12)) });
   if (key.startsWith("coll:")) {

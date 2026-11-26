@@ -217,6 +217,17 @@ pub enum ServerMsg<'a> {
         n: u32,
         of: u32,
         stored: bool,
+        /// A shared find: revealed now, this one helped among `together`.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        together: Option<u32>,
+    },
+    /// A shared find was revealed by `n` players (not this one): it can be
+    /// found as usual from now on.
+    Revealed {
+        name: &'a str,
+        c: &'a str,
+        n: u32,
     },
     /// Something of collection `c` within `[finds] hint_m` (`first_hint_m`
     /// before the first find): `m` metres away, rounded to 10.

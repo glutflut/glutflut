@@ -388,7 +388,10 @@ impl Default for Tunnel {
 /// Finds: hidden places uncovered by a claim within `uncover_m`, or by
 /// `dwell_s` within `uncover_m`; a hint from `hint_m` (from `first_hint_m`
 /// for a player who has found nothing yet), again for the same find after
-/// `hint_every_s`.
+/// `hint_every_s`. Shared finds (a quorum in the editor) count trusted
+/// players who stayed `shared_dwell_s` within `shared_m` (or the find's own
+/// reach), on at least `shared_days` days (and from both sides with
+/// `shared_both`); generous, since nobody is told and riddles only hint.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Finds {
@@ -397,6 +400,10 @@ pub struct Finds {
     pub hint_m: f32,
     pub first_hint_m: f32,
     pub hint_every_s: f32,
+    pub shared_m: f32,
+    pub shared_dwell_s: f32,
+    pub shared_days: u32,
+    pub shared_both: bool,
 }
 
 impl Default for Finds {
@@ -407,6 +414,10 @@ impl Default for Finds {
             hint_m: 150.0,
             first_hint_m: 400.0,
             hint_every_s: 300.0,
+            shared_m: 150.0,
+            shared_dwell_s: 30.0,
+            shared_days: 2,
+            shared_both: false,
         }
     }
 }

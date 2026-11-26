@@ -353,13 +353,18 @@ pub struct FindRow {
     /// Plays only from / until (unix seconds); `None`: no bound.
     pub starts: Option<f64>,
     pub ends: Option<f64>,
+    /// Shared: hidden until this many were near (`finds.rs`), and how near.
+    pub quorum: Option<i32>,
+    pub reach_m: Option<i32>,
+    pub revealed: bool,
 }
 
 /// The region's visible finds.
 pub fn find_rows(c: &mut Client, slug: &str) -> Result<Vec<FindRow>, postgres::Error> {
     Ok(c.query(
         "SELECT id, collection, name, lat, lon, text::text, campaign, \
-         extract(epoch FROM starts)::float8, extract(epoch FROM ends)::float8 \
+         extract(epoch FROM starts)::float8, extract(epoch FROM ends)::float8, \
+         quorum, reach_m, revealed IS NOT NULL \
          FROM geo.finds WHERE region = $1 AND NOT hidden",
         &[&slug],
     )?
@@ -376,6 +381,9 @@ pub fn find_rows(c: &mut Client, slug: &str) -> Result<Vec<FindRow>, postgres::E
         campaign: r.get(6),
         starts: r.get(7),
         ends: r.get(8),
+        quorum: r.get(9),
+        reach_m: r.get(10),
+        revealed: r.get(11),
     })
     .collect())
 }

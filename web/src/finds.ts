@@ -3,7 +3,7 @@
 // collect switch is in the profile. The first find asks whether to collect
 // them (opt-in, stored without times).
 import * as maplibregl from "maplibre-gl";
-import { badgeLabel } from "./badges";
+import { badgeLabel, nameFind } from "./badges";
 import { lang, t, type Key } from "./i18n";
 import { pickLang, showStory } from "./story";
 import type { FindItem, Net } from "./net";
@@ -186,9 +186,11 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string, 
       },
     );
   }
-  function card(f: FindItem, n: number, of: number, stored: boolean) {
+  function card(f: FindItem, n: number, of: number, stored: boolean, together?: number) {
     const ask = !stored && !collect && !asked();
-    const line = t("finds.progress", { coll: collName(f.c), n, of });
+    const progress = t("finds.progress", { coll: collName(f.c), n, of });
+    // A shared find: this one helped reveal it.
+    const line = together ? `${t("finds.together", { n: together })} ${progress}` : progress;
     // A letter: read it right away; after the question to collect, if that is due.
     if (f.text && !ask) return letter(f, line);
     // Another find asks already: only the letter, after that card.
@@ -295,17 +297,25 @@ export function setupFinds(map: maplibregl.Map, net: Net, toast: (text: string, 
       collect = m.collect;
       totals = m.totals;
       known.clear();
-      for (const f of m.items) known.set(f.id, f);
+      for (const f of m.items) {
+        known.set(f.id, f);
+        nameFind(f.id, findName(f));
+      }
       redraw();
       album();
     },
-    onFind(m: FindItem & { n: number; of: number; stored: boolean }) {
+    onFind(m: FindItem & { n: number; of: number; stored: boolean; together?: number }) {
       known.set(m.id, m);
+      nameFind(m.id, findName(m));
       redraw();
       album();
       burst(m);
-      card(m, m.n, m.of, m.stored);
+      card(m, m.n, m.of, m.stored, m.together);
       navigator.vibrate?.([80, 60, 80, 60, 160]);
+    },
+    /** A shared find was revealed by others: now anyone can find it. */
+    onRevealed(m: { name: string; c: string; n: number }) {
+      show({ cls: ELEMENT[m.c] ?? "other", kicker: t("finds.revealed.kicker"), name: m.name, line: t("finds.revealed", { n: m.n }), ask: false, note: false });
     },
     /** The line for a find nearby (shown in the hotspot pill). */
     nearText(c: string, m: number) {

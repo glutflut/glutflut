@@ -588,6 +588,25 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
             now,
         );
     }
+    // A claim near a shared find counts its trusted player at once.
+    let seek = match (
+        res.is_ok(),
+        tunnel || link.is_some(),
+        slot,
+        at,
+        game.finds.as_deref(),
+    ) {
+        (true, false, Some(s), Some(at), Some(f))
+            if motion.trusted && !game.scores.shadowed(s, now) =>
+        {
+            game.scores.get(s).map(|r| r.id).and_then(|id| {
+                let running = game.campaign.running(now);
+                f.seekable(at, rules.finds.shared_m, &id, &running, now)
+                    .map(|fid| (fid, id))
+            })
+        }
+        _ => None,
+    };
     // Rarely a tunnel opens (not from a tunnel or link claim).
     if let (true, false, Some(s), Some(sim)) = (
         res.is_ok(),
@@ -769,5 +788,8 @@ pub(super) fn claim(game: &mut Game, c: &Ctx, conn: u64, node: i64, via: Option<
     // Rarely a key flies or drifts to another region (not through a link or tunnel).
     if res.is_ok() && link.is_none() && !tunnel {
         super::far::found(game, c, conn, slot, node, faction);
+    }
+    if let Some((fid, id)) = seek {
+        super::session::count_seeker(game, c, fid, id, faction);
     }
 }

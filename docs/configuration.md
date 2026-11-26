@@ -439,6 +439,12 @@ Gauge level → phase −1 (mean low water) … +1 (mean high water); `k` = phas
 | `hint_m` | 150 | A hint from this distance (m). |
 | `first_hint_m` | 400 | … from this distance while the player has found nothing yet (m). |
 | `hint_every_s` | 300 | Again for the same find after this (s). |
+| `shared_m` | 150 | Shared finds (a quorum set in the editor): a trusted player within this counts (m; the find's own radius wins) … |
+| `shared_dwell_s` | 30 | … after staying this long, or at once with a claim there (s). |
+| `shared_days` | 2 | Revealed only when the counted players came on at least this many days. |
+| `shared_both` | false | … and from both sides. |
+
+Shared finds stay hidden from everyone (no hint, not in the collection counts) until `quorum` trusted players (played on an earlier day or confirmed on site, not flagged) were near. Nobody is told they counted. On the reveal those who helped get the find and a `together:<id>` badge, everyone online sees a notice, and from then on it is an ordinary find. Seekers live in `game.find_seekers` only until then.
 
 #### `[area]` (blocks, `rules.rs`; server `area.rs`)
 

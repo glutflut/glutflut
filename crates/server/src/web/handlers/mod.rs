@@ -220,10 +220,9 @@ pub fn inbox(
             FromWeb::Info { conn, node } => info::info(g, &c, conn, node),
             FromWeb::OpsHotspot { node, minutes } => info::ops_hotspot(g, &c, node, minutes),
             FromWeb::Finds(rows) => {
-                let f = crate::finds::Finds::from_rows(rows, c.region);
-                info!(finds = f.len(), "finds changed");
                 if let Some(old) = g.finds.as_mut() {
-                    **old = f;
+                    old.refresh(rows, c.region);
+                    info!(finds = old.len(), "finds changed");
                 }
             }
             FromWeb::Places(p) => {

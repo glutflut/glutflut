@@ -80,6 +80,13 @@ pub struct PlaceIn {
     /// Plans: the window; finds: the period, either end optional (unix seconds).
     pub starts: Option<f64>,
     pub ends: Option<f64>,
+    /// Finds: shared, hidden until this many trusted players were near
+    /// (`finds.rs`); `None`: an ordinary find.
+    #[serde(default)]
+    pub quorum: Option<i32>,
+    /// Shared finds: how near counts (m); `None`: the rule default.
+    #[serde(default)]
+    pub reach_m: Option<i32>,
 }
 
 /// A find's text per known language (`None`: no text at all).
@@ -288,7 +295,10 @@ pub(super) async fn list(
                     "SELECT f.id, f.collection, f.name, f.lat, f.lon, f.hidden, f.osm LIKE 'city/%', \
                      f.created_by, (SELECT count(*) FROM game.player_finds p WHERE p.find = f.id), \
                      f.text::text, f.campaign, \
-                     extract(epoch FROM f.starts)::float8, extract(epoch FROM f.ends)::float8 \
+                     extract(epoch FROM f.starts)::float8, extract(epoch FROM f.ends)::float8, \
+                     f.quorum, f.reach_m, f.revealed IS NOT NULL, \
+                     (SELECT count(*) FROM game.find_seekers s WHERE s.find = f.id), \
+                     (SELECT count(DISTINCT day) FROM game.find_seekers s WHERE s.find = f.id) \
                      FROM geo.finds f WHERE f.region = $1 ORDER BY f.collection, f.name",
                     &[&slug],
                 )?
@@ -308,6 +318,11 @@ pub(super) async fn list(
                         "campaign": r.get::<_, Option<String>>(10).unwrap_or_default(),
                         "starts": r.get::<_, Option<f64>>(11),
                         "ends": r.get::<_, Option<f64>>(12),
+                        "quorum": r.get::<_, Option<i32>>(13),
+                        "reach_m": r.get::<_, Option<i32>>(14),
+                        "revealed": r.get::<_, bool>(15),
+                        "seekers": r.get::<_, i64>(16),
+                        "seek_days": r.get::<_, i64>(17),
                     })
                 })
                 .collect();
@@ -709,14 +724,21 @@ fn write_find(
             return Ok(Err("the period ends before it starts"));
         }
     }
+    if p.quorum.is_some_and(|q| !(2..=500).contains(&q)) {
+        return Ok(Err("players needed: 2 to 500"));
+    }
+    if p.reach_m.is_some_and(|m| !(40..=500).contains(&m)) {
+        return Ok(Err("radius: 40 to 500 m"));
+    }
+    let reach = p.reach_m.filter(|_| p.quorum.is_some());
     let out = match id {
         Some(id) => {
             let n = t.execute(
                 "UPDATE geo.finds SET name = $3, collection = $4, lat = $5, lon = $6, hidden = $7, \
                  created_by = $8, updated_at = now(), text = $9::text::jsonb, campaign = $10, \
-                 starts = to_timestamp($11), ends = to_timestamp($12) \
+                 starts = to_timestamp($11), ends = to_timestamp($12), quorum = $13, reach_m = $14 \
                  WHERE region = $1 AND id = $2",
-                &[&region, &id, &name, &coll, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign, &p.starts, &p.ends],
+                &[&region, &id, &name, &coll, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign, &p.starts, &p.ends, &p.quorum, &reach],
             )?;
             if n == 0 {
                 return Ok(Err("no such find"));
@@ -734,9 +756,9 @@ fn write_find(
                 return Ok(Err("too many finds (400)"));
             }
             t.query_one(
-                "INSERT INTO geo.finds (region, collection, name, osm, lat, lon, hidden, created_by, updated_at, text, campaign, starts, ends) \
-                 VALUES ($1, $2, $3, 'city/' || gen_random_uuid(), $4, $5, $6, $7, now(), $8::text::jsonb, $9, to_timestamp($10), to_timestamp($11)) RETURNING id",
-                &[&region, &coll, &name, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign, &p.starts, &p.ends],
+                "INSERT INTO geo.finds (region, collection, name, osm, lat, lon, hidden, created_by, updated_at, text, campaign, starts, ends, quorum, reach_m) \
+                 VALUES ($1, $2, $3, 'city/' || gen_random_uuid(), $4, $5, $6, $7, now(), $8::text::jsonb, $9, to_timestamp($10), to_timestamp($11), $12, $13) RETURNING id",
+                &[&region, &coll, &name, &p.lat, &p.lon, &p.hidden, &by, &text, &campaign, &p.starts, &p.ends, &p.quorum, &reach],
             )?
             .get(0)
         }
@@ -747,7 +769,8 @@ fn write_find(
         if id.is_some() { "change" } else { "add" },
         by,
         json!({ "name": name, "collection": coll, "lat": p.lat, "lon": p.lon, "hidden": p.hidden,
-                "letter": text.is_some(), "campaign": campaign, "starts": p.starts, "ends": p.ends }),
+                "letter": text.is_some(), "campaign": campaign, "starts": p.starts, "ends": p.ends,
+                "quorum": p.quorum, "reach_m": reach }),
     )?;
     t.commit()?;
     Ok(Ok(out.to_string()))
@@ -774,6 +797,8 @@ mod tests {
             site: None,
             starts: None,
             ends: None,
+            quorum: None,
+            reach_m: None,
         }
     }
 

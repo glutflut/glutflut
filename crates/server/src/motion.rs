@@ -36,6 +36,8 @@ pub struct Motion {
     pub track: crate::plausible::Track,
     /// Find not known yet within reach, and since when (uncover by being there).
     pub at_find: Option<(i64, f64)>,
+    /// Near a shared find (not counted yet) since then (`finds.rs`).
+    pub at_shared: Option<(i64, f64)>,
     /// `Rules::rise`: waiting at this junction since then; no new rise before `rise_next`.
     pub at_rise: Option<(i64, f64)>,
     pub rise_next: f64,

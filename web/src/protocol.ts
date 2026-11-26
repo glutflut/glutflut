@@ -22,7 +22,8 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "finds", collect: boolean, items: Array<FindItem>, totals: Record<string, number>, }
   | { "t": "notices", items: Array<Notice>, }
   | { "t": "questions", items: Array<Question>, }
-  | { "t": "find", n: number, of: number, stored: boolean, id: number, c: string, name: string, lat: number, lon: number, text?: Record<string, string>, }
+  | { "t": "find", n: number, of: number, stored: boolean, together?: number, id: number, c: string, name: string, lat: number, lon: number, text?: Record<string, string>, }
+  | { "t": "revealed", name: string, c: string, n: number, }
   | { "t": "near", c: string, m: number, }
   | { "t": "tunnel", node: number, lat: number, lon: number, kind: "peak" | "sink", m: number, secs: number, }
   | { "t": "badge", badge: string, }

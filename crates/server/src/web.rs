@@ -262,6 +262,7 @@ fn uncover_near(
                 n,
                 of,
                 stored,
+                together: None,
             },
         );
         if stored && n == of {

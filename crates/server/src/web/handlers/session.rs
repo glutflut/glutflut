@@ -545,7 +545,113 @@ pub(super) fn pos(
             (here, _) => motion.at_find = here.map(|id| (id, now)),
         }
     }
+    // Shared finds: a trusted player staying near counts, silently.
+    let mut seek = None;
+    if let (Some(f), Some(slot), true) = (game.finds.as_deref(), slot, motion.trusted) {
+        let id = game.scores.get(slot).map(|r| r.id);
+        let p = Vec2::new(pos.0.x, pos.0.z);
+        let running = game.campaign.running(now);
+        let here = id
+            .filter(|_| !game.scores.shadowed(slot, now))
+            .and_then(|id| f.seekable(p, c.rules.finds.shared_m, &id, &running, now));
+        match (here, motion.at_shared) {
+            (Some(fid), Some((was, since))) if fid == was => {
+                if now - since >= c.rules.finds.shared_dwell_s as f64 {
+                    motion.at_shared = None;
+                    seek = id.map(|id| (fid, id));
+                }
+            }
+            (here, _) => motion.at_shared = here.map(|fid| (fid, now)),
+        }
+    }
+    if let Some((fid, id)) = seek {
+        count_seeker(game, c, fid, id, faction);
+    }
     super::rise::on_fix(game, c, conn, e);
+}
+
+/// Count `id` for shared find `fid`; reveal it if that makes the quorum.
+pub(super) fn count_seeker(game: &mut Game, c: &Ctx, fid: i64, id: [u8; 32], faction: Faction) {
+    let Some(f) = game.finds.as_deref_mut() else {
+        return;
+    };
+    let s = crate::finds::Seeker {
+        id,
+        faction,
+        day: game.scores.clock.day(c.now),
+    };
+    let rules = &c.rules.finds;
+    if let Some(r) = f.seek(fid, s, rules.shared_days, rules.shared_both) {
+        reveal(game, c, r);
+    }
+}
+
+/// A shared find is revealed: those who helped get it (album, badge; a card
+/// if online), everyone else online hears of it and can find it from now on.
+fn reveal(game: &mut Game, c: &Ctx, r: crate::finds::Revealed) {
+    let now = c.now;
+    let Some(f) = game.finds.as_deref() else {
+        return;
+    };
+    let Some(find) = f.get(r.find) else {
+        return;
+    };
+    let n = r.seekers.len() as u32;
+    let running = game.campaign.running(now);
+    let of = f
+        .totals(&running, now)
+        .get(&find.collection)
+        .copied()
+        .unwrap_or(0);
+    let mut helped: std::collections::HashMap<u32, (u32, bool)> = Default::default();
+    for s in &r.seekers {
+        let Some(slot) = game.scores.slot_of_key(&s.id) else {
+            continue;
+        };
+        let stored = game.scores.uncover(slot, find.id);
+        if stored.is_some() {
+            if let Some(key) = game
+                .campaign
+                .add(s.faction, crate::campaign::Goal::Finds, 1, now)
+            {
+                game.scores.grant(slot, &format!("chapter:{key}"));
+            }
+        }
+        game.scores.grant(slot, &format!("together:{}", find.id));
+        let known = game.scores.finds(slot).map(|k| k.1).unwrap_or_default();
+        let k = f.count(&find.collection, known.iter().copied(), &running, now);
+        if stored == Some(true) && k == of {
+            game.scores.completed(slot, &find.collection);
+        }
+        helped.insert(slot, (k, stored == Some(true)));
+    }
+    for (e, out) in game.clients.0.values() {
+        let slot = game
+            .players
+            .get(*e)
+            .ok()
+            .and_then(|(_, _, _, _, s, _)| s.map(|s| s.0));
+        match slot.and_then(|s| helped.get(&s)) {
+            Some(&(k, stored)) => send(
+                out,
+                &ServerMsg::Find {
+                    find,
+                    n: k,
+                    of,
+                    stored,
+                    together: Some(n),
+                },
+            ),
+            None => send(
+                out,
+                &ServerMsg::Revealed {
+                    name: &find.name,
+                    c: &find.collection,
+                    n,
+                },
+            ),
+        }
+    }
 }
 
 pub(super) fn bye(game: &mut Game, c: &Ctx, conn: u64) {
