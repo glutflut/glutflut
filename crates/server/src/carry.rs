@@ -761,6 +761,9 @@ impl BuiltView {
 }
 
 /// The region's carrying from the database (sites, buildings, writer).
+/// Sites go near places within this of the hotspot centre (m).
+const ATTRACT_M: f32 = 1500.0;
+
 pub fn setup(
     conn_str: &str,
     graph: &[elements_shared::geo::GeoNode],
@@ -782,16 +785,20 @@ pub fn setup(
             lon: n.lon,
         })
         .collect();
-    // Where people go: hotspot sites, zones, else the hotspot centre.
+    // Where people go: hotspot sites and zones within `ATTRACT_M` of the
+    // hotspot centre (a region can be far bigger than where people play),
+    // else the centre itself.
+    let (clat, clon) = region.hotspot_center.unwrap_or(o);
+    let centre = at(clat, clon);
     let mut attract: Vec<Vec2> = places
         .sites
         .iter()
         .map(|s| at(s.lat, s.lon))
         .chain(places.zones.iter().map(|z| at(z.lat, z.lon)))
+        .filter(|p| p.distance(centre) <= ATTRACT_M)
         .collect();
     if attract.is_empty() {
-        let (lat, lon) = region.hotspot_center.unwrap_or(o);
-        attract.push(at(lat, lon));
+        attract.push(centre);
     }
     let (sites, built, lying) = load(conn_str, &region.slug).unwrap_or_else(|e| {
         warn!(error = %e, "no carry sites or buildings");
