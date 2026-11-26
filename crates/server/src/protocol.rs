@@ -512,6 +512,9 @@ pub enum ServerMsg<'a> {
         dist: u32,
         /// How far a claim reaches now (more with Weitblick armed).
         reach: u32,
+        /// How far taking a load at a source reaches now (`carry.reach_m`,
+        /// Weitblick armed: its reach).
+        carry: u32,
         elev: f32,
         #[ts(type = "\"peak\" | \"sink\" | \"slope\" | \"flat\"")]
         terrain: &'static str,

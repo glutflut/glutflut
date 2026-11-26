@@ -90,6 +90,7 @@ pub(super) fn info(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
             wait,
             dist: dist.round() as u32,
             reach: reach.round() as u32,
+            carry: super::carry::reach(game, c.rules, *e).0.round() as u32,
             elev: (g.elevation_m * 10.0).round() as f32 / 10.0,
             terrain,
             dh,

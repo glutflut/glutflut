@@ -64,7 +64,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "found", origin: "ember" | "bottle", region: string, name: string, key: string, }
   | { "t": "gift", node: number, ok: boolean, key?: string, reason?: "off" | "notyours" | "soon", }
   | { "t": "link", node: number, ok: boolean, reason?: string, }
-  | { "t": "info", node: number, fire: number, water: number, source?: NodeSource, take: "ok" | "own" | "mine" | "anchor" | "strong" | "range" | "watch", wait?: number, dist: number, reach: number, elev: number, terrain: "peak" | "sink" | "slope" | "flat", dh: number, lean: "" | Faction, rain?: number, rain_at?: string, }
+  | { "t": "info", node: number, fire: number, water: number, source?: NodeSource, take: "ok" | "own" | "mine" | "anchor" | "strong" | "range" | "watch", wait?: number, dist: number, reach: number, carry: number, elev: number, terrain: "peak" | "sink" | "slope" | "flat", dh: number, lean: "" | Faction, rain?: number, rain_at?: string, }
   | { "t": "rise", node: number, lat: number, lon: number, state: "wait" | "done" | "left" | "strong", secs: number, took: number, }
   | { "t": "spark", node: number, lat: number, lon: number, m: number, }
   | { "t": "beam", from: [number, number], to: [number, number], side: Faction, };

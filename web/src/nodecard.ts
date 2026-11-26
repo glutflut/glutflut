@@ -12,7 +12,7 @@ import { $ } from "./page";
 
 export type InfoMsg = Extract<ServerMsg, { t: "info" }>;
 
-/** Taking a load reaches this far from the source (server `carry.reach_m`). */
+/** Taking a load reaches this far from the source (server `carry.reach_m`), if the server doesn't say. */
 const TAKE_M = 30;
 
 function span(s: number): string {
@@ -204,9 +204,11 @@ export function setupNodeCard(
     const p = me ? player() : null;
     const at = marker?.getLngLat();
     const d = p && at ? distM(p, [at.lng, at.lat]) : m.dist;
-    const far = d > TAKE_M;
+    // Server's reach now (Weitblick armed: farther); older servers: 30 m.
+    const reach = m.carry ?? TAKE_M;
+    const far = d > reach;
     cb.disabled = far;
-    cb.textContent = far ? t("carry.take.far", { m: Math.round(d), max: TAKE_M }) : t(me === "fire" ? "carry.take.fire" : "carry.take.water");
+    cb.textContent = far ? t("carry.take.far", { m: Math.round(d), max: reach }) : t(me === "fire" ? "carry.take.fire" : "carry.take.water");
 
     const btn = $("node-claim") as HTMLButtonElement;
     btn.hidden = !(m.take === "ok" || m.take === "anchor");

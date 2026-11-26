@@ -439,7 +439,7 @@ At an own natural source, building or permanent source a player takes a load (wa
 | `enabled` | false | On in `rules/default.toml`. |
 | `hand_s` | 600 | One hand carries at most this long (s), then the load is put down where the player is. |
 | `lying_s` | 21600 | A put-down load waits this long for another hand (s). |
-| `reach_m` | 30 | Taking at a source or a lying load, and putting down at a junction, within this (m). |
+| `reach_m` | 30 | Taking at a source or a lying load, and putting down at a junction, within this (m). An armed Weitblick widens it at a source to `[progression] reach_m` (used up when needed). |
 | `deliver_m` | 40 | Delivering at the site within this (m). |
 | `loads` | 4 | A building needs this much (sum of fills). |
 | `min_fill` | 0.3 | Spilling never takes a load below this. |

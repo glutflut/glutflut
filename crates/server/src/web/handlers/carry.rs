@@ -36,6 +36,22 @@ fn who(
     Ok((rec.id, name, faction, Vec2::new(p.x, p.z)))
 }
 
+/// How far taking at a source reaches for player `e`, and whether that is
+/// an armed Weitblick's reach.
+pub(super) fn reach(game: &Game, rules: &elements_shared::rules::Rules, e: Entity) -> (f32, bool) {
+    let base = rules.carry.reach_m;
+    let far = rules.progression.enabled
+        && game
+            .abilities
+            .get(e)
+            .is_ok_and(|a| a.armed[super::ability::REACH]);
+    if far && rules.progression.reach_m > base {
+        (rules.progression.reach_m, true)
+    } else {
+        (base, false)
+    }
+}
+
 fn reply(game: &Game, conn: u64, msg: &ServerMsg) {
     if let Some((_, out)) = game.clients.0.get(&conn) {
         send(out, msg);
@@ -57,7 +73,10 @@ pub(super) fn take(game: &mut Game, c: &Ctx, conn: u64) {
     };
     let r = &c.rules.carry;
     let o = (c.region.centroid_lat, c.region.centroid_lon);
-    // The nearest own natural source or building, or permanent source.
+    // The nearest own natural source or building, or permanent source
+    // (farther with Weitblick armed: used up when it was needed).
+    let e = game.clients.0.get(&conn).map(|(e, _)| *e);
+    let (reach_m, far) = e.map_or((r.reach_m, false), |e| reach(game, c.rules, e));
     let source = game
         .sources
         .iter()
@@ -66,11 +85,17 @@ pub(super) fn take(game: &mut Game, c: &Ctx, conn: u64) {
             let q = project_enu(g.lat, g.lon, o.0, o.1);
             (g.id, Vec2::new(q.x, q.z).distance(p))
         })
-        .filter(|&(_, d)| d <= r.reach_m)
-        .min_by(|a, b| a.1.total_cmp(&b.1))
-        .map(|(id, _)| id);
-    match game.carry.take(r, id, name, side, p, source, c.now) {
+        .filter(|&(_, d)| d <= reach_m)
+        .min_by(|a, b| a.1.total_cmp(&b.1));
+    let needed = far && source.is_some_and(|(_, d)| d > r.reach_m);
+    match game
+        .carry
+        .take(r, id, name, side, p, source.map(|(id, _)| id), c.now)
+    {
         Ok(t) => {
+            if needed && t == Taken::Fresh {
+                use_reach(game, c, conn);
+            }
             let what = match t {
                 Taken::Fresh => "fresh",
                 Taken::Handed => "handed",
@@ -88,6 +113,28 @@ pub(super) fn take(game: &mut Game, c: &Ctx, conn: u64) {
         }
         Err(reason) => reply(game, conn, &ServerMsg::CarryFail { reason }),
     }
+}
+
+/// Weitblick did it: used up, as after a claim.
+fn use_reach(game: &mut Game, c: &Ctx, conn: u64) {
+    use super::ability::{ABILITIES, REACH};
+    let Some((e, out)) = game.clients.0.get(&conn) else {
+        return;
+    };
+    let Ok(mut ab) = game.abilities.get_mut(*e) else {
+        return;
+    };
+    ab.use_up(REACH, c.now, &c.rules.progression);
+    send(
+        out,
+        &ServerMsg::Ability {
+            name: ABILITIES[REACH].0,
+            ok: true,
+            reason: None,
+            armed: false,
+            ready_in: (ab.ready[REACH] - c.now).max(0.0) as u32,
+        },
+    );
 }
 
 pub(super) fn lay(game: &mut Game, c: &Ctx, conn: u64, fill: f32) {
