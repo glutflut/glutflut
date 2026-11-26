@@ -810,8 +810,9 @@ button, a { touch-action: manipulation; }
 #abilities button.armed { background: var(--gold); color: var(--ink); border-color: var(--gold); }
 
 /* Game view: night map, glowing marker and controls. */
+/* No `position` on marker elements: maplibre places them absolutely, and
+   a relative one sits in the flow, pushed by the markers before it. */
 body.game .me-marker {
-  position: relative;
   border: 2px solid #fff;
   box-shadow: 0 0 10px 3px var(--me, #fff);
 }
@@ -1970,7 +1971,6 @@ body.dreaming #map::after {
   animation: wisp-float 3.2s ease-in-out infinite;
 }
 .carry-site {
-  position: relative;
   width: 42px;
   height: 42px;
   display: grid;
