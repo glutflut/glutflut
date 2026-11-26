@@ -150,6 +150,8 @@ export const pl: Dict = {
   "carry.handed.fire": "Niesiesz latarnię dalej.",
   "carry.waiting.water": "Odstawiony. Dzban czeka 6 godzin na inną rękę.",
   "carry.waiting.fire": "Odstawiona. Żar tli się 6 godzin w gnieździe i czeka na inną rękę.",
+  "carry.back.water": "To źródło było za blisko placu budowy: woda wraca do eteru, z którego ma czerpać studnia. Napełnij dzban co najmniej 400 m dalej.",
+  "carry.back.fire": "To źródło było za blisko placu budowy: żar wraca do eteru, z którego ma czerpać kuźnia. Weź go co najmniej 400 m dalej.",
   "carry.delivered": "Dostarczono: {n} z {of}.",
   "carry.tired.water": "Siły się skończyły: dzban stoi tutaj i czeka na kogoś innego.",
   "carry.tired.fire": "Siły się skończyły: latarnia stoi tutaj i czeka na kogoś innego.",

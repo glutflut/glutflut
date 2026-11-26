@@ -168,6 +168,7 @@ export function setupCarry(
       else if (m.what === "waiting") toast(say("carry.waiting", side), 5000);
       else if (m.what === "delivered") toast(t("carry.delivered", { n: num(m.filled ?? 0), of: num(m.need) }), 4000);
       else if (m.what === "tired") toast(say("carry.tired", side), 6000);
+      else if (m.what === "back") toast(say("carry.back", side), 8000);
       if (m.what === "fresh" || m.what === "handed") sound.chime();
     },
     onFail(m: { reason: string }) {

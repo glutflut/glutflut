@@ -150,6 +150,8 @@ export const en: Dict = {
   "carry.handed.fire": "You carry the lantern on.",
   "carry.waiting.water": "Put down. The jug waits 6 hours for another hand.",
   "carry.waiting.fire": "Put down. The embers glow in their nest for 6 hours, waiting for another hand.",
+  "carry.back.water": "That source was too close to the site: the water flows back into the aether the well is meant to draw from. Fill the jug at least 400 m away.",
+  "carry.back.fire": "That source was too close to the site: the embers sink back into the aether the forge is meant to draw from. Fetch them at least 400 m away.",
   "carry.delivered": "Delivered: {n} of {of}.",
   "carry.tired.water": "Your strength runs out: the jug stands here, waiting for someone else.",
   "carry.tired.fire": "Your strength runs out: the lantern stands here, waiting for someone else.",

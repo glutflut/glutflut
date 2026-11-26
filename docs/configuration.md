@@ -443,7 +443,7 @@ At an own natural source, building or permanent source a player takes a load (wa
 | `deliver_m` | 40 | Delivering at the site within this (m). |
 | `loads` | 4 | A building needs this much (sum of fills). |
 | `min_fill` | 0.3 | Spilling never takes a load below this. |
-| `site_min_m`, `site_max_m` | 400, 1000 | A site stands this far along the streets from the side's natural sources and buildings, nearest to a place people go (hotspot sites, zones), on the side's own ground first among those within 150 m of the nearest. |
+| `site_min_m`, `site_max_m` | 400, 1000 | A site stands this far along the streets from the side's natural sources and buildings, nearest to a place people go (hotspot sites, zones), on the side's own ground first among those within 150 m of the nearest. A load filled less than `site_min_m` (along the streets) from the site doesn't count there: it flows back. |
 | `site_s` | 604800 | A site nobody finishes moves after this (s). |
 | `reopen_s` | 3600 | The next site after a building (s). |
 | `max_built` | 10 | Buildings per side and region. |

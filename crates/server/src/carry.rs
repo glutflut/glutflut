@@ -33,6 +33,10 @@ pub struct Load {
     pub hands: Vec<String>,
     /// The last hand: may not take it up again.
     pub last: [u8; 32],
+    /// The source junction it was filled at (None: stored before V34). A
+    /// site takes it only from `site_min_m` away: filled nearer, it would
+    /// draw from the same aether the building is to hold.
+    pub from: Option<i64>,
 }
 
 #[derive(Clone, Debug)]
@@ -96,6 +100,8 @@ pub enum Laid {
     Delivered(f32),
     /// At the site, and that finished it.
     Built(Built),
+    /// At the site, but filled too near it (`site_min_m`): it flows back.
+    Back,
 }
 
 /// Stored changes (`Writer`).
@@ -306,7 +312,7 @@ impl Carry {
     }
 
     /// Take a load at `p`: a lying one of the side within `reach_m` (not
-    /// last carried by `id`), else a fresh one if `at_source`.
+    /// last carried by `id`), else a fresh one at `source` (a junction).
     #[allow(clippy::too_many_arguments)]
     pub fn take(
         &mut self,
@@ -315,7 +321,7 @@ impl Carry {
         name: Option<String>,
         side: Faction,
         p: Vec2,
-        at_source: bool,
+        source: Option<i64>,
         now: f64,
     ) -> Result<Taken, &'static str> {
         if self.held.contains_key(&id) {
@@ -337,12 +343,13 @@ impl Carry {
                 self.save_lying();
                 (l.load, Taken::Handed)
             }
-            None if at_source => (
+            None if source.is_some() => (
                 Load {
                     side,
                     fill: 1.0,
                     hands: Vec::new(),
                     last: id,
+                    from: source,
                 },
                 Taken::Fresh,
             ),
@@ -389,6 +396,11 @@ impl Carry {
             self.save_lying();
             return Ok(Laid::Waiting);
         }
+        if self.too_near(r, side, load.from) {
+            self.save_lying();
+            info!(side = side.as_str(), "filled too near the site");
+            return Ok(Laid::Back);
+        }
         let site = self.sites[idx(side)].as_mut().ok_or("no site")?;
         site.got.push(Delivery {
             at: now,
@@ -424,6 +436,18 @@ impl Carry {
         }
         info!(side = side.as_str(), node = b.at.id, "built");
         Ok(Laid::Built(b))
+    }
+
+    /// Filled at `from` less than `site_min_m` (along the streets) from the
+    /// side's site.
+    fn too_near(&self, r: &Rules, side: Faction, from: Option<i64>) -> bool {
+        let (Some(site), Some(from)) = (self.sites[idx(side)].as_ref(), from) else {
+            return false;
+        };
+        let Some(i) = self.spot_index(from) else {
+            return false;
+        };
+        self.distances(&[site.at.id])[i] < r.site_min_m
     }
 
     /// Hands whose time is up (`hand_s`): the caller puts their loads down.
@@ -864,7 +888,7 @@ fn load_lying(c: &mut postgres::Client, slug: &str) -> Result<Vec<Lying>, postgr
     let now = crate::analytics::now_s();
     Ok(c
         .query(
-            "SELECT l.node, n.lat, n.lon, l.faction, l.fill, l.hands, l.last, extract(epoch FROM l.until)::float8 \
+            "SELECT l.node, n.lat, n.lon, l.faction, l.fill, l.hands, l.last, extract(epoch FROM l.until)::float8, l.src \
              FROM game.carry_lying l JOIN geo.nodes n ON n.id = l.node WHERE l.region = $1",
             &[&slug],
         )?
@@ -885,6 +909,7 @@ fn load_lying(c: &mut postgres::Client, slug: &str) -> Result<Vec<Lying>, postgr
                     fill: r.get(4),
                     hands: r.get(5),
                     last: <[u8; 32]>::try_from(r.get::<_, &[u8]>(6)).ok()?,
+                    from: r.get(8),
                 },
             })
         })
@@ -901,8 +926,8 @@ fn write_lying(
     t.execute("DELETE FROM game.carry_lying WHERE region = $1", &[&region])?;
     for l in lying {
         t.execute(
-            "INSERT INTO game.carry_lying (region, node, faction, fill, hands, last, until) \
-             VALUES ($1, $2, $3, $4, $5, $6, to_timestamp($7))",
+            "INSERT INTO game.carry_lying (region, node, faction, fill, hands, last, until, src) \
+             VALUES ($1, $2, $3, $4, $5, $6, to_timestamp($7), $8)",
             &[
                 &region,
                 &l.at.id,
@@ -911,6 +936,7 @@ fn write_lying(
                 &l.load.hands,
                 &&l.load.last[..],
                 &l.until,
+                &l.load.from,
             ],
         )?;
     }
@@ -1028,15 +1054,7 @@ mod tests {
         assert_eq!(site.at.p.x, 900.0, "nearest to where people are");
         // Nothing at a bare street.
         assert_eq!(
-            c.take(
-                &r,
-                A,
-                None,
-                Faction::Fire,
-                Vec2::new(300.0, 0.0),
-                false,
-                0.0
-            ),
+            c.take(&r, A, None, Faction::Fire, Vec2::new(300.0, 0.0), None, 0.0),
             Err("nothing here")
         );
         assert_eq!(
@@ -1046,13 +1064,13 @@ mod tests {
                 Some("Ada".into()),
                 Faction::Fire,
                 Vec2::ZERO,
-                true,
+                Some(0),
                 0.0
             ),
             Ok(Taken::Fresh)
         );
         assert_eq!(
-            c.take(&r, A, None, Faction::Fire, Vec2::ZERO, true, 0.0),
+            c.take(&r, A, None, Faction::Fire, Vec2::ZERO, Some(0), 0.0),
             Err("carrying")
         );
         // Half way: put down; A may not take it up again, B may.
@@ -1073,7 +1091,7 @@ mod tests {
                 None,
                 Faction::Fire,
                 Vec2::new(400.0, 0.0),
-                false,
+                None,
                 20.0
             ),
             Err("nothing here")
@@ -1085,7 +1103,7 @@ mod tests {
                 None,
                 Faction::Water,
                 Vec2::new(400.0, 0.0),
-                false,
+                None,
                 20.0
             ),
             Err("nothing here"),
@@ -1098,7 +1116,7 @@ mod tests {
                 Some("Bo".into()),
                 Faction::Fire,
                 Vec2::new(400.0, 0.0),
-                false,
+                None,
                 20.0
             ),
             Ok(Taken::Handed)
@@ -1117,7 +1135,7 @@ mod tests {
                 Some("Ada".into()),
                 Faction::Fire,
                 Vec2::ZERO,
-                true,
+                Some(0),
                 40.0,
             )
             .unwrap();
@@ -1144,17 +1162,69 @@ mod tests {
     }
 
     #[test]
+    fn filled_too_near_the_site_flows_back() {
+        let r = Rules::default();
+        let mut c = carry();
+        c.tick(&r, 0.0, [&[0], &[]], &|_| None);
+        assert_eq!(c.sites[0].as_ref().unwrap().at.id, 9);
+        // A permanent source at 700 m: 200 m from the site.
+        let at7 = Vec2::new(700.0, 0.0);
+        c.take(&r, A, None, Faction::Fire, at7, Some(7), 0.0)
+            .unwrap();
+        assert_eq!(
+            c.lay(&r, &A, Vec2::new(900.0, 0.0), 1.0, None, 10.0),
+            Ok(Laid::Back)
+        );
+        assert!(c.held(&A).is_none(), "gone");
+        assert!(c.sites[0].as_ref().unwrap().got.is_empty());
+        // Put down on the way and carried on: still from there.
+        c.take(&r, A, None, Faction::Fire, at7, Some(7), 20.0)
+            .unwrap();
+        let s = c.spot_near(&r, Vec2::new(800.0, 0.0));
+        c.lay(&r, &A, Vec2::new(800.0, 0.0), 1.0, s, 30.0).unwrap();
+        c.take(
+            &r,
+            B,
+            None,
+            Faction::Fire,
+            Vec2::new(800.0, 0.0),
+            None,
+            40.0,
+        )
+        .unwrap();
+        assert_eq!(
+            c.lay(&r, &B, Vec2::new(900.0, 0.0), 1.0, None, 50.0),
+            Ok(Laid::Back)
+        );
+        // From 500 m (400 m away) it counts.
+        c.take(
+            &r,
+            A,
+            None,
+            Faction::Fire,
+            Vec2::new(500.0, 0.0),
+            Some(5),
+            60.0,
+        )
+        .unwrap();
+        assert_eq!(
+            c.lay(&r, &A, Vec2::new(900.0, 0.0), 1.0, None, 70.0),
+            Ok(Laid::Delivered(1.0))
+        );
+    }
+
+    #[test]
     fn spill_floor_tired_hands_and_expiry() {
         let r = Rules::default();
         let mut c = carry();
-        c.take(&r, A, None, Faction::Water, Vec2::ZERO, true, 0.0)
+        c.take(&r, A, None, Faction::Water, Vec2::ZERO, Some(0), 0.0)
             .unwrap();
         assert!(c.tired(&r, 599.0).is_empty());
         assert_eq!(c.tired(&r, 600.0), [A]);
         let s = c.spot_near(&r, Vec2::new(10.0, 0.0));
         c.lay(&r, &A, Vec2::new(10.0, 0.0), 0.05, s, 600.0).unwrap();
         assert_eq!(c.lying[0].load.fill, r.min_fill, "never below the floor");
-        c.take(&r, B, None, Faction::Water, Vec2::ZERO, false, 700.0)
+        c.take(&r, B, None, Faction::Water, Vec2::ZERO, None, 700.0)
             .unwrap();
         c.lay(&r, &B, Vec2::ZERO, 1.0, s, 800.0).unwrap();
         assert_eq!(c.lying[0].load.fill, r.min_fill, "spilled stays spilled");
@@ -1307,11 +1377,11 @@ mod tests {
             Some("Ada".into()),
             Faction::Fire,
             Vec2::ZERO,
-            true,
+            Some(0),
             0.0,
         )
         .unwrap();
-        c.take(&r, B, None, Faction::Water, Vec2::ZERO, true, 0.0)
+        c.take(&r, B, None, Faction::Water, Vec2::ZERO, Some(0), 0.0)
             .unwrap();
         // A is still here (at 500 m), B has gone.
         c.stop(&r, 10.0, |id| (*id == A).then_some(Vec2::new(505.0, 0.0)));

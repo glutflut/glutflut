@@ -150,6 +150,8 @@ export const it: Dict = {
   "carry.handed.fire": "Porti avanti la lanterna.",
   "carry.waiting.water": "Posata. La brocca aspetta un’altra mano per 6 ore.",
   "carry.waiting.fire": "Posata. Le braci covano 6 ore nel loro nido aspettando un’altra mano.",
+  "carry.back.water": "Quella fonte era troppo vicina al cantiere: l'acqua torna nell'etere da cui deve attingere il pozzo. Riempi la brocca ad almeno 400 m.",
+  "carry.back.fire": "Quella fonte era troppo vicina al cantiere: le braci tornano nell'etere da cui deve attingere la fucina. Prendile ad almeno 400 m.",
   "carry.delivered": "Consegnato: {n} su {of}.",
   "carry.tired.water": "Le forze finiscono: la brocca resta qui e aspetta qualcun altro.",
   "carry.tired.fire": "Le forze finiscono: la lanterna resta qui e aspetta qualcun altro.",

@@ -151,6 +151,8 @@ export const es: Dict = {
   "carry.handed.fire": "Sigues llevando el farol.",
   "carry.waiting.water": "Dejado. El cántaro espera 6 horas otra mano.",
   "carry.waiting.fire": "Dejado. Las brasas arden 6 horas en su nido esperando otra mano.",
+  "carry.back.water": "Esa fuente estaba demasiado cerca de la obra: el agua vuelve al éter del que debe beber el pozo. Llena el cántaro al menos a 400 m.",
+  "carry.back.fire": "Esa fuente estaba demasiado cerca de la obra: las brasas vuelven al éter del que debe beber la fragua. Recógelas al menos a 400 m.",
   "carry.delivered": "Entregado: {n} de {of}.",
   "carry.tired.water": "Se te acaban las fuerzas: el cántaro queda aquí esperando a otra persona.",
   "carry.tired.fire": "Se te acaban las fuerzas: el farol queda aquí esperando a otra persona.",

@@ -149,6 +149,8 @@ export const de = {
   "carry.handed.fire": "Du trägst die Laterne weiter.",
   "carry.waiting.water": "Abgestellt. Der Krug wartet 6 Stunden auf eine andere Hand.",
   "carry.waiting.fire": "Abgestellt. Die Glut glimmt 6 Stunden im Nest und wartet auf eine andere Hand.",
+  "carry.back.water": "Die Quelle war zu nah am Bauplatz: das Wasser fließt zurück in den Äther, aus dem auch der Brunnen schöpfen soll. Füll den Krug mindestens 400 m entfernt.",
+  "carry.back.fire": "Die Quelle war zu nah am Bauplatz: die Glut sinkt zurück in den Äther, aus dem auch die Esse schöpfen soll. Hol sie mindestens 400 m entfernt.",
   "carry.delivered": "Abgeliefert: {n} von {of}.",
   "carry.tired.water": "Deine Kraft reicht nicht weiter: der Krug steht hier und wartet auf jemand anderen.",
   "carry.tired.fire": "Deine Kraft reicht nicht weiter: die Laterne steht hier und wartet auf jemand anderen.",

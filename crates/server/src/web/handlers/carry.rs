@@ -57,14 +57,19 @@ pub(super) fn take(game: &mut Game, c: &Ctx, conn: u64) {
     };
     let r = &c.rules.carry;
     let o = (c.region.centroid_lat, c.region.centroid_lon);
-    // An own natural source or building, or a permanent source, nearby.
-    let at_source = game.sources.iter().any(|(g, s)| {
-        s.faction == side && (s.life.is_none() || s.kind == SourceKind::Keep) && {
+    // The nearest own natural source or building, or permanent source.
+    let source = game
+        .sources
+        .iter()
+        .filter(|(_, s)| s.faction == side && (s.life.is_none() || s.kind == SourceKind::Keep))
+        .map(|(g, _)| {
             let q = project_enu(g.lat, g.lon, o.0, o.1);
-            Vec2::new(q.x, q.z).distance(p) <= r.reach_m
-        }
-    });
-    match game.carry.take(r, id, name, side, p, at_source, c.now) {
+            (g.id, Vec2::new(q.x, q.z).distance(p))
+        })
+        .filter(|&(_, d)| d <= r.reach_m)
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(id, _)| id);
+    match game.carry.take(r, id, name, side, p, source, c.now) {
         Ok(t) => {
             let what = match t {
                 Taken::Fresh => "fresh",
@@ -99,6 +104,7 @@ pub(super) fn lay(game: &mut Game, c: &Ctx, conn: u64, fill: f32) {
                 Laid::Waiting => ("waiting", None),
                 Laid::Delivered(f) => ("delivered", Some(*f)),
                 Laid::Built(_) => ("built", Some(r.loads)),
+                Laid::Back => ("back", None),
             };
             reply(
                 game,
