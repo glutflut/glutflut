@@ -74,7 +74,7 @@ pub struct Views(HashMap<u64, Option<HashSet<TileKey>>>);
 
 /// Open browser connections: conn id -> (player entity, outbox).
 #[derive(Resource, Default)]
-pub struct WebClients(HashMap<u64, (Entity, Outbox)>);
+pub struct WebClients(pub(crate) HashMap<u64, (Entity, Outbox)>);
 
 impl WebClients {
     /// Nobody connected.

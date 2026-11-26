@@ -653,7 +653,12 @@ pub fn build(p: Prepared) -> App {
                     (wind::update, web::wind_tick)
                         .chain()
                         .run_if(resource_exists::<wind::LiveWind>),
-                    (carry::tick, carry::apply_builds, web::carry_tick)
+                    (
+                        carry::tick,
+                        carry::apply_builds,
+                        web::carry_tick,
+                        carry::save_on_stop,
+                    )
                         .chain()
                         .run_if(resource_exists::<sim::ElementSim>),
                 ),

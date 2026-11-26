@@ -27,6 +27,8 @@ pub(super) fn info(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
     let dist = Vec2::new(w.x, w.z).distance(Vec2::new(pos.0.x, pos.0.z));
     let existing = game.sources.get(ent).ok().map(|(_, s)| *s);
     let natural = game.naturals.contains(ent);
+    // A building from carrying stands like a natural source (`carry.rs`).
+    let built = game.carry.built.iter().any(|b| b.at.id == node);
     let wear = game.keep_info.get(ent).map_or(0.0, |(_, k)| k.wear);
     let mult = match slot.filter(|_| rules.progression.enabled) {
         Some(s) => rules.progression.strength_factor(game.scores.xp(s).1),
@@ -76,7 +78,14 @@ pub(super) fn info(game: &mut Game, c: &Ctx, conn: u64, node: i64) {
             fire: q(st.fire),
             water: q(st.water),
             source: existing
-                .map(|s| crate::info::source(&s, natural, &g.node_type, rules, g.affinity, slot)),
+                .map(|s| crate::info::source(&s, natural, &g.node_type, rules, g.affinity, slot))
+                .map(|mut s| {
+                    if built && s.kind == "natural" {
+                        s.kind = "built";
+                        s.why = None;
+                    }
+                    s
+                }),
             take,
             wait,
             dist: dist.round() as u32,

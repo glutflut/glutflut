@@ -432,7 +432,7 @@ Gauge level → phase −1 (mean low water) … +1 (mean high water); `k` = phas
 
 #### `[carry]` (carrying, server `carry.rs`)
 
-At an own natural source, building or permanent source a player takes a load (water: a jug, fire: a lantern) and carries it; put down at a junction it waits for another hand of the side (not the last one: bucket chain, torch relay). Each side has one open site; enough loads delivered there make a building, a source of the side for good (it comes back after claims on it run out, the weather leaves it) with the builders' game names. Spilling on the way (the app's motion sensors, `web/src/spill.ts`) lowers a load's fill, never below `min_fill`. Held and lying loads live in memory; sites and buildings in `game.carry_sites` / `game.carry_builds`. Numbers from lab rounds 31–34.
+At an own natural source, building or permanent source a player takes a load (water: a jug, fire: a lantern) and carries it; put down at a junction it waits for another hand of the side (not the last one: bucket chain, torch relay). Each side has one open site; enough loads delivered there make a building, a source of the side for good (it comes back after claims on it run out, the weather leaves it) with the builders' game names. Spilling on the way (the app's motion sensors, `web/src/spill.ts`) lowers a load's fill, never below `min_fill`. Held loads live in memory (at shutdown they are put down where their carriers are); put-down loads, sites and buildings are stored in `game.carry_lying`, `game.carry_sites` and `game.carry_builds`. The source card calls a building `built`. Numbers from lab rounds 31–34.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
@@ -443,7 +443,7 @@ At an own natural source, building or permanent source a player takes a load (wa
 | `deliver_m` | 40 | Delivering at the site within this (m). |
 | `loads` | 4 | A building needs this much (sum of fills). |
 | `min_fill` | 0.3 | Spilling never takes a load below this. |
-| `site_min_m`, `site_max_m` | 400, 1000 | A site stands this far from the side's natural sources and buildings, nearest to a place people go (hotspot sites, zones). |
+| `site_min_m`, `site_max_m` | 400, 1000 | A site stands this far along the streets from the side's natural sources and buildings, nearest to a place people go (hotspot sites, zones), on the side's own ground first among those within 150 m of the nearest. |
 | `site_s` | 604800 | A site nobody finishes moves after this (s). |
 | `reopen_s` | 3600 | The next site after a building (s). |
 | `max_built` | 10 | Buildings per side and region. |

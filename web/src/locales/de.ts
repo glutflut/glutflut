@@ -243,6 +243,8 @@ export const de = {
   "node.t.h": "{n} h",
   "node.src.none": "Keine Quelle: die Farbe kommt aus der Umgebung",
   "node.src.natural": "Natürliche Quelle ({side})",
+  "node.src.built.water": "Brunnen (Wasser): von Spielenden gebaut, bleibt für immer",
+  "node.src.built.fire": "Esse (Feuer): von Spielenden gebaut, bleibt für immer",
   "node.src.why": "{src}: {why}",
   "node.why.food": "Restaurants",
   "node.why.shore": "Ufer",

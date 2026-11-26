@@ -163,7 +163,7 @@ pub fn inbox(
             FromWeb::Hide { conn, on } => account::hide(g, conn, on),
             FromWeb::Forget { conn } => account::forget(g, &c, conn),
             FromWeb::Code { conn } => account::code(g, conn),
-            FromWeb::Side { conn, faction } => account::side(g, conn, &faction),
+            FromWeb::Side { conn, faction } => account::side(g, &c, conn, &faction),
             FromWeb::Level { conn, level } => account::level(g, conn, level),
             FromWeb::Take { conn } => carry::take(g, &c, conn),
             FromWeb::Lay { conn, fill } => carry::lay(g, &c, conn, fill),

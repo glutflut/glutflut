@@ -61,7 +61,7 @@ pub(super) fn code(game: &mut Game, conn: u64) {
     }
 }
 
-pub(super) fn side(game: &mut Game, conn: u64, faction: &str) {
+pub(super) fn side(game: &mut Game, c: &Ctx, conn: u64, faction: &str) {
     // Test servers only: a tester plays both sides without a new identity.
     if !game.allow_sim.0 {
         return;
@@ -83,6 +83,15 @@ pub(super) fn side(game: &mut Game, conn: u64, faction: &str) {
             faction: f.as_str(),
         },
     );
+    // Carrying: the new side's loads and site.
+    if c.rules.carry.enabled {
+        send(
+            out,
+            &ServerMsg::Loads {
+                view: game.carry.view(&c.rules.carry, f, c.now),
+            },
+        );
+    }
 }
 
 pub(super) fn level(game: &mut Game, conn: u64, level: u8) {

@@ -101,6 +101,8 @@ pub enum Laid {
 pub enum Out {
     Site(Faction, Option<Site>),
     Build(Built),
+    /// All put-down loads of the region (replaces what is stored).
+    Lying(Vec<Lying>),
 }
 
 #[derive(Resource, Default)]
@@ -118,10 +120,16 @@ pub struct Carry {
     /// Where sites may stand (the region's junctions) and where people are.
     spots: Vec<Spot>,
     attract: Vec<Vec2>,
+    /// The streets between the junctions (by index into `spots`, metres);
+    /// empty: distances as the crow flies.
+    adj: Vec<Vec<(usize, f32)>>,
+    index: HashMap<i64, usize>,
     /// Bumped per side when its lying loads or site change; and for buildings.
     pub version: [u32; 2],
     pub built_version: u32,
     tx: Option<crate::writers::LaneTx<Out>>,
+    /// Database and region, for the last write at shutdown (`save_on_stop`).
+    db: Option<(String, String)>,
 }
 
 pub fn idx(f: Faction) -> usize {
@@ -164,6 +172,121 @@ impl Carry {
             version: [1, 1],
             built_version: 1,
             ..Default::default()
+        }
+    }
+
+    /// The street graph (junction ids and length), for site distances.
+    pub fn with_streets(mut self, edges: impl Iterator<Item = (i64, i64, f32)>) -> Self {
+        self.index = self
+            .spots
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (s.id, i))
+            .collect();
+        self.adj = vec![Vec::new(); self.spots.len()];
+        for (a, b, m) in edges {
+            if let (Some(&i), Some(&j)) = (self.index.get(&a), self.index.get(&b)) {
+                self.adj[i].push((j, m));
+                self.adj[j].push((i, m));
+            }
+        }
+        self
+    }
+
+    /// Distance from the nearest of `from` (junction ids) to every spot: along
+    /// the streets if known, else as the crow flies.
+    fn distances(&self, from: &[i64]) -> Vec<f32> {
+        let start: Vec<usize> = from.iter().filter_map(|id| self.spot_index(*id)).collect();
+        if self.adj.is_empty() {
+            return self
+                .spots
+                .iter()
+                .map(|s| {
+                    start
+                        .iter()
+                        .map(|&i| self.spots[i].p.distance(s.p))
+                        .fold(f32::INFINITY, f32::min)
+                })
+                .collect();
+        }
+        // Dijkstra in whole metres.
+        let mut d = vec![u32::MAX; self.spots.len()];
+        let mut heap = std::collections::BinaryHeap::new();
+        for &i in &start {
+            d[i] = 0;
+            heap.push(std::cmp::Reverse((0u32, i)));
+        }
+        while let Some(std::cmp::Reverse((di, i))) = heap.pop() {
+            if di > d[i] {
+                continue;
+            }
+            for &(j, m) in &self.adj[i] {
+                let dj = di.saturating_add(m.round() as u32);
+                if dj < d[j] {
+                    d[j] = dj;
+                    heap.push(std::cmp::Reverse((dj, j)));
+                }
+            }
+        }
+        d.into_iter()
+            .map(|v| {
+                if v == u32::MAX {
+                    f32::INFINITY
+                } else {
+                    v as f32
+                }
+            })
+            .collect()
+    }
+
+    fn spot_index(&self, id: i64) -> Option<usize> {
+        self.index
+            .get(&id)
+            .copied()
+            .or_else(|| self.spots.iter().position(|s| s.id == id))
+    }
+
+    /// Stored put-down loads (after `new`, which knows the junctions).
+    pub fn with_lying(mut self, lying: Vec<Lying>, db: Option<(String, String)>) -> Self {
+        self.lying = lying
+            .into_iter()
+            .filter_map(|mut l| {
+                l.at = *self.spots.iter().find(|s| s.id == l.at.id)?;
+                Some(l)
+            })
+            .collect();
+        self.db = db;
+        self
+    }
+
+    fn save_lying(&self) {
+        if let Some(tx) = &self.tx {
+            let _ = tx.send(Out::Lying(self.lying.clone()));
+        }
+    }
+
+    /// The app stops: loads still carried are put down where their carriers
+    /// are (`here`; lost if they are away), then all is written at once.
+    pub fn stop(&mut self, r: &Rules, now: f64, here: impl Fn(&[u8; 32]) -> Option<Vec2>) {
+        for (id, h) in std::mem::take(&mut self.held) {
+            let Some(at) = here(&id).and_then(|p| self.spot_near(r, p)) else {
+                continue;
+            };
+            let mut load = h.load;
+            load.last = id;
+            self.lying.push(Lying {
+                at,
+                until: now + f64::from(r.lying_s),
+                load,
+            });
+        }
+        let Some((db, region)) = &self.db else { return };
+        let res = crate::db::connect(db)
+            .map_err(|e| e.to_string())
+            .and_then(|mut c| write_lying(&mut c, region, &self.lying).map_err(|e| e.to_string()));
+        match res {
+            Ok(()) => info!(loads = self.lying.len(), "carried loads saved"),
+            Err(e) => warn!(error = %e, "carried loads not saved"),
         }
     }
 
@@ -210,6 +333,7 @@ impl Carry {
             Some(i) => {
                 let l = self.lying.swap_remove(i);
                 self.bump(side);
+                self.save_lying();
                 (l.load, Taken::Handed)
             }
             None if at_source => (
@@ -261,6 +385,7 @@ impl Carry {
                 until: now + f64::from(r.lying_s),
                 load,
             });
+            self.save_lying();
             return Ok(Laid::Waiting);
         }
         let site = self.sites[idx(side)].as_mut().ok_or("no site")?;
@@ -317,7 +442,13 @@ impl Carry {
     /// Once a second or so: loads that waited too long go, sites nobody
     /// finished move, due sites open (`sources`: the side's natural sources
     /// and buildings, to keep `site_min_m` from).
-    pub fn tick(&mut self, r: &Rules, now: f64, sources: [&[Vec2]; 2]) {
+    pub fn tick(
+        &mut self,
+        r: &Rules,
+        now: f64,
+        sources: [&[i64]; 2],
+        own: &dyn Fn(i64) -> Option<Faction>,
+    ) {
         let before: Vec<Faction> = self
             .lying
             .iter()
@@ -325,6 +456,9 @@ impl Carry {
             .map(|l| l.load.side)
             .collect();
         self.lying.retain(|l| l.until > now);
+        if !before.is_empty() {
+            self.save_lying();
+        }
         for s in before {
             self.bump(s);
         }
@@ -341,7 +475,7 @@ impl Carry {
             }
             let built = self.built.iter().filter(|b| b.side == side).count() as u32;
             if self.sites[i].is_none() && now >= self.reopen[i] && built < r.max_built {
-                if let Some(at) = self.new_site(r, side, sources[i]) {
+                if let Some(at) = self.new_site(r, side, sources[i], own) {
                     self.sites[i] = Some(Site {
                         at,
                         opened: now,
@@ -357,29 +491,37 @@ impl Carry {
         }
     }
 
-    /// A site for `side`: `site_min_m`..`site_max_m` from its sources, not on
-    /// a building or the other site, nearest to a random place people go.
-    fn new_site(&self, r: &Rules, side: Faction, sources: &[Vec2]) -> Option<Spot> {
+    /// A site for `side`: `site_min_m`..`site_max_m` along the streets from
+    /// its natural sources and buildings (`sources`), not on a building or the
+    /// other site; nearest to a random place people go, own ground (`own`)
+    /// first among those within 150 m of the nearest.
+    fn new_site(
+        &self,
+        r: &Rules,
+        side: Faction,
+        sources: &[i64],
+        own: &dyn Fn(i64) -> Option<Faction>,
+    ) -> Option<Spot> {
         let taken = |s: &Spot| {
             self.built.iter().any(|b| b.at.id == s.id)
                 || self.sites.iter().flatten().any(|x| x.at.id == s.id)
         };
+        let d = self.distances(sources);
         let band: Vec<&Spot> = self
             .spots
             .iter()
-            .filter(|s| !taken(s))
-            .filter(|s| {
-                let d = sources
-                    .iter()
-                    .map(|q| q.distance(s.p))
-                    .fold(f32::INFINITY, f32::min);
-                d >= r.site_min_m && (d <= r.site_max_m || sources.is_empty())
-            })
+            .zip(&d)
+            .filter(|(s, _)| !taken(s))
+            .filter(|(_, &d)| sources.is_empty() || (d >= r.site_min_m && d <= r.site_max_m))
+            .map(|(s, _)| s)
             .collect();
         let near = *self.attract.choose(&mut rand::rng()).unwrap_or(&Vec2::ZERO);
-        let _ = side;
+        let dist = |s: &Spot| s.p.distance(near);
+        let best = band.iter().map(|s| dist(s)).fold(f32::INFINITY, f32::min);
+        let mine = |s: &Spot| own(s.id) == Some(side);
         band.into_iter()
-            .min_by(|a, b| a.p.distance(near).total_cmp(&b.p.distance(near)))
+            .filter(|s| dist(s) <= best + 150.0)
+            .min_by(|a, b| mine(b).cmp(&mine(a)).then(dist(a).total_cmp(&dist(b))))
             .copied()
     }
 
@@ -429,6 +571,8 @@ pub fn tick(
     rules: Res<crate::sim::GameRules>,
     region: Option<Res<elements_shared::geo::RegionInfo>>,
     naturals: Query<(&elements_shared::geo::GeoNode, &crate::sim::NaturalSource)>,
+    by_id: Res<crate::sim::NodeById>,
+    states: Query<&elements_shared::elements::ElementState>,
     mut next: Local<f64>,
 ) {
     let r = &rules.0.carry;
@@ -437,14 +581,46 @@ pub fn tick(
         return;
     }
     *next = now + 1.0;
-    let Some(region) = region else { return };
-    let o = (region.centroid_lat, region.centroid_lon);
-    let mut src: [Vec<Vec2>; 2] = [Vec::new(), Vec::new()];
+    let _ = region;
+    let mut src: [Vec<i64>; 2] = [Vec::new(), Vec::new()];
     for (g, n) in &naturals {
-        let p = elements_shared::geo::project_enu(g.lat, g.lon, o.0, o.1);
-        src[idx(n.0.faction)].push(Vec2::new(p.x, p.z));
+        src[idx(n.0.faction)].push(g.id);
     }
-    carry.tick(r, now, [&src[0], &src[1]]);
+    let own = |id: i64| {
+        by_id
+            .get(&id)
+            .and_then(|&e| states.get(e).ok())
+            .and_then(|st| st.owner())
+    };
+    carry.tick(r, now, [&src[0], &src[1]], &own);
+}
+
+/// When the app stops: put carried loads down and write them (once).
+pub fn save_on_stop(
+    mut carry: ResMut<Carry>,
+    rules: Res<crate::sim::GameRules>,
+    stop: Res<crate::Stop>,
+    clients: Res<crate::web::WebClients>,
+    scores: Res<crate::score::Scores>,
+    players: Query<(
+        &elements_shared::components::Position,
+        Option<&crate::score::ScoreSlot>,
+    )>,
+    mut done: Local<bool>,
+) {
+    use std::sync::atomic::Ordering::Relaxed;
+    if *done || !(crate::gateway::SHUTDOWN.load(Relaxed) || stop.0.load(Relaxed)) {
+        return;
+    }
+    *done = true;
+    let here = |id: &[u8; 32]| {
+        clients.0.values().find_map(|(e, _)| {
+            let (pos, slot) = players.get(*e).ok()?;
+            let rec = scores.get(slot?.0)?;
+            (rec.id == *id).then(|| Vec2::new(pos.0.x, pos.0.z))
+        })
+    };
+    carry.stop(&rules.0.carry, crate::analytics::now_s(), here);
 }
 
 /// Buildings become sources of their side for good: they come back after a
@@ -563,6 +739,7 @@ impl BuiltView {
 pub fn setup(
     conn_str: &str,
     graph: &[elements_shared::geo::GeoNode],
+    edges: &[elements_shared::geo::GeoEdge],
     region: &elements_shared::geo::RegionInfo,
     places: &crate::places::Places,
 ) -> Carry {
@@ -591,11 +768,11 @@ pub fn setup(
         let (lat, lon) = region.hotspot_center.unwrap_or(o);
         attract.push(at(lat, lon));
     }
-    let (sites, built) = load(conn_str, &region.slug).unwrap_or_else(|e| {
+    let (sites, built, lying) = load(conn_str, &region.slug).unwrap_or_else(|e| {
         warn!(error = %e, "no carry sites or buildings");
         Default::default()
     });
-    info!(built = built.len(), "carry");
+    info!(built = built.len(), lying = lying.len(), "carry");
     Carry::new(
         spots,
         attract,
@@ -603,13 +780,20 @@ pub fn setup(
         built,
         Some(writer(conn_str.to_string(), region.slug.clone())),
     )
+    .with_streets(
+        edges
+            .iter()
+            .map(|e| (e.source, e.target, e.length_m as f32)),
+    )
+    .with_lying(lying, Some((conn_str.to_string(), region.slug.clone())))
 }
 
 /// Stored sites and buildings of the region.
+#[allow(clippy::type_complexity)]
 pub fn load(
     db: &str,
     slug: &str,
-) -> Result<([Option<Site>; 2], Vec<Built>), Box<dyn std::error::Error>> {
+) -> Result<([Option<Site>; 2], Vec<Built>, Vec<Lying>), Box<dyn std::error::Error>> {
     let mut c = crate::db::connect(db)?;
     let mut sites: [Option<Site>; 2] = [None, None];
     for r in c.query(
@@ -667,7 +851,69 @@ pub fn load(
             })
         })
         .collect();
-    Ok((sites, built))
+    // Put-down loads apart: without their table (V33) the rest still loads.
+    let lying = load_lying(&mut c, slug).unwrap_or_else(|e| {
+        warn!(error = %e, "no put-down loads");
+        Vec::new()
+    });
+    Ok((sites, built, lying))
+}
+
+fn load_lying(c: &mut postgres::Client, slug: &str) -> Result<Vec<Lying>, postgres::Error> {
+    let now = crate::analytics::now_s();
+    Ok(c
+        .query(
+            "SELECT l.node, n.lat, n.lon, l.faction, l.fill, l.hands, l.last, extract(epoch FROM l.until)::float8 \
+             FROM game.carry_lying l JOIN geo.nodes n ON n.id = l.node WHERE l.region = $1",
+            &[&slug],
+        )?
+        .iter()
+        .filter_map(|r| {
+            let until: f64 = r.get(7);
+            (until > now).then_some(())?;
+            Some(Lying {
+                at: Spot {
+                    id: r.get(0),
+                    p: Vec2::ZERO,
+                    lat: r.get(1),
+                    lon: r.get(2),
+                },
+                until,
+                load: Load {
+                    side: Faction::parse(r.get(3))?,
+                    fill: r.get(4),
+                    hands: r.get(5),
+                    last: <[u8; 32]>::try_from(r.get::<_, &[u8]>(6)).ok()?,
+                },
+            })
+        })
+        .collect())
+}
+
+/// Replace the region's stored put-down loads with `lying`.
+fn write_lying(
+    c: &mut postgres::Client,
+    region: &str,
+    lying: &[Lying],
+) -> Result<(), postgres::Error> {
+    let mut t = c.transaction()?;
+    t.execute("DELETE FROM game.carry_lying WHERE region = $1", &[&region])?;
+    for l in lying {
+        t.execute(
+            "INSERT INTO game.carry_lying (region, node, faction, fill, hands, last, until) \
+             VALUES ($1, $2, $3, $4, $5, $6, to_timestamp($7))",
+            &[
+                &region,
+                &l.at.id,
+                &l.load.side.as_str(),
+                &l.load.fill,
+                &l.load.hands,
+                &&l.load.last[..],
+                &l.until,
+            ],
+        )?;
+    }
+    t.commit()
 }
 
 pub fn writer(db: String, region: String) -> crate::writers::LaneTx<Out> {
@@ -712,6 +958,7 @@ impl crate::writers::Lane for Writer {
                     )
                     .map(|_| ())
                 }
+                Out::Lying(l) => write_lying(c, &self.region, l),
                 Out::Build(b) => c
                     .execute(
                         "INSERT INTO game.carry_builds (region, node, faction, names, built_at) \
@@ -759,8 +1006,8 @@ mod tests {
     fn take_carry_hand_over_and_build() {
         let r = Rules::default();
         let mut c = carry();
-        let fire_src = [Vec2::ZERO];
-        c.tick(&r, 0.0, [&fire_src, &[Vec2::new(1900.0, 0.0)]]);
+        let fire_src = [0];
+        c.tick(&r, 0.0, [&fire_src, &[19]], &|_| None);
         let site = c.sites[0].clone().expect("a fire site");
         assert!(
             site.at.p.x >= 400.0 && site.at.p.x <= 1000.0,
@@ -877,9 +1124,11 @@ mod tests {
         assert!(c.sites[0].is_none());
         assert_eq!(c.pending.len(), 1);
         // The next site only after reopen_s.
-        c.tick(&r, 100.0, [&fire_src, &[]]);
+        c.tick(&r, 100.0, [&fire_src, &[]], &|_| None);
         assert!(c.sites[0].is_none());
-        c.tick(&r, 100.0 + f64::from(r.reopen_s), [&fire_src, &[]]);
+        c.tick(&r, 100.0 + f64::from(r.reopen_s), [&fire_src, &[]], &|_| {
+            None
+        });
         assert_ne!(c.sites[0].as_ref().unwrap().at.id, 9, "not on the building");
     }
 
@@ -898,7 +1147,7 @@ mod tests {
             .unwrap();
         c.lay(&r, &B, Vec2::ZERO, 1.0, s, 800.0).unwrap();
         assert_eq!(c.lying[0].load.fill, r.min_fill, "spilled stays spilled");
-        c.tick(&r, 800.0 + f64::from(r.lying_s), [&[], &[]]);
+        c.tick(&r, 800.0 + f64::from(r.lying_s), [&[], &[]], &|_| None);
         assert!(c.lying.is_empty(), "waited too long");
         assert_eq!(
             c.lay(&r, &B, Vec2::ZERO, 1.0, s, 900.0),
@@ -913,12 +1162,12 @@ mod tests {
             ..Rules::default()
         };
         let mut c = carry();
-        c.tick(&r, 0.0, [&[Vec2::ZERO], &[]]);
+        c.tick(&r, 0.0, [&[0], &[]], &|_| None);
         assert!(c.sites[0].is_none(), "cap reached");
         let r = Rules::default();
-        c.tick(&r, 0.0, [&[Vec2::ZERO], &[]]);
+        c.tick(&r, 0.0, [&[0], &[]], &|_| None);
         assert!(c.sites[0].is_some());
-        c.tick(&r, f64::from(r.site_s), [&[Vec2::ZERO], &[]]);
+        c.tick(&r, f64::from(r.site_s), [&[0], &[]], &|_| None);
         assert!(c.sites[0].is_some(), "moved: a new one at once");
         assert_eq!(c.sites[0].as_ref().unwrap().opened, f64::from(r.site_s));
     }
@@ -976,5 +1225,89 @@ mod tests {
         ));
         w.run_system_once(crate::weather::apply).unwrap();
         assert_eq!(w.get::<NaturalSource>(e2).unwrap().0.strength, 0.8);
+    }
+
+    #[test]
+    fn sites_by_street_distance_and_own_ground_first() {
+        let r = Rules::default();
+        // A row of junctions 100 m apart, the source at 0; the street from 0
+        // to 1..3 goes round a block (1 km), the rest follows the row.
+        let edges: Vec<(i64, i64, f32)> = (0..19)
+            .map(|i| (i, i + 1, if i == 0 { 1000.0 } else { 100.0 }))
+            .collect();
+        let c = carry().with_streets(edges.clone().into_iter());
+        let d = c.distances(&[0]);
+        assert_eq!(d[1], 1000.0);
+        assert_eq!(d[5], 1400.0);
+        // People go to 300 m: as the crow flies 4..10 would fit, along the
+        // streets only 1 (1000 m; 2 is 1100).
+        let mut c = Carry::new(
+            spots(),
+            vec![Vec2::new(300.0, 0.0)],
+            [None, None],
+            vec![],
+            None,
+        )
+        .with_streets(edges.clone().into_iter());
+        c.tick(&r, 0.0, [&[0], &[]], &|_| None);
+        assert_eq!(c.sites[0].as_ref().unwrap().at.id, 1);
+        // A wider band (1..3 at 1000-1200 m), people at 250 m: 2 and 3 are
+        // nearest, 1 is within 150 m of them and fire's own ground: 1 wins.
+        let wide = Rules {
+            site_max_m: 1300.0,
+            ..Rules::default()
+        };
+        let mk = || {
+            Carry::new(
+                spots(),
+                vec![Vec2::new(250.0, 0.0)],
+                [None, None],
+                vec![],
+                None,
+            )
+            .with_streets(edges.clone().into_iter())
+        };
+        let mut c = mk();
+        c.tick(&wide, 0.0, [&[0], &[]], &|_| None);
+        assert!([2, 3].contains(&c.sites[0].as_ref().unwrap().at.id));
+        let mut c = mk();
+        c.tick(&wide, 0.0, [&[0], &[]], &|id| {
+            (id == 1).then_some(Faction::Fire)
+        });
+        assert_eq!(c.sites[0].as_ref().unwrap().at.id, 1, "own ground first");
+        let mut c = mk();
+        c.tick(&wide, 0.0, [&[0], &[]], &|id| {
+            (id == 1).then_some(Faction::Water)
+        });
+        assert_ne!(
+            c.sites[0].as_ref().unwrap().at.id,
+            1,
+            "not the other side's"
+        );
+    }
+
+    #[test]
+    fn stopping_puts_carried_loads_down() {
+        let r = Rules::default();
+        let mut c = carry();
+        c.take(
+            &r,
+            A,
+            Some("Ada".into()),
+            Faction::Fire,
+            Vec2::ZERO,
+            true,
+            0.0,
+        )
+        .unwrap();
+        c.take(&r, B, None, Faction::Water, Vec2::ZERO, true, 0.0)
+            .unwrap();
+        // A is still here (at 500 m), B has gone.
+        c.stop(&r, 10.0, |id| (*id == A).then_some(Vec2::new(505.0, 0.0)));
+        assert!(c.held(&A).is_none() && c.held(&B).is_none());
+        assert_eq!(c.lying.len(), 1);
+        assert_eq!(c.lying[0].at.id, 5);
+        assert_eq!(c.lying[0].load.hands, ["Ada"]);
+        assert_eq!(c.lying[0].until, 10.0 + f64::from(r.lying_s));
     }
 }

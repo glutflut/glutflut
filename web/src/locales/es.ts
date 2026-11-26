@@ -245,6 +245,8 @@ export const es: Dict = {
   "node.t.h": "{n} h",
   "node.src.none": "Sin fuente: el color viene del entorno",
   "node.src.natural": "Fuente natural ({side})",
+  "node.src.built.water": "Fuente (agua): construida por jugadores, queda para siempre",
+  "node.src.built.fire": "Fragua (fuego): construida por jugadores, queda para siempre",
   "node.src.why": "{src}: {why}",
   "node.why.food": "Restaurantes",
   "node.why.shore": "Orilla",

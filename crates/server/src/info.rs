@@ -12,8 +12,8 @@ use crate::sim::{ElementSource, SourceKind};
 #[derive(Serialize, ts_rs::TS)]
 #[ts(rename = "NodeSource")]
 pub struct Src {
-    /// natural, claim, anchor, spark, keep
-    #[ts(type = "\"natural\" | \"claim\" | \"anchor\" | \"spark\" | \"keep\"")]
+    /// natural, built (carrying), claim, anchor, spark, keep
+    #[ts(type = "\"natural\" | \"built\" | \"claim\" | \"anchor\" | \"spark\" | \"keep\"")]
     pub kind: &'static str,
     #[ts(as = "crate::protocol::Faction")]
     pub faction: &'static str,

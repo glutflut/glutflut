@@ -244,6 +244,8 @@ export const en: Dict = {
   "node.t.h": "{n} h",
   "node.src.none": "No source: the colour comes from the surroundings",
   "node.src.natural": "Natural source ({side})",
+  "node.src.built.water": "Well (water): built by players, stays for good",
+  "node.src.built.fire": "Forge (fire): built by players, stays for good",
   "node.src.why": "{src}: {why}",
   "node.why.food": "Restaurants",
   "node.why.shore": "Shore",

@@ -130,7 +130,9 @@ export function setupNodeCard(
       const left = s.left !== undefined ? span(s.left) : "";
       const mine = s.yours || (s.kind === "keep" && ownKeep().has(m.node));
       src =
-        s.kind === "natural"
+        s.kind === "built"
+          ? t(`node.src.built.${s.faction}` as Key)
+          : s.kind === "natural"
           ? s.why
             ? t("node.src.why", { src: t("node.src.natural", { side: sideName }), why: t(`node.why.${s.why}` as Key) })
             : t("node.src.natural", { side: sideName })
@@ -191,7 +193,7 @@ export function setupNodeCard(
 
     // An own natural or permanent source: take a load here.
     const cb = $("node-carry") as HTMLButtonElement;
-    cb.hidden = !(carry.on() && !carry.carrying() && me && s && s.faction === me && (s.kind === "natural" || s.kind === "keep"));
+    cb.hidden = !(carry.on() && !carry.carrying() && me && s && s.faction === me && (s.kind === "natural" || s.kind === "built" || s.kind === "keep"));
     cb.className = me ?? "";
     cb.textContent = t(me === "fire" ? "carry.take.fire" : "carry.take.water");
 
