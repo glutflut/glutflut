@@ -43,7 +43,32 @@ function load(): Stored[] {
     delete m.far;
   }
   if (both.length) save(list);
+  if (ticketFarLinks(list)) save(list);
   return list;
+}
+
+/** Far links of one's own sources go by the sources' tickets (keys expire
+ *  unused): an earlier version stored a link key of each end. Repair those
+ *  once, pairing with the source over there that links back here. */
+function ticketFarLinks(list: Stored[]): boolean {
+  let changed = false;
+  const far = elsewhere();
+  for (const m of list) {
+    if (!m.far) continue;
+    const there = far.get(m.far.region) ?? [];
+    if (there.some((x) => x.ticket === m.far!.key)) continue;
+    const back = there.filter((x) => x.far?.region === region);
+    const near = (x: Stored) => {
+      const [a, b] = [x.far?.ll, m.ll];
+      return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : 0;
+    };
+    const x = back.sort((p, q) => near(p) - near(q))[0];
+    if (!x) continue;
+    m.far.key = x.ticket;
+    setFarThere(m.far.region, x.ticket, { ...x.far!, key: m.ticket });
+    changed = true;
+  }
+  return changed;
 }
 
 function save(list: Stored[]) {
@@ -68,15 +93,6 @@ function elsewhere(): Map<string, Stored[]> {
     // Storage blocked: no far links.
   }
   return out;
-}
-
-/** Take one link key of the source `ticket` in region `slug`'s list. */
-function takeKeyThere(slug: string, ticket: string): string | undefined {
-  const key = `${PREFIX}${slug}` as StoreKey;
-  const list = (loadJson<Stored[]>(key) ?? []).filter(valid);
-  const k = list.find((x) => x.ticket === ticket)?.keys?.shift();
-  if (k) saveJson(key, list);
-  return k;
 }
 
 /** Set (or with `to` null clear) the far end on a source of region `slug`'s list. */
@@ -367,11 +383,9 @@ export function setupPerm(
             if (b.far && !b.link) btn.textContent += ` · ${t("perm.linked.to", { city: b.far.name ?? b.far.region })}`;
             else if (b.link) btn.textContent += ` · ${t("perm.linked")}`;
             // Linked within its own city: only that city's server can undo it.
-            // With link keys: a key of each end.
-            const noKeys = linkKeys > 0 && (!keysOf(b).length || !keysOf(a).length);
-            if (b.link || noKeys) {
+            if (b.link) {
               btn.disabled = true;
-              btn.textContent += ` (${b.link ? t("perm.linked.there", { city: r.name }) : t("perm.link.needkeys")})`;
+              btn.textContent += ` (${t("perm.linked.there", { city: r.name })})`;
               list.append(btn);
               return;
             }
@@ -414,11 +428,8 @@ export function setupPerm(
         if (x) delete x.far;
       } else setFarThere(old.region, old.key, null);
     }
-    // With link keys: a key of each end instead of the tickets; each binds
-    // to this link at its first claim.
-    const bKey = linkKeys ? takeKeyThere(slug, b.ticket) : b.ticket;
-    const aKey = linkKeys ? a.keys?.shift() : a.ticket;
-    if (!bKey || !aKey) return toast(t("perm.link.nokey"), 7000);
+    // Both ends are one's own: their tickets open them (no key to expire).
+    const [bKey, aKey] = [b.ticket, a.ticket];
     a.far = { region: slug, key: bKey, ll: b.ll, name: regionName };
     save(mine);
     setFarThere(slug, b.ticket, { region, key: aKey, ll: where(a), name: hereName });

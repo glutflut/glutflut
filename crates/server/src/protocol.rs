@@ -146,7 +146,7 @@ pub enum ServerMsg<'a> {
         ok: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(
-            type = "\"range\" | \"cooldown\" | \"unknown\" | \"moving\" | \"own\" | \"strong\" | \"supplied\" | \"worn\" | \"linked\" | \"linkfar\" | \"linkdown\" | \"nokey\"",
+            type = "\"range\" | \"cooldown\" | \"unknown\" | \"moving\" | \"own\" | \"strong\" | \"supplied\" | \"worn\" | \"linked\" | \"linkfar\" | \"linkdown\" | \"nokey\" | \"gone\"",
             optional
         )]
         reason: Option<&'static str>,
@@ -449,7 +449,7 @@ pub enum ServerMsg<'a> {
         /// `linkdown`; `asleep`: the far region sleeps, a claim wakes it).
         #[serde(skip_serializing_if = "Option::is_none")]
         #[ts(
-            type = "\"linked\" | \"nokey\" | \"linkfar\" | \"linkdown\" | \"asleep\"",
+            type = "\"linked\" | \"nokey\" | \"gone\" | \"linkfar\" | \"linkdown\" | \"asleep\"",
             optional
         )]
         reason: Option<&'static str>,

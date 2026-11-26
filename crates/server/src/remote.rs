@@ -117,7 +117,7 @@ pub type Fixed = &'static str;
 
 /// Reasons and origins come back as the fixed strings the code uses.
 const REASONS: &[&str] = &[
-    "nokey", "linked", "worn", "linkdown", "asleep", "cooldown", "unknown", "range", "own",
+    "nokey", "gone", "linked", "worn", "linkdown", "asleep", "cooldown", "unknown", "range", "own",
     "strong", "supplied",
 ];
 pub(crate) const ORIGINS: &[&str] = &["gift", "bottle", "ember", "city", "link"];

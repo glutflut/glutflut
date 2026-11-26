@@ -15,7 +15,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "overview", tiles: Array<[number, number, number, number, number, number]>, full: boolean, }
   | { "t": "totals", fire: number, water: number, front: number, }
   | { "t": "cheers", fire: number, water: number, burst: [number, number], }
-  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked" | "linkfar" | "linkdown" | "nokey", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, far?: [number, number], near?: Array<[number, number, number, number]>, streets?: Array<[number, number]>, from?: [number, number], }
+  | { "t": "claim", node: number, ok: boolean, reason?: "range" | "cooldown" | "unknown" | "moving" | "own" | "strong" | "supplied" | "worn" | "linked" | "linkfar" | "linkdown" | "nokey" | "gone", bonus: boolean, points: number, wait: number, build: number, doused?: boolean, anchor?: boolean, far?: [number, number], near?: Array<[number, number, number, number]>, streets?: Array<[number, number]>, from?: [number, number], }
   | { "t": "rate", ok: boolean, reason?: string, points: number, }
   | { "t": "hotspots", items: Array<HotspotInfo>, }
   | { "t": "score" } & Mine
@@ -60,7 +60,7 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "kept", ticket: string, state: "standing" | "fallen" | "gone", node?: number, points: number, }
   | { "t": "released", ok: boolean, }
   | { "t": "motto", node: number, ok: boolean, reason?: string, }
-  | { "t": "peek", via: string, node?: number, reason?: "linked" | "nokey" | "linkfar" | "linkdown" | "asleep", lon?: number, lat?: number, }
+  | { "t": "peek", via: string, node?: number, reason?: "linked" | "nokey" | "gone" | "linkfar" | "linkdown" | "asleep", lon?: number, lat?: number, }
   | { "t": "found", origin: "ember" | "bottle", region: string, name: string, key: string, }
   | { "t": "gift", node: number, ok: boolean, key?: string, reason?: "off" | "notyours" | "soon", }
   | { "t": "link", node: number, ok: boolean, reason?: string, }

@@ -22,6 +22,7 @@ const WHY: Record<string, Key> = {
   linkfar: "claim.linkfar",
   linkdown: "claim.linkdown",
   nokey: "claim.nokey",
+  gone: "claim.gone",
 };
 
 type Target = { id: number; anchor: boolean; reinforce?: boolean };

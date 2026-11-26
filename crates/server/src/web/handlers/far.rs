@@ -292,10 +292,16 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
     let link_key = key.as_ref().is_some_and(|k| k.origin == "link");
     // A city key (editor) opens a junction of the city's, for either side.
     let spot = key.as_ref().and_then(|k| k.spot);
+    // The source's own ticket always opens it: whoever has it owns the
+    // source (links between one's own sources need no key); keys are for
+    // others' sources (gifts, finds, city keys, links).
     let keep = match gift {
         Some(_) => key.as_ref().filter(|k| k.spot.is_none()).map(|k| k.keep),
-        None => hk.filter(|_| rules.keep.link_keys == 0),
+        None => hk,
     };
+    // No good key (unknown, used up, expired, bound to another link) is not
+    // the same as a source that fell or changed sides.
+    let no_key = spot.is_none() && keep.is_none();
     debug!(
         tries = a.tries,
         restored = game.keeps.restored(),
@@ -343,7 +349,8 @@ pub(super) fn ask(game: &mut Game, c: &Ctx, a: Ask) {
         .map(|t| (b, t))
     });
     match (b, target) {
-        (None, _) => ans.reason = Some("nokey"),
+        (None, _) if no_key => ans.reason = Some("nokey"),
+        (None, _) => ans.reason = Some("gone"),
         (Some(_), None) => ans.reason = Some("linked"),
         (Some(_), Some((_, (node, lon, lat)))) if a.look => {
             ans.ok = true;
