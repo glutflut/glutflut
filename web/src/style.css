@@ -1952,6 +1952,7 @@ body.dreaming #map::after {
   background: rgba(20, 24, 32, 0.88);
   color: #fff;
 }
+#carry[hidden] { display: none; }
 #carry.water { box-shadow: inset 0 0 0 2px var(--water); }
 #carry.fire { box-shadow: inset 0 0 0 2px var(--fire); }
 .carry-view svg { width: 44px; height: 52px; display: block; }
