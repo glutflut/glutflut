@@ -23,6 +23,7 @@ mod bench;
 mod campaign;
 mod card;
 mod card_game;
+mod carry;
 mod cells;
 mod challenge;
 mod cheat;
@@ -599,6 +600,7 @@ pub fn build(p: Prepared) -> App {
     app.init_resource::<ring::Rings>();
     app.init_resource::<dream::Dreams>();
     app.init_resource::<wisp::Wisp>();
+    app.init_resource::<carry::Carry>();
     app.insert_resource(sim::GameRules(rules));
     app.init_resource::<area::Blocks>();
     app.init_resource::<marble::Claims>();
@@ -651,6 +653,9 @@ pub fn build(p: Prepared) -> App {
                     (wind::update, web::wind_tick)
                         .chain()
                         .run_if(resource_exists::<wind::LiveWind>),
+                    (carry::tick, carry::apply_builds, web::carry_tick)
+                        .chain()
+                        .run_if(resource_exists::<sim::ElementSim>),
                 ),
                 weather::apply,
                 (keep::restore, live::restore).chain(),
@@ -729,6 +734,8 @@ pub struct RegionData {
     pub rivers: found::Rivers,
     /// Junction names (`geo.nodes.story_tag`; indoors the sheet's label).
     pub labels: indoor::Labels,
+    /// Carrying: sites and buildings (`carry.rs`).
+    pub carry: carry::Carry,
 }
 
 /// Spawn the region's graph from `prepare` as ECS entities (S2), with its
@@ -758,7 +765,9 @@ fn load_geo(
         tide,
         rivers,
         labels,
+        carry,
     } = data;
+    commands.insert_resource(carry);
     commands.insert_resource(rivers);
     commands.insert_resource(labels);
     // Automatic hotspots never at the waterline (`tide.rs`).

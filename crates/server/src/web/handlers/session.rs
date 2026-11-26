@@ -249,6 +249,8 @@ pub(super) fn hello(
     if let Some(w) = game.wisp.shown {
         send(&out, &ServerMsg::Wisp(w));
     }
+    let id = slot.and_then(|s| game.scores.get(s)).map(|r| r.id);
+    super::carry::hello(game, c, &out, id, faction);
     if game.dreams.shown.on || game.dreams.shown.dawn > 0 {
         send(&out, &ServerMsg::Dream(game.dreams.shown));
     }

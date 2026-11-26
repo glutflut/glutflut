@@ -294,6 +294,39 @@ pub enum ServerMsg<'a> {
     Tide(crate::tide::Shown),
     /// The will-o'-the-wisp (`wisp.rs`): where it is, which side it leans to.
     Wisp(crate::wisp::Shown),
+    /// One's own load, or none (`carry.rs`).
+    Carry {
+        load: Option<crate::carry::CarryView>,
+    },
+    /// A take or put-down worked: `fresh` / `handed` (taken), `waiting`
+    /// (put down at a junction), `delivered` (`filled` of `need` at the
+    /// site), `built`, `tired` (the hand's time ran out, put down).
+    CarryDone {
+        what: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        filled: Option<f32>,
+        need: f32,
+    },
+    /// It didn't: `carrying`, `nothing here`, `not carrying`, `no street
+    /// here`, `off`, `no position`.
+    CarryFail {
+        reason: &'a str,
+    },
+    /// The own side's lying loads and site.
+    Loads {
+        #[serde(flatten)]
+        view: crate::carry::LoadsView,
+    },
+    /// All buildings of the region.
+    Builds {
+        items: Vec<crate::carry::BuiltView>,
+    },
+    /// A building was just finished.
+    Built {
+        #[serde(flatten)]
+        item: crate::carry::BuiltView,
+    },
     /// The dreaming city (`dream.rs`): night now, the last dawn.
     Dream(crate::dream::Shown),
     /// Walked rings in force (`ring.rs`).
@@ -815,6 +848,13 @@ pub enum ClientMsg {
         #[ts(as = "Faction")]
         faction: String,
     },
+    /// Take a load here (`carry.rs`): a lying one of the side, else a fresh
+    /// one at an own source.
+    Take,
+    /// Put the load down here, with `fill` (0..1) left after spilling.
+    Lay {
+        fill: f32,
+    },
     /// Cheer for a side (players only their own; for show only, `cheer.rs`).
     Cheer {
         #[ts(as = "Faction")]
@@ -913,6 +953,10 @@ fn typescript() -> String {
         crate::ring::View,
         crate::dream::Shown,
         crate::wisp::Shown,
+        crate::carry::CarryView,
+        crate::carry::LyingView,
+        crate::carry::SiteView,
+        crate::carry::BuiltView,
         challenge::View,
         info::Src,
         elements_shared::progression::Challenge,

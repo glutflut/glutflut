@@ -4,6 +4,7 @@
 
 mod ability;
 mod account;
+mod carry;
 mod claim;
 mod far;
 mod info;
@@ -70,6 +71,7 @@ pub struct Game<'w, 's> {
     rings: ResMut<'w, crate::ring::Rings>,
     dreams: ResMut<'w, crate::dream::Dreams>,
     wisp: ResMut<'w, crate::wisp::Wisp>,
+    carry: ResMut<'w, crate::carry::Carry>,
     tunnels: Local<'s, Tunnels>,
     labels: Option<Res<'w, crate::indoor::Labels>>,
     /// Asks into other regions waiting for their answer.
@@ -163,6 +165,8 @@ pub fn inbox(
             FromWeb::Code { conn } => account::code(g, conn),
             FromWeb::Side { conn, faction } => account::side(g, conn, &faction),
             FromWeb::Level { conn, level } => account::level(g, conn, level),
+            FromWeb::Take { conn } => carry::take(g, &c, conn),
+            FromWeb::Lay { conn, fill } => carry::lay(g, &c, conn, fill),
             FromWeb::Cheer { conn, side } => {
                 // Players (with a score slot) cheer only for their own side,
                 // watchers for either; nothing before the entity is spawned.

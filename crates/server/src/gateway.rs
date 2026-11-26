@@ -160,6 +160,14 @@ pub enum FromWeb {
         conn: u64,
         side: String,
     },
+    /// Carrying (`carry.rs`).
+    Take {
+        conn: u64,
+    },
+    Lay {
+        conn: u64,
+        fill: f32,
+    },
     /// Test servers only: set this player's level.
     Level {
         conn: u64,
@@ -1625,6 +1633,8 @@ async fn handle_socket(
             }
             ClientMsg::Side { faction } => FromWeb::Side { conn, faction },
             ClientMsg::Cheer { side } => FromWeb::Cheer { conn, side },
+            ClientMsg::Take => FromWeb::Take { conn },
+            ClientMsg::Lay { fill } => FromWeb::Lay { conn, fill },
             ClientMsg::Level { level } => FromWeb::Level { conn, level },
             ClientMsg::Motto {
                 node,

@@ -36,6 +36,12 @@ export type ServerMsg = { "t": "presence", ok: boolean, reason?: string, n?: num
   | { "t": "weather" } & WeatherShown
   | { "t": "tide" } & TideShown
   | { "t": "wisp" } & WispShown
+  | { "t": "carry", load: CarryView | null, }
+  | { "t": "carrydone", what: string, filled?: number, need: number, }
+  | { "t": "carryfail", reason: string, }
+  | { "t": "loads", lying: Array<LyingLoad>, site: SiteView | null, }
+  | { "t": "builds", items: Array<BuiltView>, }
+  | { "t": "built", side: Faction, lat: number, lon: number, names: Array<string>, when: number, }
   | { "t": "dream" } & DreamShown
   | { "t": "rings", items: Array<RingView>, }
   | { "t": "ringclosed", side: Faction, nodes: number, }
@@ -85,6 +91,8 @@ export type ClientMsg = { "t": "hello", token: string | null, bot?: boolean, til
   | { "t": "ability", name: AbilityName, }
   | { "t": "recover", code: string, }
   | { "t": "side", faction: Faction, }
+  | { "t": "take" }
+  | { "t": "lay", fill: number, }
   | { "t": "cheer", side: Faction, }
   | { "t": "level", level: number, }
   | { "t": "motto", node: number, ticket: string, motto?: string | null, }
@@ -191,6 +199,17 @@ export type DreamShown = { on: boolean, dreamt: number, came_true: number, dawn:
  * What the app gets (`ServerMsg::Wisp`).
  */
 export type WispShown = { lon: number, lat: number, lean: number, };
+
+/**
+ * One's own load (`ServerMsg::Carry`).
+ */
+export type CarryView = { side: Faction, fill: number, left: number, hands: number, };
+
+export type LyingLoad = { lat: number, lon: number, left: number, fill: number, hands: number, };
+
+export type SiteView = { lat: number, lon: number, filled: number, need: number, left: number, };
+
+export type BuiltView = { side: Faction, lat: number, lon: number, names: Array<string>, when: number, };
 
 /**
  * What the player sees.

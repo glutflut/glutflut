@@ -153,6 +153,7 @@ pub fn load_file(path: &Path, slug: &str) -> Result<crate::RegionData, Box<dyn s
         finds: Default::default(),
         rivers: Default::default(),
         labels: Default::default(),
+        carry: Default::default(),
         blocks: f
             .blocks
             .into_iter()

@@ -158,7 +158,9 @@ pub fn load_region_data(conn_str: &str, slug: &str) -> Option<crate::RegionData>
             warn!(error = %e, "no river data");
             Default::default()
         });
+    let carry = crate::carry::setup(conn_str, &graph.nodes, &region, &places);
     Some(crate::RegionData {
+        carry,
         graph,
         region,
         lines,

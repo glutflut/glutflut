@@ -463,6 +463,94 @@ pub fn wisp_tick(wisp: Res<crate::wisp::Wisp>, clients: Res<WebClients>, mut see
     }
 }
 
+/// Carrying to the apps (`carry.rs`): each side its lying loads and site when
+/// they change (and every minute), all the buildings, a new building to
+/// everyone; tired hands put their load down where they are.
+#[allow(clippy::type_complexity)]
+pub fn carry_tick(
+    mut carry: ResMut<crate::carry::Carry>,
+    rules: Res<crate::sim::GameRules>,
+    clients: Res<WebClients>,
+    scores: Res<Scores>,
+    players: Query<(&Faction, &Position, Option<&ScoreSlot>), With<Player>>,
+    mut seen: Local<([u32; 2], u32, f64)>,
+) {
+    let r = &rules.0.carry;
+    let now = now_s();
+    // Tired hands: put down where they are (or lost, if they are away).
+    let tired = if r.enabled {
+        carry.tired(r, now)
+    } else {
+        Vec::new()
+    };
+    for id in tired {
+        let here = clients.0.iter().find_map(|(conn, (e, out))| {
+            let (_, pos, slot) = players.get(*e).ok()?;
+            let rec = scores.get(slot?.0)?;
+            (rec.id == id).then(|| (*conn, out.clone(), Vec2::new(pos.0.x, pos.0.z)))
+        });
+        let Some((_, out, p)) = here else {
+            carry.drop_held(&id);
+            continue;
+        };
+        let fill = carry.held(&id).map_or(1.0, |h| h.load.fill);
+        let spot = carry.spot_near(r, p);
+        if carry.lay(r, &id, p, fill, spot, now).is_err() {
+            carry.drop_held(&id);
+        }
+        send(
+            &out,
+            &ServerMsg::CarryDone {
+                what: "tired",
+                filled: None,
+                need: r.loads,
+            },
+        );
+        send(&out, &ServerMsg::Carry { load: None });
+    }
+    for b in std::mem::take(&mut carry.news) {
+        to_all(
+            &clients,
+            &ServerMsg::Built {
+                item: crate::carry::BuiltView::of(&b),
+            },
+        );
+    }
+    if carry.built_version != seen.1 {
+        seen.1 = carry.built_version;
+        to_all(
+            &clients,
+            &ServerMsg::Builds {
+                items: carry.builds(),
+            },
+        );
+    }
+    if !r.enabled {
+        return;
+    }
+    let minute = now - seen.2 >= 60.0;
+    if minute {
+        seen.2 = now;
+    }
+    for side in [Faction::Fire, Faction::Water] {
+        let i = crate::carry::idx(side);
+        if carry.version[i] == seen.0[i] && !minute {
+            continue;
+        }
+        seen.0[i] = carry.version[i];
+        let Ok(json) = serde_json::to_string(&ServerMsg::Loads {
+            view: carry.view(r, side, now),
+        }) else {
+            continue;
+        };
+        for (e, out) in clients.0.values() {
+            if players.get(*e).is_ok_and(|(f, _, _)| *f == side) {
+                let _ = out.send(json.clone());
+            }
+        }
+    }
+}
+
 /// Night or day in the dreaming city to every app when it changes (`dream.rs`).
 pub fn dream_tick(
     dreams: Res<crate::dream::Dreams>,

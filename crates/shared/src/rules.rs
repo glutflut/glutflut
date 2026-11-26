@@ -91,6 +91,7 @@ pub struct Rules {
     pub dream: Dream,
     /// The will-o'-the-wisp (`[wisp]`).
     pub wisp: Wisp,
+    pub carry: Carry,
     /// Weekly streaks of play days (`[streak]`, server).
     pub streak: crate::streak::StreakRules,
     /// Chance that a new player joins the weaker side (fewer players today,
@@ -163,6 +164,55 @@ impl Default for Wisp {
             fade: 0.03,
             strength: 0.9,
             roam_m: 1200.0,
+        }
+    }
+}
+
+/// Carrying (vault `tragen-bauen-kipppunkt.md`, lab rounds 31-34): at an
+/// own natural or permanent source within `reach_m` a player takes a load
+/// (fire: an ember in a lantern, water: a jug) and carries it at most `hand_s`;
+/// put down at a junction it waits `lying_s` for another hand of the side (not
+/// the last one). Each side has one open site, `site_min_m`..`site_max_m` from
+/// its natural sources and buildings, near where people are; `loads` loads
+/// (by fill, at least `min_fill` each) within `site_s` delivered within
+/// `deliver_m` make a building there: a source of the side with
+/// `built_strength` for good, carrying its builders' names. Then the next site
+/// after `reopen_s`, up to `max_built` per side; a site nobody finishes moves
+/// after `site_s`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Carry {
+    pub enabled: bool,
+    pub hand_s: f32,
+    pub lying_s: f32,
+    pub reach_m: f32,
+    pub deliver_m: f32,
+    pub loads: f32,
+    pub min_fill: f32,
+    pub site_min_m: f32,
+    pub site_max_m: f32,
+    pub site_s: f32,
+    pub reopen_s: f32,
+    pub max_built: u32,
+    pub built_strength: f32,
+}
+
+impl Default for Carry {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            hand_s: 600.0,
+            lying_s: 21_600.0,
+            reach_m: 30.0,
+            deliver_m: 40.0,
+            loads: 4.0,
+            min_fill: 0.3,
+            site_min_m: 400.0,
+            site_max_m: 1000.0,
+            site_s: 604_800.0,
+            reopen_s: 3600.0,
+            max_built: 10,
+            built_strength: 0.8,
         }
     }
 }
@@ -478,6 +528,7 @@ impl Default for Rules {
             fool: Default::default(),
             dream: Default::default(),
             wisp: Default::default(),
+            carry: Default::default(),
             streak: Default::default(),
             join_weaker: 0.67,
             indoor: Default::default(),

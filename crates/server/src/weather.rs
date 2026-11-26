@@ -29,12 +29,15 @@ pub fn apply(
     tide: Option<Res<crate::tide::LiveTide>>,
     mut rules: ResMut<GameRules>,
     mut sim: ResMut<ElementSim>,
-    mut naturals: Query<(
-        &mut NaturalSource,
-        Option<&mut ElementSource>,
-        Has<Spring>,
-        Option<&crate::sim::ElemIdx>,
-    )>,
+    mut naturals: Query<
+        (
+            &mut NaturalSource,
+            Option<&mut ElementSource>,
+            Has<Spring>,
+            Option<&crate::sim::ElemIdx>,
+        ),
+        Without<crate::carry::Building>,
+    >,
     clock: Option<Res<crate::clock::Clock>>,
     mut seen: Local<Option<(Option<WeatherDay>, u32, bool, u32, bool, u32, bool)>>,
 ) {
