@@ -44,6 +44,7 @@ import { FOOL, foolFromServer, startFool } from "./fool";
 import { setupRings } from "./ring";
 import { setupDream } from "./dream";
 import { setupWisp } from "./wisp";
+import { setupCarry } from "./carry";
 import type { Wind } from "./spill";
 import { setupRate } from "./rate";
 import { setupHotspots } from "./hotspots";
@@ -271,7 +272,8 @@ async function main() {
   );
   setupFeedback(toast);
   const news = setupNews((k) => t(k));
-  const card = setupNodeCard(map, net, (node) => claim.send(node), () => faction, () => perm.nodes(), owner, () => claim.wait(), () => player.me(), perm.linkControl);
+  const carry = setupCarry(map, net, sound, () => player.me(), () => faction, (cls, kicker, name, line) => finds.notice(cls, kicker, name, line));
+  const card = setupNodeCard(map, net, (node) => claim.send(node), () => faction, () => perm.nodes(), owner, () => claim.wait(), () => player.me(), perm.linkControl, carry);
   // The junction nearest a tap, within 28 px (the dots are small).
   const pickNode = (p: maplibregl.Point): number | null => {
     let best: [number, number] | null = null;
@@ -611,6 +613,12 @@ async function main() {
     weather: (m) => weather.onWeather(m),
     tide: (m) => weather.onTide(m),
     rings: (m) => rings.set(m.items),
+    carry: (m) => carry.onCarry(m),
+    carrydone: (m) => carry.onDone(m),
+    carryfail: (m) => carry.onFail(m),
+    loads: (m) => carry.onLoads(m),
+    builds: (m) => carry.onBuilds(m),
+    built: (m) => carry.onBuilt(m),
     wisp: (m) => {
       if (wisp.set(m) && load(KEYS.wispSeen) !== "1") {
         save(KEYS.wispSeen, "1");

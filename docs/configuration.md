@@ -430,6 +430,25 @@ Gauge level → phase −1 (mean low water) … +1 (mean high water); `k` = phas
 | `elev_full_m`, `elev_half_m` | 5, 15 | Full weight up to this height above mean high water, half from the second. |
 | `surge_m` | 1.5 | Storm surge: off above mean high water + this. |
 
+#### `[carry]` (carrying, server `carry.rs`)
+
+At an own natural source, building or permanent source a player takes a load (water: a jug, fire: a lantern) and carries it; put down at a junction it waits for another hand of the side (not the last one: bucket chain, torch relay). Each side has one open site; enough loads delivered there make a building, a source of the side for good (it comes back after claims on it run out, the weather leaves it) with the builders' game names. Spilling on the way (the app's motion sensors, `web/src/spill.ts`) lowers a load's fill, never below `min_fill`. Held and lying loads live in memory; sites and buildings in `game.carry_sites` / `game.carry_builds`. Numbers from lab rounds 31–34.
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | false | On in `rules/default.toml`. |
+| `hand_s` | 600 | One hand carries at most this long (s), then the load is put down where the player is. |
+| `lying_s` | 21600 | A put-down load waits this long for another hand (s). |
+| `reach_m` | 30 | Taking at a source or a lying load, and putting down at a junction, within this (m). |
+| `deliver_m` | 40 | Delivering at the site within this (m). |
+| `loads` | 4 | A building needs this much (sum of fills). |
+| `min_fill` | 0.3 | Spilling never takes a load below this. |
+| `site_min_m`, `site_max_m` | 400, 1000 | A site stands this far from the side's natural sources and buildings, nearest to a place people go (hotspot sites, zones). |
+| `site_s` | 604800 | A site nobody finishes moves after this (s). |
+| `reopen_s` | 3600 | The next site after a building (s). |
+| `max_built` | 10 | Buildings per side and region. |
+| `built_strength` | 0.8 | A building's strength, the same for both sides (lab round 34). |
+
 #### `[finds]` (Fundstücke, server only)
 
 | Key | Default | Meaning |

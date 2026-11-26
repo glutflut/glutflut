@@ -956,6 +956,7 @@ fn typescript() -> String {
         crate::carry::CarryView,
         crate::carry::LyingView,
         crate::carry::SiteView,
+        crate::carry::LoadsView,
         crate::carry::BuiltView,
         challenge::View,
         info::Src,

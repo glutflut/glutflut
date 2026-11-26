@@ -31,6 +31,8 @@ export function setupNodeCard(
   me: () => [number, number] | null,
   /** The link button for an own permanent source (perm.ts), if any. */
   linkControl: (node: number, leave: () => void) => HTMLElement | null,
+  /** Carrying (carry.ts): take a load at an own source. */
+  carry: { on(): boolean; carrying(): boolean; take(): void },
 ) {
   const card = $("node-card");
   let node: number | null = null;
@@ -79,6 +81,10 @@ export function setupNodeCard(
 
   $("node-close").onclick = close;
   $("node-claim").onclick = () => node !== null && claim(node);
+  $("node-carry").onclick = () => {
+    carry.take();
+    close();
+  };
 
   function show(m: InfoMsg) {
     if (m.node !== node) return;
@@ -182,6 +188,12 @@ export function setupNodeCard(
           ? t("node.rain", { mm: m.rain!.toLocaleString(undefined, { maximumFractionDigits: 1 }), time })
           : t("node.rain.dry", { time });
     }
+
+    // An own natural or permanent source: take a load here.
+    const cb = $("node-carry") as HTMLButtonElement;
+    cb.hidden = !(carry.on() && !carry.carrying() && me && s && s.faction === me && (s.kind === "natural" || s.kind === "keep"));
+    cb.className = me ?? "";
+    cb.textContent = t(me === "fire" ? "carry.take.fire" : "carry.take.water");
 
     const btn = $("node-claim") as HTMLButtonElement;
     btn.hidden = !(m.take === "ok" || m.take === "anchor");

@@ -209,6 +209,8 @@ export type LyingLoad = { lat: number, lon: number, left: number, fill: number, 
 
 export type SiteView = { lat: number, lon: number, filled: number, need: number, left: number, };
 
+export type LoadsView = { lying: Array<LyingLoad>, site: SiteView | null, };
+
 export type BuiltView = { side: Faction, lat: number, lon: number, names: Array<string>, when: number, };
 
 /**

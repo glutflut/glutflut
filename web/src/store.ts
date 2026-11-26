@@ -34,6 +34,8 @@ export const KEYS = {
   fool: "elements.fool",
   /** The will-o'-the-wisp was introduced once (wisp.ts). */
   wispSeen: "elements.wisp.seen",
+  /** Carrying was introduced once (carry.ts). */
+  carrySeen: "elements.carry.seen",
   /** The dream hint was shown on this date; the dawn summary for this dawn (dream.ts). */
   dreamSeen: "elements.dream.seen",
   dawnSeen: "elements.dawn.seen",

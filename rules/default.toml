@@ -155,3 +155,9 @@ enabled = true
 # it is that side's source and walks into its ground.
 [wisp]
 enabled = true
+
+# Carrying (lab rounds 31-34): take a load at an own source, carry it at most
+# 10 min, put it down for another hand (waits 6 h); 4 loads at the side's site
+# make a building, a source of the side for good (strength 0.8 for both).
+[carry]
+enabled = true

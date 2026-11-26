@@ -1940,3 +1940,66 @@ body.dreaming #map::after {
 @media (prefers-reduced-motion: reduce) {
   .wisp, .wisp-core { animation: none; }
 }
+
+/* Carrying (carry.ts): the jug or lantern above the buttons, loads and sites on the map. */
+#carry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: rgba(20, 24, 32, 0.88);
+  color: #fff;
+}
+#carry.water { box-shadow: inset 0 0 0 2px var(--water); }
+#carry.fire { box-shadow: inset 0 0 0 2px var(--fire); }
+.carry-view svg { width: 44px; height: 52px; display: block; }
+.carry-info { flex: 1; display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; font-size: 14px; }
+.carry-fill { font-variant-numeric: tabular-nums; }
+.carry-left { font-variant-numeric: tabular-nums; opacity: 0.8; }
+.carry-left.low { color: #ffb3b3; opacity: 1; }
+.carry-lay { padding: 8px 14px; border-radius: 10px; font-weight: 600; }
+#carry.water .carry-lay { background: var(--water); color: #fff; }
+#carry.fire .carry-lay { background: var(--fire); color: #fff; }
+.carry-lying {
+  font-size: 22px;
+  cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
+  animation: wisp-float 3.2s ease-in-out infinite;
+}
+.carry-site {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font: 600 11px/1 system-ui, sans-serif;
+  color: #fff;
+  text-shadow: 0 0 3px #000;
+}
+.carry-site-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.85);
+  background: conic-gradient(var(--c) var(--p), rgba(0, 0, 0, 0.35) 0);
+  opacity: 0.85;
+}
+.carry-site span { position: relative; }
+.carry-site.water { --c: var(--water); }
+.carry-site.fire { --c: var(--fire); }
+.carry-built {
+  font-size: 26px;
+  cursor: pointer;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+}
+.carry-built.water { filter: drop-shadow(0 0 8px var(--water)); }
+.carry-built.fire { filter: drop-shadow(0 0 8px var(--fire)); }
+#node-carry { margin-top: 8px; width: 100%; padding: 11px; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; color: #fff; background: var(--neutral); }
+#node-carry.water { background: var(--water); color: #fff; }
+#node-carry.fire { background: var(--fire); color: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  .carry-lying { animation: none; }
+}
