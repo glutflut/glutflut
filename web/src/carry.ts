@@ -38,6 +38,7 @@ export function setupCarry(
   let feel: Feel | null = null;
   let draw: ((s: FeelState) => void) | null = null;
   let lastSound = 0;
+  let lastSteady = 0;
   let lying: maplibregl.Marker[] = [];
   let site: maplibregl.Marker | null = null;
   let builds: maplibregl.Marker[] = [];
@@ -73,8 +74,16 @@ export function setupCarry(
     // A new load (not just an update of the one carried): a new feel.
     if (!was || !feel || feel.kind !== v.side) {
       feel?.stop();
+      let spilt = 0;
       feel = new Feel(v.side, (lost) => {
         const now = Date.now();
+        // Spilling noticeably: say why, at most every 45 s.
+        spilt += lost;
+        if (spilt >= 0.03 && now - lastSteady > 45_000) {
+          lastSteady = now;
+          spilt = 0;
+          toast(say("carry.steady", v.side), 3000);
+        }
         if (now - lastSound < 700) return;
         lastSound = now;
         if (v.side === "water") sound.slosh(lost * 20);
