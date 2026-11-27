@@ -934,7 +934,7 @@ function drawList() {
     const last = mine[0];
     st.append(el("span", { className: `st ${last?.state === "draft" ? "live" : ""}`, textContent: last ? t(last.state === "draft" ? "po.st.draft" : last.state === "sent" ? "po.st.sent" : "po.st.discarded") : t("st.planned") }));
     const td = tr.insertCell().appendChild(el("div", { className: "post-acts" }));
-    const b = (label: string, fn: () => void) => td.append(el("button", { type: "button", textContent: label, onclick: fn }));
+    const b = (label: string, fn: () => void, title = "") => td.append(el("button", { type: "button", textContent: label, title, onclick: fn }));
     b(t("ui.edit"), async () => {
       if (await mayLeave("post-form")) open(p);
     });
@@ -943,7 +943,7 @@ function drawList() {
       if (!res?.ok) toast(await errorOf(res, t("ui.savefail")), "error");
       else toast(t("po.drafted"));
       await loadPosts(region, primary, chapters);
-    });
+    }, t("po.draftnow.hint"));
     b(t("ui.delete"), async () => {
       if (!(await ask(t("po.delete.ask", { name: p.title }), t("ui.delete"), true))) return;
       const res = await api(`/api/ops/posts?${q()}&id=${p.id}`, { method: "DELETE" });
