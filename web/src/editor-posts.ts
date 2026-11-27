@@ -90,6 +90,8 @@ let shown: Variant = "any";
 /** The region's hashtags, and the ones the form's post uses. */
 let hashtags: { tag: string; preset: boolean }[] = [];
 let picked: string[] = [];
+/** The region's places for Instagram (preset: new posts start with it). */
+let places: (Place & { preset: boolean })[] = [];
 /** Pictures fetched through the token: a draft's map (`<run>`), a draft's n-th (`<run>:<n>`), an upload (`u<id>`). */
 const pictures = new Map<string, string>();
 /** The form's pictures in order. */
@@ -166,6 +168,60 @@ function counts() {
 
 // --- Instagram's place ----------------------------------------------------------
 
+/** The form's chips: the region's places; a click takes one (or drops the one set). */
+function drawSaved() {
+  const host = $("post-place-saved");
+  const cur = input("post-place-id").value;
+  host.replaceChildren(
+    ...places.map((pl) =>
+      el("button", {
+        type: "button",
+        className: `tag-chip${pl.id === cur ? " on" : ""}`,
+        textContent: `📍 ${pl.name || pl.id}`,
+        title: pl.id,
+        onclick: () => {
+          setPlace(pl.id === cur ? null : { id: pl.id, name: pl.name });
+          input("post-place-id").dispatchEvent(new Event("input", { bubbles: true }));
+        },
+      }),
+    ),
+  );
+}
+
+/** The region's list, below the posts: name, default or not, delete. */
+function drawPlaces() {
+  const host = $("post-place-list");
+  if (!places.length) return void host.replaceChildren(el("p", { className: "empty", textContent: t("po.places.none") }));
+  host.replaceChildren(
+    ...places.map((pl) => {
+      const row = el("div", { className: "tag-row" });
+      const name = document.createElement("input");
+      Object.assign(name, { value: pl.name, maxLength: 80 });
+      name.onchange = () => void placeCall("POST", { ...pl, name: name.value.trim() });
+      const box = document.createElement("input");
+      box.type = "radio";
+      box.name = "post-place-preset";
+      box.checked = pl.preset;
+      box.onclick = () => void placeCall("POST", { ...pl, name: name.value.trim(), preset: !pl.preset });
+      const lab = el("label", { className: "check" });
+      const preset: string = t("po.places.preset");
+      lab.append(box, ` ${preset}`);
+      row.append(name, el("small", { textContent: pl.id }), lab, el("button", { type: "button", textContent: t("ui.delete"), onclick: () => void placeCall("DELETE", pl) }));
+      return row;
+    }),
+  );
+}
+
+async function placeCall(method: "POST" | "DELETE", pl: Place & { preset?: boolean }): Promise<boolean> {
+  const res =
+    method === "POST"
+      ? await api(`/api/ops/posts/places?${q()}`, { method, body: JSON.stringify({ id: pl.id, name: pl.name, preset: !!pl.preset }) }).catch(() => null)
+      : await api(`/api/ops/posts/places?${q()}&id=${encodeURIComponent(pl.id)}`, { method }).catch(() => null);
+  if (!res?.ok) toast(await errorOf(res, t("ui.savefail")), "error");
+  await loadPosts(region, primary, chapters);
+  return !!res?.ok;
+}
+
 function setPlace(p: Place | null, note = "") {
   input("post-place-id").value = p?.id ?? "";
   input("post-place-name").value = p?.name ?? "";
@@ -173,6 +229,7 @@ function setPlace(p: Place | null, note = "") {
   $("post-place-info").textContent = note ? `${shown} · ${note}` : shown;
   $("post-place-clear").style.display = p ? "" : "none";
   input("post-place-name").style.display = p ? "" : "none";
+  drawSaved();
 }
 
 type Found = { id: string; name: string; city: string; street: string; km: number | null };
@@ -506,7 +563,8 @@ function open(p: Post | null) {
   drawPicked();
   // A new post: the place of the latest post that has one.
   input("post-place-q").value = "";
-  setPlace(p ? p.location : (posts.find((x) => x.location)?.location ?? null));
+  const preset = places.find((x) => x.preset);
+  setPlace(p ? p.location : preset ? { id: preset.id, name: preset.name } : (posts.find((x) => x.location)?.location ?? null));
   showVariant(p && !p.texts.any ? (VARIANTS.find((v) => p.texts[v]) ?? "any") : "any");
   input("post-card-on").checked = !!p?.card;
   pics = p?.pictures ? structuredClone(p.pictures) : p?.card ? ["card"] : [];
@@ -954,6 +1012,15 @@ export function initPosts(apiFn: Api) {
     void tagCall("POST", tag, true);
   };
   $("post-hashtag-add").onclick = addTag;
+  $("post-place-add").onclick = () => {
+    const id = input("post-place-new-id").value.trim();
+    if (!id) return;
+    void placeCall("POST", { id, name: input("post-place-new-name").value.trim() }).then((ok) => {
+      if (!ok) return;
+      input("post-place-new-id").value = "";
+      input("post-place-new-name").value = "";
+    });
+  };
   $("post-place-check").onclick = () => void checkPlace();
   $("post-card-look").onchange = syncLook;
   input("post-place-q").onkeydown = (e) => {
@@ -984,14 +1051,18 @@ export async function loadPosts(slug: string, lang: string, chs: ChapterRef[]) {
   const res = await api(`/api/ops/posts?${q()}`).catch(() => null);
   $("posts-card").hidden = !res?.ok;
   if (!res?.ok) return;
-  ({ posts, runs, ready, instagram: insta, hashtags } = (await res.json()) as {
+  ({ posts, runs, ready, instagram: insta, hashtags, places } = (await res.json()) as {
     posts: Post[];
     runs: Run[];
     ready: string[];
     instagram: typeof insta;
     hashtags: typeof hashtags;
+    places: typeof places;
   });
+  places ??= [];
   drawHashtags();
+  drawPlaces();
+  if (!$("post-form").hidden) drawSaved();
   drawRuns();
   drawList();
   const n = runs.filter((r) => r.state === "draft").length;

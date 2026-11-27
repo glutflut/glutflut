@@ -1087,8 +1087,20 @@ pub(super) async fn list(
                 .iter()
                 .map(|r| json!({ "tag": r.get::<_, String>(0), "preset": r.get::<_, bool>(1) }))
                 .collect();
+            let places: Vec<Value> = db
+                .query(
+                    "SELECT id, name, preset FROM game.post_places WHERE region = $1 \
+                     ORDER BY preset DESC, lower(name), id",
+                    &[&slug],
+                )?
+                .iter()
+                .map(|r| {
+                    json!({ "id": r.get::<_, String>(0), "name": r.get::<_, String>(1),
+                            "preset": r.get::<_, bool>(2) })
+                })
+                .collect();
             Ok(json!({ "posts": posts, "runs": runs, "ready": ready(&slug), "instagram": instagram,
-                       "hashtags": hashtags }))
+                       "hashtags": hashtags, "places": places }))
         })
     })
     .await
@@ -1208,6 +1220,15 @@ pub(super) async fn save(
                 "DELETE FROM game.post_images WHERE post_id = $1 AND NOT (id = ANY($2))",
                 &[&id, &pic_ids],
             )?;
+            // A post's place joins the region's list (a name fills an empty one).
+            if let Some(l) = &location {
+                t.execute(
+                    "INSERT INTO game.post_places (region, id, name) VALUES ($1, $2, $3) \
+                     ON CONFLICT (region, id) DO UPDATE SET name = EXCLUDED.name \
+                     WHERE game.post_places.name = '' AND EXCLUDED.name <> ''",
+                    &[&slug, &l["id"].as_str().unwrap_or(""), &l["name"].as_str().unwrap_or("")],
+                )?;
+            }
             // A post's new hashtags join the region's list.
             t.execute(
                 "INSERT INTO game.post_tags (region, tag) SELECT $1, unnest($2::text[]) \
@@ -1750,6 +1771,148 @@ pub(super) async fn tag_delete(
                 audit_entity(
                     &mut t,
                     &format!("post tag {slug}/{tag}"),
+                    "delete",
+                    &by,
+                    json!({}),
+                )?;
+            }
+            t.commit()?;
+            Ok(n)
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match res {
+        Some(_) => StatusCode::NO_CONTENT.into_response(),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub(super) struct PlaceIn {
+    /// A page id or a Facebook link with one.
+    id: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    preset: bool,
+}
+
+#[derive(Deserialize)]
+pub(super) struct PlaceIdQ {
+    region: Option<String>,
+    id: String,
+}
+
+/// At most this many places per region.
+const PLACES_MAX: i64 = 100;
+
+/// `POST /api/ops/posts/places?region=` (editor): a place of the region's
+/// list, new or changed (name, `preset`: new posts start with it; one only).
+pub(super) async fn place_save(
+    State(s): State<AppState>,
+    Query(q): Query<RegionQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+    Json(req): Json<PlaceIn>,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let w = who(&s, c, &headers).await;
+    if !w.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let Some(id) = place_key(&req.id).filter(|k| k.chars().all(|c| c.is_ascii_digit())) else {
+        return bad("place: the page id (digits) or a link with it");
+    };
+    let place = match clean_location(&Some(json!({ "id": id, "name": req.name }))) {
+        Ok(Some(v)) => v,
+        Ok(None) => return bad("place: an id is needed"),
+        Err(e) => return bad(e),
+    };
+    let name = place["name"].as_str().unwrap_or("").to_string();
+    let (st, by, preset) = (s.clone(), w.label, req.preset);
+    let res = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let mut t = db.transaction()?;
+            let known = t
+                .query_opt(
+                    "SELECT 1 FROM game.post_places WHERE region = $1 AND id = $2",
+                    &[&slug, &id],
+                )?
+                .is_some();
+            let n: i64 = t
+                .query_one(
+                    "SELECT count(*) FROM game.post_places WHERE region = $1",
+                    &[&slug],
+                )?
+                .get(0);
+            if !known && n >= PLACES_MAX {
+                return Ok(Err("at most 100 places"));
+            }
+            if preset {
+                t.execute(
+                    "UPDATE game.post_places SET preset = false WHERE region = $1 AND preset AND id <> $2",
+                    &[&slug, &id],
+                )?;
+            }
+            t.execute(
+                "INSERT INTO game.post_places (region, id, name, preset) VALUES ($1, $2, $3, $4) \
+                 ON CONFLICT (region, id) DO UPDATE SET name = $3, preset = $4",
+                &[&slug, &id, &name, &preset],
+            )?;
+            audit_entity(
+                &mut t,
+                &format!("post place {slug}/{id}"),
+                "set",
+                &by,
+                json!({ "name": name, "preset": preset }),
+            )?;
+            t.commit()?;
+            Ok(Ok(()))
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match res {
+        Some(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Some(Err(e)) => bad(e),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+/// `DELETE /api/ops/posts/places?region=&id=` (editor): off the region's list
+/// (posts keep theirs).
+pub(super) async fn place_delete(
+    State(s): State<AppState>,
+    Query(q): Query<PlaceIdQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let w = who(&s, c, &headers).await;
+    if !w.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let (st, by, id) = (s.clone(), w.label, q.id.trim().to_string());
+    let res = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let mut t = db.transaction()?;
+            let n = t.execute(
+                "DELETE FROM game.post_places WHERE region = $1 AND id = $2",
+                &[&slug, &id],
+            )?;
+            if n > 0 {
+                audit_entity(
+                    &mut t,
+                    &format!("post place {slug}/{id}"),
                     "delete",
                     &by,
                     json!({}),

@@ -189,6 +189,7 @@
           </div>
           <div class="post-place">
             <span><b data-i18n="po.f.place">Ort bei Instagram</b> <small data-i18n="po.f.place.hint">(Name, Link oder ID der Facebook-Seite des Orts)</small></span>
+            <div id="post-place-saved" class="tag-chips"></div>
             <div class="ed-row">
               <input id="post-place-q" data-i18n-placeholder="po.f.place.ph" autocomplete="off" />
               <button type="button" id="post-place-check" data-i18n="po.f.place.check">Suchen / Prüfen</button>
@@ -234,6 +235,12 @@
           <p class="hint" data-i18n="po.tags.hint">Angehakte stehen bei neuen Beiträgen schon drin. Neue Hashtags aus Beiträgen kommen von selbst hierher.</p>
           <div id="post-hashtag-list"></div>
           <div class="ed-row"><input id="post-hashtag-new" data-i18n-placeholder="po.f.tags.ph" autocomplete="off" /> <button type="button" id="post-hashtag-add" data-i18n="po.tags.add">Hinzufügen</button></div>
+        </details>
+        <details id="post-places">
+          <summary data-i18n="po.places.title">Orte der Region</summary>
+          <p class="hint" data-i18n="po.places.hint">Orte für Instagram, im Beitrag mit einem Klick gewählt. Der Standard steht bei neuen Beiträgen schon drin. Orte aus Beiträgen kommen von selbst hierher.</p>
+          <div id="post-place-list"></div>
+          <div class="ed-row"><input id="post-place-new-id" data-i18n-placeholder="po.places.id.ph" autocomplete="off" /> <input id="post-place-new-name" maxlength="80" data-i18n-placeholder="po.f.place.name" autocomplete="off" /> <button type="button" id="post-place-add" data-i18n="po.tags.add">Hinzufügen</button></div>
         </details>
       </section>
       </div>

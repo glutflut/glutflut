@@ -589,6 +589,10 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                         post(posts::tag_save).delete(posts::tag_delete),
                     )
                     .route(
+                        "/api/ops/posts/places",
+                        post(posts::place_save).delete(posts::place_delete),
+                    )
+                    .route(
                         "/api/ops/posts/run.jpg",
                         get(posts::run_jpg).post(posts::run_jpg_put),
                     )
