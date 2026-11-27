@@ -1,8 +1,9 @@
 //! Posts from the game (social posts): planned in the editor (`game.posts`),
 //! a trigger (a time, a chapter's start or end) makes a draft
 //! (`game.post_runs`) with the texts for the outcome and the picture of the
-//! game state (`card.rs`); someone posts it and marks it. A child module of
-//! the gateway.
+//! game state (`card.rs`) and the post's own uploaded pictures
+//! (`game.post_images`), in the post's order; someone posts it and marks it.
+//! A child module of the gateway.
 
 use std::sync::atomic::Ordering;
 use std::time::Duration;
@@ -209,6 +210,14 @@ const MAX: [(&str, usize); 4] = [
 /// Instagram takes at most 30 hashtags.
 const TAGS_MAX: usize = 30;
 const POSTS_MAX: i64 = 100;
+/// Pictures per post (Instagram's carousel); Mastodon takes 4.
+const PICTURES_MAX: usize = 10;
+const MASTODON_PICTURES: usize = 4;
+/// Uploaded pictures not (yet) in a saved post, per region.
+const UNSAVED_MAX: i64 = 40;
+/// A draft's picture: 4:5 like the card.
+const PIC_W: u32 = 1080;
+const PIC_H: u32 = 1350;
 
 #[derive(Deserialize, Debug)]
 pub struct PostIn {
@@ -232,6 +241,114 @@ pub struct PostIn {
     /// Instagram's place: `{id, name}` (a Facebook page with a location).
     #[serde(default)]
     pub location: Option<Value>,
+    /// The pictures in order: `"card"` or `{id, alt, fit}` (`crop`|`frame`);
+    /// absent: the card alone.
+    #[serde(default)]
+    pub pictures: Option<Vec<Value>>,
+}
+
+/// The pictures as stored, and the uploads' ids. The card is in the list
+/// exactly when the post has one (first if the list forgot it); at most
+/// [`PICTURES_MAX`], Mastodon at most [`MASTODON_PICTURES`].
+pub fn clean_pictures(
+    list: &Option<Vec<Value>>,
+    card_on: bool,
+    channels: &[String],
+) -> Result<(Option<Value>, Vec<i64>), &'static str> {
+    let Some(list) = list else {
+        return Ok((None, Vec::new()));
+    };
+    let mut out: Vec<Value> = Vec::new();
+    let mut ids: Vec<i64> = Vec::new();
+    let mut card = false;
+    for v in list {
+        if v.as_str() == Some("card") {
+            if card_on && !card {
+                card = true;
+                out.push(json!("card"));
+            }
+            continue;
+        }
+        let id = v["id"].as_i64().ok_or("pictures: unknown entry")?;
+        if ids.contains(&id) {
+            return Err("pictures: the same picture twice");
+        }
+        let alt = v["alt"].as_str().unwrap_or("").trim();
+        if alt.chars().count() > 1000 || alt.chars().any(|c| c.is_control() && c != '\n') {
+            return Err("pictures: alt text at most 1000 characters");
+        }
+        let fit = match v["fit"].as_str().unwrap_or("crop") {
+            f @ ("crop" | "frame") => f,
+            _ => return Err("pictures: unknown fit"),
+        };
+        ids.push(id);
+        out.push(json!({ "id": id, "alt": alt, "fit": fit }));
+    }
+    if card_on && !card {
+        out.insert(0, json!("card"));
+    }
+    if out.len() > PICTURES_MAX {
+        return Err("at most 10 pictures");
+    }
+    if out.len() > MASTODON_PICTURES && channels.iter().any(|c| c == "mastodon") {
+        return Err("Mastodon takes at most 4 pictures");
+    }
+    Ok((Some(Value::Array(out)), ids))
+}
+
+/// An uploaded picture made 4:5 ([`PIC_W`]×[`PIC_H`]): `crop` fills the frame
+/// (the middle stays), `frame` shows it whole on a blurred, darker copy.
+pub fn fit_picture(jpeg: &[u8], fit: &str) -> Result<Vec<u8>, String> {
+    use image::imageops::{self, FilterType};
+    let img = image::load_from_memory_with_format(jpeg, image::ImageFormat::Jpeg)
+        .map_err(|e| e.to_string())?;
+    let out = if fit == "frame" {
+        // Blur a small copy (fast), then scale it up as the background.
+        let small = img.resize_to_fill(PIC_W / 10, PIC_H / 10, FilterType::Triangle);
+        let mut bg = imageops::resize(
+            &imageops::blur(&small.to_rgb8(), 3.0),
+            PIC_W,
+            PIC_H,
+            FilterType::Triangle,
+        );
+        for p in bg.pixels_mut() {
+            for c in p.0.iter_mut() {
+                *c = (*c as u16 * 3 / 5) as u8;
+            }
+        }
+        let fg = img.resize(PIC_W, PIC_H, FilterType::Lanczos3).to_rgb8();
+        let x = (PIC_W - fg.width()) / 2;
+        let y = (PIC_H - fg.height()) / 2;
+        imageops::replace(&mut bg, &fg, x as i64, y as i64);
+        bg
+    } else {
+        img.resize_to_fill(PIC_W, PIC_H, FilterType::Lanczos3)
+            .to_rgb8()
+    };
+    crate::media::encode(&out, 700_000).map_err(str::to_string)
+}
+
+/// A draft's pictures in order with their alt texts: the own ones, the card
+/// (`image`, alt from the texts) at `card_at`.
+fn run_pictures(
+    image: Option<Vec<u8>>,
+    extra: Option<Vec<Vec<u8>>>,
+    extra_alt: Option<Vec<String>>,
+    card_at: Option<i32>,
+    card_alt: &str,
+) -> Vec<(Vec<u8>, String)> {
+    let alts = extra_alt.unwrap_or_default();
+    let mut out: Vec<(Vec<u8>, String)> = extra
+        .unwrap_or_default()
+        .into_iter()
+        .enumerate()
+        .map(|(i, b)| (b, alts.get(i).cloned().unwrap_or_default()))
+        .collect();
+    if let Some(img) = image {
+        let at = (card_at.unwrap_or(0).max(0) as usize).min(out.len());
+        out.insert(at, (img, card_alt.to_string()));
+    }
+    out
 }
 
 /// The texts: known variants and channels only, within the lengths; at least one.
@@ -541,6 +658,7 @@ struct Planned {
     texts: Value,
     card: Option<Value>,
     tags: Vec<String>,
+    pictures: Option<Value>,
 }
 
 /// Make a draft of a post now: texts for the outcome, the picture.
@@ -556,7 +674,7 @@ pub(super) async fn draft(
     let first = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
             let Some(r) = db.query_opt(
-                "SELECT trigger, chapter, texts::text, card::text, tags FROM game.posts \
+                "SELECT trigger, chapter, texts::text, card::text, tags, pictures::text FROM game.posts \
                  WHERE region = $1 AND id = $2",
                 &[&sl, &id],
             )?
@@ -571,6 +689,9 @@ pub(super) async fn draft(
                     .get::<_, Option<String>>(3)
                     .and_then(|c| serde_json::from_str(&c).ok()),
                 tags: r.get(4),
+                pictures: r
+                    .get::<_, Option<String>>(5)
+                    .and_then(|c| serde_json::from_str(&c).ok()),
             };
             let lang = primary(db, &sl)?;
             let ch = match &p.chapter {
@@ -677,6 +798,75 @@ pub(super) async fn draft(
             }
         }
     }
+    // The own pictures, 4:5; the card's place among them.
+    let order: Vec<Value> = p
+        .pictures
+        .as_ref()
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let card_at = order
+        .iter()
+        .position(|v| v.as_str() == Some("card"))
+        .unwrap_or(0) as i32;
+    let own: Vec<(i64, String, String)> = order
+        .iter()
+        .filter_map(|v| {
+            Some((
+                v["id"].as_i64()?,
+                v["alt"].as_str().unwrap_or("").to_string(),
+                v["fit"].as_str().unwrap_or("crop").to_string(),
+            ))
+        })
+        .collect();
+    let mut extra: Vec<Vec<u8>> = Vec::new();
+    let mut extra_alt: Vec<String> = Vec::new();
+    if !own.is_empty() {
+        let st = s.clone();
+        let sl = slug.to_string();
+        let ids: Vec<i64> = own.iter().map(|o| o.0).collect();
+        let made = tokio::task::spawn_blocking(move || {
+            let rows = st.with_db(|db| {
+                Ok(db
+                    .query(
+                        "SELECT id, jpeg FROM game.post_images WHERE region = $1 AND id = ANY($2)",
+                        &[&sl, &ids],
+                    )?
+                    .iter()
+                    .map(|r| (r.get::<_, i64>(0), r.get::<_, Vec<u8>>(1)))
+                    .collect::<Vec<_>>())
+            })?;
+            Some(
+                own.into_iter()
+                    .map(|(id, alt, fit)| {
+                        let pic = match rows.iter().find(|r| r.0 == id) {
+                            Some((_, jpg)) => fit_picture(jpg, &fit),
+                            None => Err("gone".into()),
+                        };
+                        (pic, alt)
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .await
+        .ok()
+        .flatten();
+        match made {
+            Some(list) => {
+                for (pic, alt) in list {
+                    match pic {
+                        Ok(jpg) => {
+                            extra.push(jpg);
+                            extra_alt.push(alt);
+                        }
+                        Err(e) => notes.push(format!("own picture failed: {e}")),
+                    }
+                }
+            }
+            None => notes.push("own pictures failed: database".into()),
+        }
+    }
+    let card_at = image.is_some().then_some(card_at.min(extra.len() as i32));
     let numbers = ch
         .as_ref()
         .map(|c| json!({ "fire": c.progress[0], "water": c.progress[1] }));
@@ -687,8 +877,10 @@ pub(super) async fn draft(
         st.with_db(|db| {
             Ok(db
                 .query_opt(
-                    "INSERT INTO game.post_runs (post_id, region, auto, outcome, numbers, texts, image, note, results) \
-                     VALUES ($1, $2, $3, $4, $5::text::jsonb, $6::text::jsonb, $7, $8, $9::text::jsonb) \
+                    "INSERT INTO game.post_runs (post_id, region, auto, outcome, numbers, texts, image, note, results, \
+                       extra, extra_alt, card_at) \
+                     VALUES ($1, $2, $3, $4, $5::text::jsonb, $6::text::jsonb, $7, $8, $9::text::jsonb, \
+                       $10, $11, $12) \
                      ON CONFLICT (post_id) WHERE auto DO NOTHING RETURNING id",
                     &[
                         &id,
@@ -700,6 +892,9 @@ pub(super) async fn draft(
                         &image,
                         &note,
                         &shot.as_ref().map(|v| json!({ "card": v }).to_string()),
+                        &(!extra.is_empty()).then_some(&extra),
+                        &(!extra_alt.is_empty()).then_some(&extra_alt),
+                        &card_at,
                     ],
                 )?
                 .map(|r| r.get::<_, i64>(0)))
@@ -725,6 +920,17 @@ pub(super) async fn tick_loop(s: AppState) {
         n += 1;
         if n % 60 == 2 {
             check_accounts(&s).await;
+            // Uploads never saved into a post.
+            let st = s.clone();
+            tokio::task::spawn_blocking(move || {
+                st.with_db(|db| {
+                    db.execute(
+                        "DELETE FROM game.post_images WHERE post_id IS NULL \
+                         AND created_at < now() - interval '1 day'",
+                        &[],
+                    )
+                })
+            });
         }
         let st = s.clone();
         let shard = s.host.shard().to_string();
@@ -794,7 +1000,7 @@ pub(super) async fn list(
                 .query(
                     &format!(
                         "SELECT id, title, trigger, {}, chapter, offset_min, texts::text, card::text, \
-                         channels, created_by, tags, location::text FROM game.posts \
+                         channels, created_by, tags, location::text, pictures::text FROM game.posts \
                          WHERE region = $1 ORDER BY id DESC",
                         epoch("at")
                     ),
@@ -815,6 +1021,7 @@ pub(super) async fn list(
                         "by": r.get::<_, String>(9),
                         "tags": r.get::<_, Vec<String>>(10),
                         "location": r.get::<_, Option<String>>(11).and_then(|c| serde_json::from_str::<Value>(&c).ok()),
+                        "pictures": r.get::<_, Option<String>>(12).and_then(|c| serde_json::from_str::<Value>(&c).ok()),
                     })
                 })
                 .collect();
@@ -822,7 +1029,8 @@ pub(super) async fn list(
                 .query(
                     &format!(
                         "SELECT id, post_id, auto, {}, state, outcome, numbers::text, texts::text, \
-                         image IS NOT NULL, note, decided_by, {}, results::text FROM game.post_runs \
+                         image IS NOT NULL, note, decided_by, {}, results::text, \
+                         coalesce(cardinality(extra), 0), card_at FROM game.post_runs \
                          WHERE region = $1 AND created_at > now() - interval '60 days' \
                          ORDER BY id DESC",
                         epoch("created_at"),
@@ -846,6 +1054,8 @@ pub(super) async fn list(
                         "decided_by": r.get::<_, Option<String>>(10),
                         "decided": r.get::<_, Option<f64>>(11),
                         "results": r.get::<_, Option<String>>(12).and_then(|n| serde_json::from_str::<Value>(&n).ok()),
+                        "extra": r.get::<_, i32>(13),
+                        "card_at": r.get::<_, Option<i32>>(14),
                     })
                 })
                 .collect();
@@ -914,6 +1124,10 @@ pub(super) async fn save(
         Ok(v) => v,
         Err(e) => return bad(e),
     };
+    let (pictures, pic_ids) = match clean_pictures(&req.pictures, card.is_some(), &channels) {
+        Ok(v) => v,
+        Err(e) => return bad(e),
+    };
     let at = (req.trigger == "at").then_some(req.at).flatten();
     let chapter = req
         .trigger
@@ -936,17 +1150,31 @@ pub(super) async fn save(
                     return Ok(Err("no such chapter"));
                 }
             }
+            // Own pictures: this region's, unsaved or already this post's.
+            if !pic_ids.is_empty() {
+                let n: i64 = t
+                    .query_one(
+                        "SELECT count(*) FROM game.post_images WHERE region = $1 AND id = ANY($2) \
+                         AND (post_id IS NULL OR post_id = $3)",
+                        &[&slug, &pic_ids, &req.id],
+                    )?
+                    .get(0);
+                if n != pic_ids.len() as i64 {
+                    return Ok(Err("pictures: one is gone, upload it again"));
+                }
+            }
             let card_s = card.as_ref().map(Value::to_string);
             let loc_s = location.as_ref().map(Value::to_string);
+            let pic_s = pictures.as_ref().map(Value::to_string);
             let id: Option<i64> = match req.id {
                 Some(id) => t
                     .query_opt(
                         "UPDATE game.posts SET title = $3, trigger = $4, at = to_timestamp($5), \
                          chapter = $6, offset_min = $7, texts = $8::text::jsonb, card = $9::text::jsonb, \
-                         channels = $10, tags = $11, location = $12::text::jsonb \
+                         channels = $10, tags = $11, location = $12::text::jsonb, pictures = $13::text::jsonb \
                          WHERE region = $1 AND id = $2 RETURNING id",
                         &[&slug, &id, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                          &texts.to_string(), &card_s, &channels, &tags, &loc_s],
+                          &texts.to_string(), &card_s, &channels, &tags, &loc_s, &pic_s],
                     )?
                     .map(|r| r.get(0)),
                 None => {
@@ -959,11 +1187,11 @@ pub(super) async fn save(
                     Some(
                         t.query_one(
                             "INSERT INTO game.posts (region, title, trigger, at, chapter, offset_min, \
-                             texts, card, channels, tags, location, created_by) VALUES ($1, $2, $3, \
+                             texts, card, channels, tags, location, created_by, pictures) VALUES ($1, $2, $3, \
                              to_timestamp($4), $5, $6, $7::text::jsonb, $8::text::jsonb, $9, $10, \
-                             $11::text::jsonb, $12) RETURNING id",
+                             $11::text::jsonb, $12, $13::text::jsonb) RETURNING id",
                             &[&slug, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                              &texts.to_string(), &card_s, &channels, &tags, &loc_s, &by],
+                              &texts.to_string(), &card_s, &channels, &tags, &loc_s, &by, &pic_s],
                         )?
                         .get(0),
                     )
@@ -972,6 +1200,14 @@ pub(super) async fn save(
             let Some(id) = id else {
                 return Ok(Err("no such post"));
             };
+            t.execute(
+                "UPDATE game.post_images SET post_id = $2 WHERE region = $1 AND id = ANY($3)",
+                &[&slug, &id, &pic_ids],
+            )?;
+            t.execute(
+                "DELETE FROM game.post_images WHERE post_id = $1 AND NOT (id = ANY($2))",
+                &[&id, &pic_ids],
+            )?;
             // A post's new hashtags join the region's list.
             t.execute(
                 "INSERT INTO game.post_tags (region, tag) SELECT $1, unnest($2::text[]) \
@@ -985,7 +1221,7 @@ pub(super) async fn save(
                 &by,
                 json!({ "title": title, "trigger": req.trigger, "at": at, "chapter": chapter,
                         "offset_min": req.offset_min, "texts": texts, "card": card, "channels": channels,
-                        "tags": tags, "location": location }),
+                        "tags": tags, "location": location, "pictures": pictures }),
             )?;
             t.commit()?;
             Ok(Ok(id))
@@ -1171,8 +1407,67 @@ pub fn check_jpeg(b: &[u8]) -> Result<(), &'static str> {
     Ok(())
 }
 
-/// `GET /api/ops/posts/run.jpg?region=&id=` (editor): a draft's picture.
-pub(super) async fn run_jpg(
+/// `POST /api/ops/posts/image?region=` (editor): an own picture for a post
+/// (JPEG, PNG or WebP, at most 8 MB): upright, at most 2048 px, no EXIF;
+/// its `{id, width, height}`. It joins a post when the post is saved.
+pub(super) async fn image_put(
+    State(s): State<AppState>,
+    Query(q): Query<RegionQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+    body: axum::body::Bytes,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let w = who(&s, c, &headers).await;
+    if !w.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let pic = match tokio::task::spawn_blocking(move || {
+        crate::media::process_sized(&body, 2048, 1600, 900_000)
+    })
+    .await
+    {
+        Ok(Ok(p)) => p,
+        Ok(Err(e)) => return bad(e),
+        Err(_) => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    };
+    let (st, by) = (s.clone(), w.label);
+    let (pw, ph) = (pic.width as i32, pic.height as i32);
+    let res = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            let n: i64 = db
+                .query_one(
+                    "SELECT count(*) FROM game.post_images WHERE region = $1 AND post_id IS NULL",
+                    &[&slug],
+                )?
+                .get(0);
+            if n >= UNSAVED_MAX {
+                return Ok(Err("too many unsaved pictures, save the post first"));
+            }
+            Ok(Ok(db
+                .query_one(
+                    "INSERT INTO game.post_images (region, jpeg, width, height, created_by) \
+                     VALUES ($1, $2, $3, $4, $5) RETURNING id",
+                    &[&slug, &pic.jpeg, &pw, &ph, &by],
+                )?
+                .get::<_, i64>(0)))
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match res {
+        Some(Ok(id)) => Json(json!({ "id": id, "width": pw, "height": ph })).into_response(),
+        Some(Err(e)) => bad(e),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+/// `GET /api/ops/posts/image?region=&id=` (editor): an own picture as uploaded.
+pub(super) async fn image_get(
     State(s): State<AppState>,
     Query(q): Query<IdQ>,
     headers: HeaderMap,
@@ -1185,16 +1480,75 @@ pub(super) async fn run_jpg(
     if !who(&s, c, &headers).await.may(&slug, Role::Editor) {
         return StatusCode::UNAUTHORIZED.into_response();
     }
-    let st = s.clone();
-    let id = q.id;
+    let (st, id) = (s.clone(), q.id);
     let img = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
             Ok(db
                 .query_opt(
-                    "SELECT image FROM game.post_runs WHERE region = $1 AND id = $2",
+                    "SELECT jpeg FROM game.post_images WHERE region = $1 AND id = $2",
                     &[&slug, &id],
                 )?
-                .and_then(|r| r.get::<_, Option<Vec<u8>>>(0)))
+                .map(|r| r.get::<_, Vec<u8>>(0)))
+        })
+    })
+    .await
+    .ok()
+    .flatten();
+    match img {
+        Some(Some(jpg)) => (
+            [
+                (header::CONTENT_TYPE, "image/jpeg"),
+                (header::CACHE_CONTROL, "private, max-age=86400"),
+            ],
+            jpg,
+        )
+            .into_response(),
+        Some(None) => StatusCode::NOT_FOUND.into_response(),
+        None => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub(super) struct PicQ {
+    region: Option<String>,
+    id: i64,
+    /// The draft's n-th picture (from 0); absent: the card.
+    n: Option<usize>,
+}
+
+/// `GET /api/ops/posts/run.jpg?region=&id=&n=` (editor): a draft's picture.
+pub(super) async fn run_jpg(
+    State(s): State<AppState>,
+    Query(q): Query<PicQ>,
+    headers: HeaderMap,
+    Extension(c): Extension<Client>,
+) -> Response {
+    let slug = match s.slug(q.region.as_deref()) {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    if !who(&s, c, &headers).await.may(&slug, Role::Editor) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let st = s.clone();
+    let (id, n) = (q.id, q.n);
+    let img = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            Ok(db
+                .query_opt(
+                    "SELECT image, extra, card_at FROM game.post_runs WHERE region = $1 AND id = $2",
+                    &[&slug, &id],
+                )?
+                .and_then(|r| {
+                    let image = r.get::<_, Option<Vec<u8>>>(0);
+                    match n {
+                        None => image,
+                        Some(n) => run_pictures(image, r.get(1), None, r.get(2), "")
+                            .into_iter()
+                            .nth(n)
+                            .map(|p| p.0),
+                    }
+                }))
         })
     })
     .await
@@ -1712,20 +2066,22 @@ fn brief(e: ureq::Error) -> String {
     }
 }
 
-/// Posts text (and picture with alt text) as a public status; the status's URL.
+/// Posts text (and pictures with alt texts) as a public status; the status's URL.
 /// `key` makes a second try of the same send no second status.
 fn send_mastodon(
     m: &Mastodon,
     key: &str,
     text: &str,
-    alt: &str,
-    image: Option<&[u8]>,
+    pics: &[(Vec<u8>, String)],
     lang: &str,
 ) -> Result<String, String> {
+    if pics.len() > MASTODON_PICTURES {
+        return Err("Mastodon takes at most 4 pictures".into());
+    }
     let agent = crate::media::agent().ok_or("no TLS")?;
     let auth = format!("Bearer {}", m.token);
     let mut media = Vec::new();
-    if let Some(jpg) = image {
+    for (jpg, alt) in pics {
         let b = format!("glutflut{:016x}", rand::random::<u64>());
         let mut body = Vec::with_capacity(jpg.len() + 512);
         body.extend_from_slice(
@@ -1858,12 +2214,21 @@ pub(super) async fn send(
                    AND coalesce((results -> $4 ->> 'sending')::float8, 0) \
                      < extract(epoch FROM now()) - 600 \
                  RETURNING texts::text, image, \
-                   (SELECT p.location ->> 'id' FROM game.posts p WHERE p.id = post_id)",
+                   (SELECT p.location ->> 'id' FROM game.posts p WHERE p.id = post_id), \
+                   extra, extra_alt, card_at",
                 &[&sl, &id, &texts.as_ref().map(Value::to_string), &ch],
             )? {
+                let texts = serde_json::from_str::<Value>(r.get(0)).unwrap_or(Value::Null);
+                let pics = run_pictures(
+                    r.get(1),
+                    r.get(3),
+                    r.get(4),
+                    r.get(5),
+                    texts["alt"].as_str().unwrap_or(""),
+                );
                 return Ok(Ok((
-                    serde_json::from_str::<Value>(r.get(0)).unwrap_or(Value::Null),
-                    r.get::<_, Option<Vec<u8>>>(1),
+                    texts,
+                    pics,
                     r.get::<_, Option<String>>(2),
                     primary(db, &sl)?,
                 )));
@@ -1881,7 +2246,7 @@ pub(super) async fn send(
     .await
     .ok()
     .flatten();
-    let (texts, image, place, lang) = match got {
+    let (texts, pics, place, lang) = match got {
         Some(Ok(v)) => v,
         Some(Err(None)) => return bad("no such draft"),
         Some(Err(Some((_, Some(url))))) => return bad_url("already sent", &url),
@@ -1890,7 +2255,6 @@ pub(super) async fn send(
         None => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };
     let text = texts[&channel].as_str().unwrap_or("").to_string();
-    let alt = texts["alt"].as_str().unwrap_or("").to_string();
     let key = format!("glutflut-run-{}-{channel}", q.id);
     let (sl, id) = (slug.clone(), q.id);
     let sent = tokio::task::spawn_blocking(move || {
@@ -1898,18 +2262,22 @@ pub(super) async fn send(
             return Err("no text for this channel".to_string());
         }
         match via {
-            Via::Mastodon(m) => {
-                send_mastodon(&m, &key, &text, &alt, image.as_deref(), &lang).map(|u| (u, None))
-            }
+            Via::Mastodon(m) => send_mastodon(&m, &key, &text, &pics, &lang).map(|u| (u, None)),
             Via::Instagram(a) => {
-                let jpg = image.ok_or("Instagram needs a picture")?;
+                if pics.is_empty() {
+                    return Err("Instagram needs a picture".into());
+                }
                 let store = crate::media::store().ok_or("no media bucket")?;
-                let k = store.key(&format!(
-                    "{sl}/posts/{id}-{:08x}.jpg",
-                    rand::random::<u32>()
-                ));
-                store.put(&k, &jpg).map_err(|e| format!("picture: {e}"))?;
-                send_instagram(&a, &text, &alt, &store.fetch_url(&k), place.as_deref())
+                let mut items = Vec::new();
+                for (i, (jpg, alt)) in pics.iter().enumerate() {
+                    let k = store.key(&format!(
+                        "{sl}/posts/{id}-{i}-{:08x}.jpg",
+                        rand::random::<u32>()
+                    ));
+                    store.put(&k, jpg).map_err(|e| format!("picture: {e}"))?;
+                    items.push((store.fetch_url(&k), alt.clone()));
+                }
+                send_instagram(&a, &text, &items, place.as_deref())
             }
         }
     })
@@ -2156,18 +2524,67 @@ fn ig_container(
     alt: &str,
     place: Option<&str>,
 ) -> Result<String, String> {
-    let tok = a.token.as_str();
-    let mut form = vec![
-        ("image_url", image_url),
-        ("caption", caption),
-        ("access_token", tok),
-    ];
+    let mut form = vec![("image_url", image_url), ("caption", caption)];
     if !alt.is_empty() {
         form.push(("alt_text", alt));
     }
     if let Some(p) = place {
         form.push(("location_id", p));
     }
+    ig_make(agent, a, form)
+}
+
+/// One carousel item (no caption); without alt text if Meta refuses it there.
+fn ig_item(
+    agent: &ureq::Agent,
+    a: &Insta,
+    image_url: &str,
+    alt: &str,
+    note: &mut Option<String>,
+) -> Result<String, String> {
+    let base = vec![("image_url", image_url), ("is_carousel_item", "true")];
+    if alt.is_empty() {
+        return ig_make(agent, a, base);
+    }
+    let mut form = base.clone();
+    form.push(("alt_text", alt));
+    match ig_make(agent, a, form) {
+        Ok(c) => Ok(c),
+        Err(e) => {
+            tracing::warn!(error = %e, "posts: Instagram refused an item's alt text, trying without");
+            *note = Some(format!("alt text refused on a picture ({e}), sent without"));
+            ig_make(agent, a, base)
+        }
+    }
+}
+
+/// The carousel around ready items, with caption (and place).
+fn ig_carousel(
+    agent: &ureq::Agent,
+    a: &Insta,
+    children: &str,
+    caption: &str,
+    place: Option<&str>,
+) -> Result<String, String> {
+    let mut form = vec![
+        ("media_type", "CAROUSEL"),
+        ("children", children),
+        ("caption", caption),
+    ];
+    if let Some(p) = place {
+        form.push(("location_id", p));
+    }
+    ig_make(agent, a, form)
+}
+
+/// POSTs a container (the token added) and waits until it is ready; its id.
+fn ig_make<'a>(
+    agent: &ureq::Agent,
+    a: &'a Insta,
+    mut form: Vec<(&'a str, &'a str)>,
+) -> Result<String, String> {
+    let tok = a.token.as_str();
+    form.push(("access_token", tok));
     let c = ig_post(agent, &format!("{}/media", a.user_id), &form)
         .map_err(|e| format!("container: {e}"))?;
     let cid = id_of(&c["id"]).ok_or("container: no id")?;
@@ -2193,24 +2610,48 @@ fn ig_container(
     Err("container not ready after 2 minutes".into())
 }
 
-/// Publishes one picture with caption and alt text; the post's link, and a
-/// note if Instagram refused the place (then it goes out without one).
+/// Publishes the pictures (`(url, alt)`; several as a carousel) with the
+/// caption; the post's link, and a note if Instagram refused the place or an
+/// alt text (then it goes out without).
 fn send_instagram(
     a: &Insta,
     caption: &str,
-    alt: &str,
-    image_url: &str,
+    pics: &[(String, String)],
     place: Option<&str>,
 ) -> Result<(String, Option<String>), String> {
     let agent = crate::media::agent().ok_or("no TLS")?;
     let tok = a.token.as_str();
     let mut note = None;
-    let cid = match ig_container(&agent, a, image_url, caption, alt, place) {
+    let make = |place: Option<&str>, note: &mut Option<String>| -> Result<String, String> {
+        match pics {
+            [] => Err("Instagram needs a picture".into()),
+            [(url, alt)] => ig_container(&agent, a, url, caption, alt, place),
+            many => {
+                let mut ids = Vec::new();
+                for (i, (url, alt)) in many.iter().enumerate() {
+                    ids.push(
+                        ig_item(&agent, a, url, alt, note)
+                            .map_err(|e| format!("picture {}: {e}", i + 1))?,
+                    );
+                }
+                ig_carousel(&agent, a, &ids.join(","), caption, place)
+            }
+        }
+    };
+    let cid = match make(place, &mut note) {
         Ok(c) => c,
         Err(e) if place.is_some() => {
             tracing::warn!(error = %e, "posts: Instagram refused the place, sending without");
-            note = Some(format!("place refused ({e}), sent without"));
-            ig_container(&agent, a, image_url, caption, alt, None)?
+            let mut n2 = None;
+            let c = make(None, &mut n2)?;
+            note = Some(
+                [Some(format!("place refused ({e}), sent without")), n2]
+                    .into_iter()
+                    .flatten()
+                    .collect::<Vec<_>>()
+                    .join("; "),
+            );
+            c
         }
         Err(e) => return Err(e),
     };
@@ -2418,6 +2859,7 @@ mod tests {
             channels: vec!["mastodon".into(), "mastodon".into()],
             tags: vec!["#Konstanz".into(), "konstanz".into(), "GlutUndFlut".into()],
             location: None,
+            pictures: None,
         };
         let (_, _, card, ch, tags) = clean_post(&ok).unwrap();
         assert_eq!(tags, vec!["Konstanz", "GlutUndFlut"]);
@@ -2501,5 +2943,77 @@ mod tests {
             ..too_long
         };
         assert!(clean_post(&long).unwrap_err().starts_with("Mastodon"));
+    }
+
+    #[test]
+    fn pictures_in_order() {
+        let ch = |c: &[&str]| c.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let list = Some(vec![
+            json!({ "id": 7, "alt": " Rathaus " }),
+            json!("card"),
+            json!({ "id": 9, "fit": "frame" }),
+        ]);
+        let (v, ids) = clean_pictures(&list, true, &ch(&["instagram"])).unwrap();
+        assert_eq!(ids, vec![7, 9]);
+        let v = v.unwrap();
+        assert_eq!(v[0]["alt"], "Rathaus");
+        assert_eq!(v[0]["fit"], "crop");
+        assert_eq!(v[1], "card");
+        // No card: its entry goes; a card the list forgot comes first.
+        let (v, _) = clean_pictures(&list, false, &ch(&["instagram"])).unwrap();
+        assert_eq!(v.unwrap().as_array().unwrap().len(), 2);
+        let (v, _) =
+            clean_pictures(&Some(vec![json!({ "id": 1 })]), true, &ch(&["instagram"])).unwrap();
+        assert_eq!(v.unwrap()[0], "card");
+        assert_eq!(clean_pictures(&None, true, &[]).unwrap(), (None, vec![]));
+        let five: Vec<Value> = (1..=5).map(|i| json!({ "id": i })).collect();
+        assert!(clean_pictures(&Some(five.clone()), false, &ch(&["instagram"])).is_ok());
+        assert_eq!(
+            clean_pictures(&Some(five), false, &ch(&["instagram", "mastodon"])).unwrap_err(),
+            "Mastodon takes at most 4 pictures"
+        );
+        let eleven: Vec<Value> = (1..=11).map(|i| json!({ "id": i })).collect();
+        assert!(clean_pictures(&Some(eleven), false, &ch(&["instagram"])).is_err());
+        let twice = Some(vec![json!({ "id": 1 }), json!({ "id": 1 })]);
+        assert!(clean_pictures(&twice, false, &[]).is_err());
+        let bad_fit = Some(vec![json!({ "id": 1, "fit": "stretch" })]);
+        assert!(clean_pictures(&bad_fit, false, &[]).is_err());
+    }
+
+    #[test]
+    fn own_pictures_become_4_to_5() {
+        let mut out = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new(&mut out)
+            .encode_image(&image::RgbImage::from_pixel(
+                1600,
+                900,
+                image::Rgb([200, 30, 30]),
+            ))
+            .unwrap();
+        for fit in ["crop", "frame"] {
+            let jpg = fit_picture(&out, fit).unwrap();
+            assert!(check_jpeg(&jpg).is_ok(), "{fit}");
+            let img = image::load_from_memory(&jpg).unwrap();
+            assert_eq!((img.width(), img.height()), (1080, 1350));
+        }
+    }
+
+    #[test]
+    fn the_card_goes_in_its_place() {
+        let p = run_pictures(
+            Some(vec![0]),
+            Some(vec![vec![1], vec![2]]),
+            Some(vec!["a".into(), "b".into()]),
+            Some(1),
+            "card",
+        );
+        let order: Vec<u8> = p.iter().map(|x| x.0[0]).collect();
+        assert_eq!(order, vec![1, 0, 2]);
+        assert_eq!(p[1].1, "card");
+        assert_eq!(run_pictures(Some(vec![0]), None, None, None, "").len(), 1);
+        assert_eq!(
+            run_pictures(None, Some(vec![vec![1]]), None, Some(0), "").len(),
+            1
+        );
     }
 }

@@ -31,6 +31,16 @@ pub struct Processed {
 /// [`MAX_SIDE`], flatten transparency on white and encode as JPEG. The output
 /// carries no metadata (EXIF, GPS, camera).
 pub fn process(input: &[u8]) -> Result<Processed, &'static str> {
+    process_sized(input, MAX_SIDE, SMALLER_SIDE, TARGET_BYTES)
+}
+
+/// [`process`] with its own long side, fallback side and target size.
+pub fn process_sized(
+    input: &[u8],
+    max_side: u32,
+    smaller_side: u32,
+    target: usize,
+) -> Result<Processed, &'static str> {
     if input.len() > MAX_IN {
         return Err("image larger than 8 MB");
     }
@@ -57,21 +67,21 @@ pub fn process(input: &[u8]) -> Result<Processed, &'static str> {
     if img.width() < 200 || img.height() < 150 {
         return Err("image too small (at least 200 x 150 px)");
     }
-    if img.width().max(img.height()) > MAX_SIDE {
-        img = img.resize(MAX_SIDE, MAX_SIDE, image::imageops::FilterType::Lanczos3);
+    if img.width().max(img.height()) > max_side {
+        img = img.resize(max_side, max_side, image::imageops::FilterType::Lanczos3);
     }
     let mut rgb = flatten(img);
-    let mut jpeg = encode(&rgb)?;
+    let mut jpeg = encode(&rgb, target)?;
     // Very detailed photos: a bit smaller rather than blocky.
-    if jpeg.len() > TARGET_BYTES * 5 / 4 && rgb.width().max(rgb.height()) > SMALLER_SIDE {
+    if jpeg.len() > target * 5 / 4 && rgb.width().max(rgb.height()) > smaller_side {
         rgb = DynamicImage::ImageRgb8(rgb)
             .resize(
-                SMALLER_SIDE,
-                SMALLER_SIDE,
+                smaller_side,
+                smaller_side,
                 image::imageops::FilterType::Lanczos3,
             )
             .into_rgb8();
-        jpeg = encode(&rgb)?;
+        jpeg = encode(&rgb, target)?;
     }
     Ok(Processed {
         jpeg,
@@ -80,15 +90,15 @@ pub fn process(input: &[u8]) -> Result<Processed, &'static str> {
     })
 }
 
-/// JPEG at the first quality that fits [`TARGET_BYTES`] (else the lowest).
-fn encode(rgb: &image::RgbImage) -> Result<Vec<u8>, &'static str> {
+/// JPEG at the first quality that fits `target` bytes (else the lowest).
+pub fn encode(rgb: &image::RgbImage, target: usize) -> Result<Vec<u8>, &'static str> {
     let mut jpeg = Vec::new();
     for q in QUALITY {
         jpeg.clear();
         image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, q)
             .encode_image(rgb)
             .map_err(|_| "encoding failed")?;
-        if jpeg.len() <= TARGET_BYTES {
+        if jpeg.len() <= target {
             break;
         }
     }

@@ -1,6 +1,6 @@
 // Redaktion: posts from the game (server: posts.rs). A post has a trigger (a
 // time, a chapter's start or end, or by hand), texts per outcome and channel,
-// and maybe the picture of the game state. When it is due the server makes a
+// and pictures: own uploads and/or the game state's map, in an order. When it is due the server makes a
 // draft with the numbers filled in; here it is copied, posted by hand and
 // marked, or sent from here to the channels the server has an account for
 // (Mastodon, Instagram).
@@ -19,6 +19,10 @@ const LAYERS = ["flow", "sources", "natural", "areas", "3d", "labels", "radar", 
 const LAYERS_ON = ["flow", "sources", "natural", "areas"];
 /** The frame as the server filled it in for a draft (`results.card`). */
 type Shot = { lat: number; lon: number; width_m: number; title: string; note: string; look: string; layers: string[] | null; chapter: string | null };
+/** A post's picture: the game state's map, or an own upload (made 4:5 by cropping or framing). */
+type Pic = "card" | { id: number; alt: string; fit: "crop" | "frame" };
+const PICS_MAX = 10;
+const MASTODON_PICS = 4;
 type Post = {
   id: number;
   title: string;
@@ -32,6 +36,7 @@ type Post = {
   by: string;
   tags: string[];
   location: Place | null;
+  pictures: Pic[] | null;
 };
 type Place = { id: string; name: string };
 type Run = {
@@ -48,6 +53,9 @@ type Run = {
   decided_by: string | null;
   decided: number | null;
   results: Record<string, { url?: string; error?: string; note?: string; sending?: number }> | null;
+  /** Own pictures besides the map; the map's place among them. */
+  extra: number;
+  card_at: number | null;
 };
 export type ChapterRef = { key: string; names: Record<string, { title: string }>; starts: number; ends: number };
 type Api = (path: string, init?: RequestInit) => Promise<Response>;
@@ -82,7 +90,10 @@ let shown: Variant = "any";
 /** The region's hashtags, and the ones the form's post uses. */
 let hashtags: { tag: string; preset: boolean }[] = [];
 let picked: string[] = [];
-const pictures = new Map<number, string>();
+/** Pictures fetched through the token: a draft's map (`<run>`), a draft's n-th (`<run>:<n>`), an upload (`u<id>`). */
+const pictures = new Map<string, string>();
+/** The form's pictures in order. */
+let pics: Pic[] = [];
 /** The picker for the picture's area: the map moves under a fixed 4:5 frame. */
 let map: maplibregl.Map | null = null;
 let mapRegion = "";
@@ -377,6 +388,103 @@ async function showMap() {
   await place();
 }
 
+/** The pictures were changed: the form counts as edited. */
+const picsChanged = () => $("post-pics").dispatchEvent(new Event("input", { bubbles: true }));
+
+function drawPics() {
+  const host = $("post-pics");
+  const masto = input("post-ch-mastodon").checked && pics.length > MASTODON_PICS;
+  const cnt = $("post-pics-count");
+  cnt.textContent = t("po.pics.count", { n: pics.length }) + (masto ? ` · ${t("po.pics.masto")}` : "");
+  cnt.classList.toggle("over", masto);
+  $<HTMLButtonElement>("post-pic-add").disabled = pics.length >= PICS_MAX;
+  host.replaceChildren(
+    ...pics.map((p, i) => {
+      const tile = el("div", { className: "post-pic-tile" });
+      const fig = el("div", { className: `post-pic-thumb${p !== "card" && p.fit === "frame" ? " frame" : ""}` });
+      if (p === "card") fig.append(el("span", { textContent: `🗺 ${t("po.pic.card")}` }));
+      else {
+        const img = el("img", { alt: "" });
+        const key = `u${p.id}`;
+        const known = pictures.get(key);
+        if (known) img.src = known;
+        else
+          void picture(`/api/ops/posts/image?${q()}&id=${p.id}`).then((u) => {
+            if (u) pictures.set(key, u), (img.src = u);
+          });
+        fig.append(img);
+      }
+      const move = (d: number) => {
+        const j = i + d;
+        if (j < 0 || j >= pics.length) return;
+        [pics[i], pics[j]] = [pics[j], pics[i]];
+        drawPics();
+        picsChanged();
+      };
+      const tool = (text: string, title: string, off: boolean, fn: () => void) => {
+        const b = document.createElement("button");
+        Object.assign(b, { type: "button", textContent: text, title, disabled: off });
+        b.onclick = fn;
+        return b;
+      };
+      const tools = el("div", { className: "post-pic-tools" });
+      tools.append(
+        tool("◀", t("po.pic.left"), i === 0, () => move(-1)),
+        tool("▶", t("po.pic.right"), i === pics.length - 1, () => move(1)),
+        tool("✕", t("po.pic.remove"), false, () => {
+          pics.splice(i, 1);
+          if (p === "card") (input("post-card-on").checked = false), syncTrigger();
+          drawPics();
+          picsChanged();
+        }),
+      );
+      tile.append(fig, tools);
+      if (p !== "card") {
+        const fit = document.createElement("select");
+        const crop: string = t("po.pic.crop");
+        const frame: string = t("po.pic.frame");
+        fit.append(new Option(crop, "crop"), new Option(frame, "frame"));
+        fit.value = p.fit;
+        fit.onchange = () => {
+          p.fit = fit.value as "crop" | "frame";
+          fig.classList.toggle("frame", p.fit === "frame");
+        };
+        const ph: string = t("po.pic.alt");
+        const alt = document.createElement("textarea");
+        Object.assign(alt, { value: p.alt, maxLength: 1000, rows: 2, placeholder: ph });
+        alt.oninput = () => (p.alt = alt.value);
+        tile.append(fit, alt);
+      }
+      return tile;
+    }),
+  );
+}
+
+async function upload(files: FileList) {
+  const btn = $<HTMLButtonElement>("post-pic-add");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t("po.pic.wait");
+  try {
+    for (const f of files) {
+      if (pics.length >= PICS_MAX) break;
+      const res = await api(`/api/ops/posts/image?${q()}`, { method: "POST", body: f }).catch(() => null);
+      if (!res?.ok) {
+        toast(t("po.pic.fail", { err: `${f.name}: ${await errorOf(res, t("ui.savefail"))}` }), "error");
+        continue;
+      }
+      const v = (await res.json()) as { id: number };
+      pictures.set(`u${v.id}`, URL.createObjectURL(f));
+      pics.push({ id: v.id, alt: "", fit: "crop" });
+      drawPics();
+      picsChanged();
+    }
+  } finally {
+    btn.textContent = label;
+    drawPics();
+  }
+}
+
 function open(p: Post | null) {
   clean("post-form");
   editing = p;
@@ -401,6 +509,8 @@ function open(p: Post | null) {
   setPlace(p ? p.location : (posts.find((x) => x.location)?.location ?? null));
   showVariant(p && !p.texts.any ? (VARIANTS.find((v) => p.texts[v]) ?? "any") : "any");
   input("post-card-on").checked = !!p?.card;
+  pics = p?.pictures ? structuredClone(p.pictures) : p?.card ? ["card"] : [];
+  drawPics();
   input("post-card-lat").value = p?.card?.lat != null ? String(p.card.lat) : "";
   input("post-card-lon").value = p?.card?.lon != null ? String(p.card.lon) : "";
   input("post-card-width").value = String(p?.card?.width_m ?? 900);
@@ -447,6 +557,7 @@ async function save() {
     channels: ["instagram", "mastodon"].filter((c) => input(`post-ch-${c}`).checked),
     tags: picked,
     location: placeOf(),
+    pictures: pics,
   };
   const res = await api(`/api/ops/posts?${q()}`, { method: "POST", body: JSON.stringify(body) }).catch(() => null);
   if (!res?.ok) {
@@ -517,7 +628,7 @@ async function shootRun(r: Run, img: HTMLImageElement, dl: HTMLAnchorElement, bt
     const res = await api(`/api/ops/posts/run.jpg?${q()}&id=${r.id}${lay}`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
     if (!res.ok) throw new Error(await errorOf(res, t("ui.savefail")));
     const u = URL.createObjectURL(blob);
-    pictures.set(r.id, u);
+    pictures.set(String(r.id), u);
     img.src = u;
     dl.href = u;
     r.results = { ...(r.results ?? {}), photo: true, card: c } as unknown as Run["results"];
@@ -595,6 +706,41 @@ async function send(r: Run, ch: string, edited: Texts | undefined, btn: HTMLButt
   await loadPosts(region, primary, chapters);
 }
 
+/** A draft's map picture: download, and the app's picture with its layers. */
+function cardFig(r: Run): HTMLElement {
+  const fig = el("div", { className: "post-run-pic" });
+  const known = pictures.get(String(r.id));
+  const img = el("img", { className: "post-pic", alt: "" });
+  const dl = el("a", { textContent: t("po.download"), className: "ed-link", download: `post-${r.id}.jpg` });
+  const set = (u: string) => ((img.src = u), (dl.href = u));
+  if (known) set(known);
+  else
+    void picture(`/api/ops/posts/run.jpg?${q()}&id=${r.id}`).then((u) => {
+      if (u) pictures.set(String(r.id), u), set(u);
+    });
+  fig.append(img, dl);
+  // As in the game: the app takes the picture (the server's is a stand-in), once by itself.
+  if (r.state === "draft" && extra(r).card?.look === "game") {
+    // This draft's layers (from its post; e.g. rain only today), then take it again.
+    const have = extra(r).card?.layers ?? LAYERS_ON;
+    const pick = el("div", { className: "post-layers" });
+    const boxes = LAYERS.map((l) => {
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = have.includes(l);
+      const lab = el("label", { className: "check" });
+      lab.append(box, ` ${t(`po.layer.${l}` as EKey)}`);
+      pick.append(lab);
+      return [l, box] as const;
+    });
+    const again = el("button", { type: "button", textContent: t("po.photo.take") });
+    again.onclick = () => void shootRun(r, img, dl, again, boxes.filter(([, b]) => b.checked).map(([l]) => l));
+    fig.append(pick, again);
+    if (!extra(r).photo) void shootRun(r, img, dl, again);
+  }
+  return fig;
+}
+
 function drawRun(r: Run): HTMLElement {
   const p = posts.find((x) => x.id === r.post);
   const box = el("div", { className: `post-run ${r.state}` });
@@ -609,39 +755,29 @@ function drawRun(r: Run): HTMLElement {
   box.append(head);
   if (r.note) box.append(el("p", { className: "notice", textContent: r.note }));
   const body = el("div", { className: "post-run-body" });
-  if (r.image) {
+  const pics = el("div", { className: "post-run-pics" });
+  const total = (r.image ? 1 : 0) + (r.extra ?? 0);
+  const cardAt = r.image ? Math.min(r.card_at ?? 0, total - 1) : -1;
+  for (let i = 0; i < total; i++) {
+    if (i === cardAt) {
+      pics.append(cardFig(r));
+      continue;
+    }
     const fig = el("div", { className: "post-run-pic" });
-    const known = pictures.get(r.id);
     const img = el("img", { className: "post-pic", alt: "" });
-    const dl = el("a", { textContent: t("po.download"), className: "ed-link", download: `post-${r.id}.jpg` });
+    const dl = el("a", { textContent: t("po.download"), className: "ed-link", download: `post-${r.id}-${i + 1}.jpg` });
+    const key = `${r.id}:${i}`;
     const set = (u: string) => ((img.src = u), (dl.href = u));
+    const known = pictures.get(key);
     if (known) set(known);
     else
-      void picture(`/api/ops/posts/run.jpg?${q()}&id=${r.id}`).then((u) => {
-        if (u) pictures.set(r.id, u), set(u);
+      void picture(`/api/ops/posts/run.jpg?${q()}&id=${r.id}&n=${i}`).then((u) => {
+        if (u) pictures.set(key, u), set(u);
       });
     fig.append(img, dl);
-    // As in the game: the app takes the picture (the server's is a stand-in), once by itself.
-    if (r.state === "draft" && extra(r).card?.look === "game") {
-      // This draft's layers (from its post; e.g. rain only today), then take it again.
-      const have = extra(r).card?.layers ?? LAYERS_ON;
-      const pick = el("div", { className: "post-layers" });
-      const boxes = LAYERS.map((l) => {
-        const box = document.createElement("input");
-        box.type = "checkbox";
-        box.checked = have.includes(l);
-        const lab = el("label", { className: "check" });
-        lab.append(box, ` ${t(`po.layer.${l}` as EKey)}`);
-        pick.append(lab);
-        return [l, box] as const;
-      });
-      const again = el("button", { type: "button", textContent: t("po.photo.take") });
-      again.onclick = () => void shootRun(r, img, dl, again, boxes.filter(([, b]) => b.checked).map(([l]) => l));
-      fig.append(pick, again);
-      if (!extra(r).photo) void shootRun(r, img, dl, again);
-    }
-    body.append(fig);
+    pics.append(fig);
   }
+  if (total) body.append(pics);
   const fields = el("div", { className: "post-run-texts" });
   const areas = new Map<string, HTMLTextAreaElement>();
   const edited = () => Object.fromEntries([...areas].map(([k, a]) => [k, a.value.trim()])) as Texts;
@@ -711,6 +847,14 @@ function drawRuns() {
   }
 }
 
+/** The list's word for a post's pictures. */
+function picsLabel(p: Post): string[] {
+  const list = p.pictures ?? (p.card ? ["card"] : []);
+  if (list.length > 1) return [t("po.pics.n", { n: list.length })];
+  if (list.length === 1) return [list[0] === "card" ? t("po.f.card") : t("po.f.pics")];
+  return [];
+}
+
 function drawList() {
   const host = $("posts-list");
   if (!posts.length) {
@@ -725,7 +869,7 @@ function drawList() {
   for (const p of posts) {
     const tr = tbl.insertRow();
     const name = tr.insertCell();
-    name.append(el("b", { textContent: p.title }), el("br"), el("small", { textContent: [...p.channels.map((c) => t(LABEL[c] ?? "po.f.mastodon")), ...(p.card ? [t("po.f.card")] : [])].join(" · ") }));
+    name.append(el("b", { textContent: p.title }), el("br"), el("small", { textContent: [...p.channels.map((c) => t(LABEL[c] ?? "po.f.mastodon")), ...picsLabel(p)].join(" · ") }));
     tr.insertCell().textContent = whenOf(p);
     const mine = runs.filter((r) => r.post === p.id);
     const st = tr.insertCell();
@@ -768,7 +912,19 @@ export function initPosts(apiFn: Api) {
   $("post-save").onclick = () => void save();
   $("post-preview-btn").onclick = () => void preview();
   $("post-trigger").onchange = syncTrigger;
-  input("post-card-on").onchange = syncTrigger;
+  input("post-card-on").onchange = () => {
+    const on = input("post-card-on").checked;
+    pics = pics.filter((x) => x !== "card");
+    if (on) pics.unshift("card");
+    drawPics();
+    syncTrigger();
+  };
+  $("post-pic-add").onclick = () => input("post-pic-file").click();
+  input("post-pic-file").onchange = () => {
+    const f = input("post-pic-file");
+    if (f.files?.length) void upload(f.files).finally(() => (f.value = ""));
+  };
+  input("post-ch-mastodon").addEventListener("change", drawPics);
   $("post-frame-auto").onclick = () => {
     setField("post-card-lat", "");
     setField("post-card-lon", "");

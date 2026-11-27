@@ -165,3 +165,16 @@ small.over { color: #c92a2a; font-weight: 600; }
 .post-done summary { cursor: pointer; margin: 8px 0; }
 .post-layers { display: flex; flex-wrap: wrap; gap: 4px 14px; border: 1px solid var(--line, #2a313c); border-radius: 8px; padding: 6px 10px; margin: 8px 0; }
 .post-layers legend { padding: 0 4px; }
+.post-pics { margin: 8px 0; }
+.post-pics-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+.post-pic-tile { display: flex; flex-direction: column; gap: 4px; width: 150px; }
+.post-pic-tile textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; }
+.post-pic-thumb { width: 150px; aspect-ratio: 4 / 5; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--page); text-align: center; font-size: 13px; }
+.post-pic-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.post-pic-thumb.frame { background: #333; }
+.post-pic-thumb.frame img { object-fit: contain; }
+.post-pic-tools { display: flex; gap: 4px; }
+.post-pic-tools button { flex: 1; margin: 0; padding: 2px 0; }
+.post-run-pics { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; }
+.post-run-pics .post-run-pic { width: min(200px, 100%); }
+.post-run-pics .post-run-pic:only-child { width: min(270px, 100%); }

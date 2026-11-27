@@ -578,6 +578,13 @@ pub fn spawn(bind: SocketAddr, cfg: GatewayConfig, host: Arc<Host>) {
                     .route("/api/ops/posts/send", post(posts::send))
                     .route("/api/ops/posts/place", get(posts::place))
                     .route(
+                        "/api/ops/posts/image",
+                        get(posts::image_get)
+                            .post(posts::image_put)
+                            // 8 MB and some
+                            .layer(axum::extract::DefaultBodyLimit::max(9 << 20)),
+                    )
+                    .route(
                         "/api/ops/posts/tags",
                         post(posts::tag_save).delete(posts::tag_delete),
                     )
