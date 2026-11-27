@@ -245,6 +245,9 @@ pub struct PostIn {
     /// absent: the card alone.
     #[serde(default)]
     pub pictures: Option<Vec<Value>>,
+    /// When due, send the draft at once (not for `manual`).
+    #[serde(default)]
+    pub auto_send: bool,
 }
 
 /// The pictures as stored, and the uploads' ids. The card is in the list
@@ -905,6 +908,61 @@ pub(super) async fn draft(
     .ok_or_else(|| "database".to_string())
 }
 
+/// A due post with `auto_send`: its new draft to each of its channels this
+/// server can send to; what fails stays on the draft (`results`).
+async fn auto_send(s: AppState, slug: String, post: i64, run: i64) {
+    let st = s.clone();
+    let sl = slug.clone();
+    let channels = tokio::task::spawn_blocking(move || {
+        st.with_db(|db| {
+            Ok(db
+                .query_opt(
+                    "SELECT channels FROM game.posts WHERE region = $1 AND id = $2 AND auto_send",
+                    &[&sl, &post],
+                )?
+                .map(|r| r.get::<_, Vec<String>>(0)))
+        })
+    })
+    .await
+    .ok()
+    .flatten()
+    .flatten();
+    let Some(channels) = channels else {
+        return;
+    };
+    for ch in channels {
+        let res = send_run(&s, &slug, run, &ch, None, "auto".into()).await;
+        if res.status().is_success() {
+            tracing::info!(slug, post, run, channel = %ch, "posts: sent by itself");
+        } else {
+            tracing::warn!(slug, post, run, channel = %ch, status = %res.status(), "posts: sending by itself failed");
+            // A refusal before sending (no account, no picture) is kept like a failed send.
+            if res.status() == StatusCode::UNPROCESSABLE_ENTITY {
+                let body = axum::body::to_bytes(res.into_body(), 4096)
+                    .await
+                    .unwrap_or_default();
+                let err = serde_json::from_slice::<Value>(&body)
+                    .ok()
+                    .and_then(|v| v["error"].as_str().map(str::to_string))
+                    .unwrap_or_else(|| "refused".into());
+                let (st, sl, c) = (s.clone(), slug.clone(), ch.clone());
+                tokio::task::spawn_blocking(move || {
+                    st.with_db(|db| {
+                        db.execute(
+                            "UPDATE game.post_runs SET results = jsonb_set(coalesce(results, '{}'), \
+                               ARRAY[$3::text], $4::text::jsonb) \
+                             WHERE region = $1 AND id = $2 AND results -> $3 IS NULL",
+                            &[&sl, &run, &c, &json!({ "error": err, "at": now_s() }).to_string()],
+                        )
+                    })
+                })
+                .await
+                .ok();
+            }
+        }
+    }
+}
+
 /// Every minute on the main cell: drafts for the posts that are due (at
 /// most a week late; posts of this shard's regions).
 pub(super) async fn tick_loop(s: AppState) {
@@ -962,7 +1020,11 @@ pub(super) async fn tick_loop(s: AppState) {
         .unwrap_or_default();
         for (slug, id) in due {
             match draft(&s, &slug, id, true).await {
-                Ok(Some(run)) => tracing::info!(slug, post = id, run, "posts: draft"),
+                Ok(Some(run)) => {
+                    tracing::info!(slug, post = id, run, "posts: draft");
+                    // Sending takes a while (Instagram waits for its containers).
+                    tokio::spawn(auto_send(s.clone(), slug.clone(), id, run));
+                }
                 Ok(None) => {}
                 Err(e) => tracing::warn!(slug, post = id, error = %e, "posts: draft failed"),
             }
@@ -1000,7 +1062,7 @@ pub(super) async fn list(
                 .query(
                     &format!(
                         "SELECT id, title, trigger, {}, chapter, offset_min, texts::text, card::text, \
-                         channels, created_by, tags, location::text, pictures::text FROM game.posts \
+                         channels, created_by, tags, location::text, pictures::text, auto_send FROM game.posts \
                          WHERE region = $1 ORDER BY id DESC",
                         epoch("at")
                     ),
@@ -1022,6 +1084,7 @@ pub(super) async fn list(
                         "tags": r.get::<_, Vec<String>>(10),
                         "location": r.get::<_, Option<String>>(11).and_then(|c| serde_json::from_str::<Value>(&c).ok()),
                         "pictures": r.get::<_, Option<String>>(12).and_then(|c| serde_json::from_str::<Value>(&c).ok()),
+                        "auto_send": r.get::<_, bool>(13),
                     })
                 })
                 .collect();
@@ -1140,6 +1203,7 @@ pub(super) async fn save(
         Ok(v) => v,
         Err(e) => return bad(e),
     };
+    let auto_send = req.auto_send && req.trigger != "manual";
     let at = (req.trigger == "at").then_some(req.at).flatten();
     let chapter = req
         .trigger
@@ -1183,10 +1247,10 @@ pub(super) async fn save(
                     .query_opt(
                         "UPDATE game.posts SET title = $3, trigger = $4, at = to_timestamp($5), \
                          chapter = $6, offset_min = $7, texts = $8::text::jsonb, card = $9::text::jsonb, \
-                         channels = $10, tags = $11, location = $12::text::jsonb, pictures = $13::text::jsonb \
-                         WHERE region = $1 AND id = $2 RETURNING id",
+                         channels = $10, tags = $11, location = $12::text::jsonb, pictures = $13::text::jsonb, \
+                         auto_send = $14 WHERE region = $1 AND id = $2 RETURNING id",
                         &[&slug, &id, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                          &texts.to_string(), &card_s, &channels, &tags, &loc_s, &pic_s],
+                          &texts.to_string(), &card_s, &channels, &tags, &loc_s, &pic_s, &auto_send],
                     )?
                     .map(|r| r.get(0)),
                 None => {
@@ -1199,11 +1263,11 @@ pub(super) async fn save(
                     Some(
                         t.query_one(
                             "INSERT INTO game.posts (region, title, trigger, at, chapter, offset_min, \
-                             texts, card, channels, tags, location, created_by, pictures) VALUES ($1, $2, $3, \
+                             texts, card, channels, tags, location, created_by, pictures, auto_send) VALUES ($1, $2, $3, \
                              to_timestamp($4), $5, $6, $7::text::jsonb, $8::text::jsonb, $9, $10, \
-                             $11::text::jsonb, $12, $13::text::jsonb) RETURNING id",
+                             $11::text::jsonb, $12, $13::text::jsonb, $14) RETURNING id",
                             &[&slug, &title, &req.trigger, &at, &chapter, &req.offset_min,
-                              &texts.to_string(), &card_s, &channels, &tags, &loc_s, &by, &pic_s],
+                              &texts.to_string(), &card_s, &channels, &tags, &loc_s, &by, &pic_s, &auto_send],
                         )?
                         .get(0),
                     )
@@ -1242,7 +1306,8 @@ pub(super) async fn save(
                 &by,
                 json!({ "title": title, "trigger": req.trigger, "at": at, "chapter": chapter,
                         "offset_min": req.offset_min, "texts": texts, "card": card, "channels": channels,
-                        "tags": tags, "location": location, "pictures": pictures }),
+                        "tags": tags, "location": location, "pictures": pictures,
+                        "auto_send": auto_send }),
             )?;
             t.commit()?;
             Ok(Ok(id))
@@ -2340,7 +2405,21 @@ pub(super) async fn send(
     if !w.may(&slug, Role::Editor) {
         return StatusCode::UNAUTHORIZED.into_response();
     }
-    let channel = q.channel.clone();
+    send_run(&s, &slug, q.id, &q.channel, req.texts, w.label).await
+}
+
+/// Sends a draft to a channel (the editor's button, or `auto_send` when
+/// due); see [`send`]. `by` goes into the audit log.
+async fn send_run(
+    s: &AppState,
+    slug: &str,
+    run: i64,
+    channel: &str,
+    edited: Option<Value>,
+    by: String,
+) -> Response {
+    let slug = slug.to_string();
+    let channel = channel.to_string();
     let via = match channel.as_str() {
         "mastodon" => match mastodon(&slug) {
             Some(m) => Via::Mastodon(m),
@@ -2350,21 +2429,21 @@ pub(super) async fn send(
             if crate::media::store().is_none() {
                 return bad("Instagram needs the media bucket for the picture");
             }
-            match instagram(&s, &slug).await {
+            match instagram(s, &slug).await {
                 Ok(a) => Via::Instagram(a),
                 Err(e) => return bad(&e),
             }
         }
         _ => return bad("unknown channel"),
     };
-    let texts = match &req.texts {
+    let texts = match &edited {
         Some(v) => match clean_texts(&json!({ "any": v })) {
             Ok(t) => Some(t["any"].clone()),
             Err(e) => return bad(e),
         },
         None => None,
     };
-    let (st, sl, id, ch) = (s.clone(), slug.clone(), q.id, channel.clone());
+    let (st, sl, id, ch) = (s.clone(), slug.clone(), run, channel.clone());
     // Claim the channel and store the edited texts; else say why not.
     let got = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
@@ -2418,8 +2497,8 @@ pub(super) async fn send(
         None => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };
     let text = texts[&channel].as_str().unwrap_or("").to_string();
-    let key = format!("glutflut-run-{}-{channel}", q.id);
-    let (sl, id) = (slug.clone(), q.id);
+    let key = format!("glutflut-run-{}-{channel}", run);
+    let (sl, id) = (slug.clone(), run);
     let sent = tokio::task::spawn_blocking(move || {
         if text.is_empty() {
             return Err("no text for this channel".to_string());
@@ -2451,7 +2530,7 @@ pub(super) async fn send(
         Ok((url, Some(n))) => json!({ "url": url, "note": n, "at": now_s() }),
         Err(e) => json!({ "error": e, "at": now_s() }),
     };
-    let (st, sl, id, ch, by) = (s.clone(), slug.clone(), q.id, channel.clone(), w.label);
+    let (st, sl, id, ch, by) = (s.clone(), slug.clone(), run, channel.clone(), by);
     let res = result.clone();
     let stored = tokio::task::spawn_blocking(move || {
         st.with_db(|db| {
@@ -2486,12 +2565,12 @@ pub(super) async fn send(
     .ok()
     .flatten();
     if stored.is_none() {
-        tracing::error!(region = %slug, run = q.id, ?result, "post sent, result not stored");
+        tracing::error!(region = %slug, run = run, ?result, "post sent, result not stored");
     }
     match sent {
         Ok((url, note)) => Json(json!({ "url": url, "note": note })).into_response(),
         Err(e) => {
-            tracing::warn!(region = %slug, run = q.id, channel = %channel, error = %e, "post not sent");
+            tracing::warn!(region = %slug, run = run, channel = %channel, error = %e, "post not sent");
             (StatusCode::BAD_GATEWAY, Json(json!({ "error": e }))).into_response()
         }
     }
@@ -3023,6 +3102,7 @@ mod tests {
             tags: vec!["#Konstanz".into(), "konstanz".into(), "GlutUndFlut".into()],
             location: None,
             pictures: None,
+            auto_send: false,
         };
         let (_, _, card, ch, tags) = clean_post(&ok).unwrap();
         assert_eq!(tags, vec!["Konstanz", "GlutUndFlut"]);

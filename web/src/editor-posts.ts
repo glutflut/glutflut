@@ -37,6 +37,7 @@ type Post = {
   tags: string[];
   location: Place | null;
   pictures: Pic[] | null;
+  auto_send?: boolean;
 };
 type Place = { id: string; name: string };
 type Run = {
@@ -348,11 +349,23 @@ async function tagCall(method: "POST" | "DELETE", tag: string, preset = false) {
   await loadPosts(region, primary, chapters);
 }
 
+/** Auto-send: not for posts by hand; warns about channels the server can't send to. */
+function syncAuto() {
+  const manual = $<HTMLSelectElement>("post-trigger").value === "manual";
+  $("post-auto-row").style.display = manual ? "none" : "";
+  const missing = CHANNELS.filter((c) => input(`post-ch-${c}`).checked && !ready.includes(c)).map((c) => t(LABEL[c]));
+  const base: string = t("po.f.auto.hint");
+  const warn = input("post-auto").checked && missing.length ? ` ${t("po.f.auto.noacc", { ch: missing.join(", ") })}` : "";
+  $("post-auto-hint").textContent = base + warn;
+  $("post-auto-hint").classList.toggle("over", !!warn);
+}
+
 function syncTrigger() {
   const tr = $<HTMLSelectElement>("post-trigger").value;
   // style, not `hidden`: the form's label and row rules would win.
   $("post-at-row").style.display = tr === "at" ? "" : "none";
   $("post-chapter-row").style.display = tr.startsWith("chapter_") ? "" : "none";
+  syncAuto();
   $("post-card-fields").style.display = input("post-card-on").checked ? "" : "none";
   void showMap();
 }
@@ -566,6 +579,7 @@ function open(p: Post | null) {
   const preset = places.find((x) => x.preset);
   setPlace(p ? p.location : preset ? { id: preset.id, name: preset.name } : (posts.find((x) => x.location)?.location ?? null));
   showVariant(p && !p.texts.any ? (VARIANTS.find((v) => p.texts[v]) ?? "any") : "any");
+  input("post-auto").checked = !!p?.auto_send;
   input("post-card-on").checked = !!p?.card;
   pics = p?.pictures ? structuredClone(p.pictures) : p?.card ? ["card"] : [];
   drawPics();
@@ -616,6 +630,7 @@ async function save() {
     tags: picked,
     location: placeOf(),
     pictures: pics,
+    auto_send: input("post-auto").checked && tr !== "manual",
   };
   const res = await api(`/api/ops/posts?${q()}`, { method: "POST", body: JSON.stringify(body) }).catch(() => null);
   if (!res?.ok) {
@@ -927,7 +942,7 @@ function drawList() {
   for (const p of posts) {
     const tr = tbl.insertRow();
     const name = tr.insertCell();
-    name.append(el("b", { textContent: p.title }), el("br"), el("small", { textContent: [...p.channels.map((c) => t(LABEL[c] ?? "po.f.mastodon")), ...picsLabel(p)].join(" · ") }));
+    name.append(el("b", { textContent: p.title }), el("br"), el("small", { textContent: [...p.channels.map((c) => t(LABEL[c] ?? "po.f.mastodon")), ...picsLabel(p), ...(p.auto_send ? [`⚡ ${t("po.auto")}`] : [])].join(" · ") }));
     tr.insertCell().textContent = whenOf(p);
     const mine = runs.filter((r) => r.post === p.id);
     const st = tr.insertCell();
@@ -983,6 +998,8 @@ export function initPosts(apiFn: Api) {
     if (f.files?.length) void upload(f.files).finally(() => (f.value = ""));
   };
   input("post-ch-mastodon").addEventListener("change", drawPics);
+  input("post-auto").onchange = syncAuto;
+  for (const c of CHANNELS) input(`post-ch-${c}`).addEventListener("change", syncAuto);
   $("post-frame-auto").onclick = () => {
     setField("post-card-lat", "");
     setField("post-card-lon", "");

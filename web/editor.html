@@ -169,6 +169,10 @@
             <label><span data-i18n="po.f.chapter">Kapitel</span> <select id="post-chapter"></select></label>
             <label><span data-i18n="po.f.offset">Minuten danach</span> <input id="post-offset" type="number" min="-10080" max="10080" step="1" /></label>
           </div>
+          <div id="post-auto-row" class="post-auto">
+            <label class="check"><input type="checkbox" id="post-auto" /> <b data-i18n="po.f.auto">Automatisch senden</b></label>
+            <small id="post-auto-hint" data-i18n="po.f.auto.hint">Wenn der Beitrag fällig ist, geht der Entwurf sofort an die angehakten Kanäle, ohne dass jemand klickt. Was nicht klappt, bleibt als Entwurf mit Fehler stehen.</small>
+          </div>
           <div class="ed-row">
             <label class="check"><input type="checkbox" id="post-ch-instagram" /> <span data-i18n="po.f.instagram">Instagram</span></label>
             <label class="check"><input type="checkbox" id="post-ch-mastodon" /> <span data-i18n="po.f.mastodon">Mastodon</span></label>

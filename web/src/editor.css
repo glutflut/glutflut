@@ -178,3 +178,4 @@ small.over { color: #c92a2a; font-weight: 600; }
 .post-run-pics { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; }
 .post-run-pics .post-run-pic { width: min(200px, 100%); }
 .post-run-pics .post-run-pic:only-child { width: min(270px, 100%); }
+.post-auto { display: flex; flex-direction: column; gap: 2px; margin: 8px 0; }
