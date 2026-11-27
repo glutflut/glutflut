@@ -1326,18 +1326,30 @@ async function main() {
     }
     return best?.[0] ?? null;
   }
+  // Same count, same size in every period (area ~ ratings; capped so one busy place stays readable).
+  const ratingRadius = (n: number) => Math.min(24, Math.max(5, 2.5 * Math.sqrt(n)));
+  // Frame the rated places (whole day); none: the segments with data.
+  function fitRated() {
+    const pts = [...placesDay.keys()].map((n) => nodePos.get(n)).filter((p): p is [number, number] => !!p);
+    if (!pts.length) {
+      if (s?.dwell_bounds) map.fitBounds(s.dwell_bounds, { padding: 40, maxZoom: 16.5, duration: 0 });
+      return;
+    }
+    const lons = pts.map((p) => p[0]);
+    const lats = pts.map((p) => p[1]);
+    map.fitBounds([Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)], { padding: 40, maxZoom: 16.5, duration: 0 });
+  }
   const shareColor = (share: number) => RAMP[SHARE_BREAKS.filter((b) => share > b).length];
 
   function drawRatings() {
     if (!s) return;
     placeOf = hour < 0 ? placesDay : places(s.perception_hourly.filter((r) => r[2] === hour).map(([n, c, , k]) => [n, c, k]));
-    const max = Math.max(1, ...[...placeOf.values()].map((p) => p.total));
     const features = [...placeOf.values()].flatMap((p) => {
       const pos = nodePos.get(p.node);
       if (!pos) return [];
       const share = (p.by.get(cat) ?? 0) / p.total;
       const c = shareColor(share);
-      return [{ type: "Feature" as const, properties: { node: p.node, c, r: 4 + 12 * Math.sqrt(p.total / max) }, geometry: { type: "Point" as const, coordinates: pos } }];
+      return [{ type: "Feature" as const, properties: { node: p.node, c, r: ratingRadius(p.total) }, geometry: { type: "Point" as const, coordinates: pos } }];
     });
     (map.getSource("ratings") as maplibregl.GeoJSONSource).setData({ type: "FeatureCollection", features });
     $("map-title").textContent = t("dash.map.ratings.title");
@@ -1526,7 +1538,9 @@ async function main() {
   }
 
   function setMode(m: Mode) {
+    const entering = m === "ratings" && mode !== "ratings";
     mode = m;
+    if (entering) fitRated();
     stop();
     for (const b of document.querySelectorAll<HTMLButtonElement>(".tabs button")) {
       b.classList.toggle("on", b.dataset.mode === m);
@@ -1652,10 +1666,11 @@ async function main() {
     stop();
     s = body as Summary;
     shownData = data;
-    // Frame the segments that have data (once per load).
-    if (s.dwell_bounds) map.fitBounds(s.dwell_bounds, { padding: 40, maxZoom: 16.5, duration: 0 });
     $<HTMLButtonElement>("play").disabled = !s.hourly_edges.length;
     render();
+    // Frame what has data (once per load): rated places in the ratings view, else the segments.
+    if (mode === "ratings") fitRated();
+    else if (s.dwell_bounds) map.fitBounds(s.dwell_bounds, { padding: 40, maxZoom: 16.5, duration: 0 });
   }
 
   /** Draws the loaded summary; again after a language switch. */
