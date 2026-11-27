@@ -27,7 +27,9 @@ let passport: string | null = null;
   const m = location.hash.match(/[#&]passport=([0-9a-f.]+)/);
   if (m) {
     passport = m[1];
-    history.replaceState(history.state, "", location.pathname + location.search);
+    // Only the passport goes; a start spot (`keep=`, main.ts) stays.
+    const rest = location.hash.replace(/[#&]passport=[0-9a-f.]+/, "").replace(/^&/, "#");
+    history.replaceState(history.state, "", location.pathname + location.search + (rest.length > 1 ? rest : ""));
   }
 }
 
@@ -157,11 +159,13 @@ export async function openRegion(r: RegionInfo, watch = false, look?: [number, n
   // From the city list or the globe: only watch there (watch.ts); walking in: play.
   if (watch) u.searchParams.set("watch", "");
   else u.searchParams.delete("watch");
-  u.hash = look && !r.url ? `keep=${look[0].toFixed(6)},${look[1].toFixed(6)}` : "";
+  const hash: string[] = [];
+  if (look) hash.push(`keep=${look[0].toFixed(6)},${look[1].toFixed(6)}`);
   if (r.url) {
     const p = await passportFor();
-    if (p) u.hash = `passport=${p}`;
+    if (p) hash.push(`passport=${p}`);
   }
+  u.hash = hash.join("&");
   location.href = u.toString();
 }
 

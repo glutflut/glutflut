@@ -19,6 +19,8 @@ export function setupInset(gameView: boolean) {
   let map: maplibregl.Map | null = null;
   let mapRegion = "";
   let open = "";
+  /** Where the claim fell: the far region opens there, not at the player's position. */
+  let openAt: [number, number] | null = null;
   let hide = 0;
   /** The permanent source it came through: the hexagon of the main map (sources.ts). */
   const srcEl = document.createElement("div");
@@ -28,7 +30,7 @@ export function setupInset(gameView: boolean) {
     if (!open) return;
     void listRegions().then((rs) => {
       const r = rs.find((x) => x.slug === open);
-      if (r) void openRegion(r);
+      if (r) void openRegion(r, false, openAt ?? undefined);
     });
   };
 
@@ -122,6 +124,7 @@ export function setupInset(gameView: boolean) {
     from: [number, number] | null = null,
   ) {
     open = region;
+    openAt = at;
     $("inset-name").textContent = name;
     box.classList.remove("out");
     box.hidden = false;
